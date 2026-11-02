@@ -468,4 +468,20 @@ test('永夜で4人AI完走（両乱入者）', () => {
   fullRun('eternal', 'y_marisa');
 });
 
+// ================= UI API 契約 =================
+// game.js が参照する Engine の関数は、Browser 実行時に未定義だと
+// renderAll が途中で例外を投げ、以降の描画（スコア・バナー・ログ）が
+// 全部欠落する（2026-11-03 の countKeys 未定義事故の再発防止）。
+
+test('UI API 存在: game.js が使う Engine 関数がすべて公開されている', () => {
+  for (const fn of ['newGame', 'dispatch', 'scorePlayer', 'countKey', 'countKeys']) {
+    assert.strictEqual(typeof Engine[fn], 'function', `Engine.${fn} が未定義`);
+  }
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  s.players[0].taken = [inst(D, 2), inst(D), inst('k_sakuya')];
+  const counts = Engine.countKeys(s.players[0].taken);
+  assert.strictEqual(counts[D], 3, 'icons 合算される');
+  assert.strictEqual(counts['k_sakuya'], 1, 'icons なしは 1 として数える');
+});
+
 console.log(`\n${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);

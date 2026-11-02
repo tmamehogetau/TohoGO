@@ -409,6 +409,15 @@
       return n;
     }
 
+    // UI 用ユーティリティ: taken 内の key → 枚数マップ（裏返しカードも所持としては数える）
+    function countKeys(taken) {
+      const counts = {};
+      for (const i of taken) {
+        counts[i.key] = (counts[i.key] || 0) + (i.icons || 1);
+      }
+      return counts;
+    }
+
     function endRound(state) {
       const n = state.playerCount;
       const results = [];
@@ -685,6 +694,7 @@
       charmBonus,
       roundBreakdown,
       countKey,
+      countKeys,
       PASS_DIRS,
     };
   })();
