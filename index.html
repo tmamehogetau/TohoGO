@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>幻想宴会ドラフト</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="lobby">
+  <div class="lobby-card">
+    <h1>幻想宴会ドラフト</h1>
+    <p class="subtitle">東方Project二次創作 × スシGO風ドラフト</p>
+    <p class="note">プロトタイプ v0.2（異変パックシステム）— あなた 1 人 vs AI 3 人のホットシート</p>
+    <p class="note">ゲーム開始時に異変（紅霧 / 春雪 / 永夜）が 1 つ抽選されます</p>
+    <input id="input-name" placeholder="幹事の名前" value="貴殿" maxlength="12">
+    <button id="btn-start">宴会を始める</button>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <h1>幻想宴会ドラフト</h1>
+    <div id="round-indicator"></div>
+    <div id="pass-indicator"></div>
+  </header>
+
+  <main>
+    <section id="left-col">
+      <div id="players"></div>
+      <div id="score-panel"></div>
+    </section>
+
+    <section id="hand-area">
+      <div id="hand-status"></div>
+      <button id="btn-chopsticks" class="hidden">早飲みモードに切り替え（2枚取る）</button>
+      <div id="hand"></div>
+      <div id="select-area" class="hidden"></div>
+    </section>
+
+    <aside id="side">
+      <h3>ログ</h3>
+      <div id="log"></div>
+    </aside>
+  </main>
+
+  <div id="banner" class="hidden"></div>
+</div>
+
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="ai.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+:root {
+  --bg: #17151c;
+  --panel: #221e28;
+  --panel2: #2a2532;
+  --accent: #c22a4e;
+  --accent2: #3f6fb5;
+  --text: #ece6df;
+  --text-dim: #9a938a;
+  --gold: #d9c27a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+}
+
+.hidden { display: none !important; }
+
+h1 { font-size: 1.5rem; margin: 0; }
+h3 { margin: 12px 0 6px; color: var(--gold); }
+
+button {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  padding: 10px 22px;
+  font-size: 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button:hover { filter: brightness(1.15); }
+button.secondary { background: var(--accent2); }
+button.active { outline: 2px solid var(--gold); }
+
+/* ---- ロビー ---- */
+
+#lobby {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.lobby-card {
+  background: var(--panel);
+  padding: 40px 48px;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid #3a3342;
+}
+.lobby-card h1 { color: var(--accent); font-size: 2rem; margin-bottom: 4px; }
+.lobby-card .subtitle { color: var(--text-dim); margin: 4px 0 0; }
+.lobby-card .note { color: var(--text-dim); font-size: 0.85rem; }
+.lobby-card input {
+  display: block;
+  margin: 20px auto;
+  padding: 10px;
+  width: 220px;
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid #3a3342;
+  border-radius: 6px;
+  text-align: center;
+}
+
+/* ---- ゲーム画面 ---- */
+
+#app { max-width: 1200px; margin: 0 auto; padding: 16px; }
+
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+}
+header h1 { color: var(--accent); }
+#round-indicator { color: var(--gold); font-weight: bold; }
+#pass-indicator { color: var(--text-dim); font-size: 0.9rem; }
+
+main {
+  display: grid;
+  grid-template-columns: 280px 1fr 240px;
+  gap: 16px;
+  align-items: start;
+}
+
+/* プレイヤーパネル */
+#left-col { display: flex; flex-direction: column; gap: 12px; }
+
+.player-panel {
+  background: var(--panel);
+  border: 1px solid #3a3342;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.player-panel.me { border-color: var(--accent); }
+.player-panel.picked { opacity: 0.75; }
+.player-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.player-name { font-weight: bold; }
+.player-score { color: var(--gold); font-weight: bold; }
+.player-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+
+.badge {
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.badge.charm-badge { background: #a08b3c; }
+.badge.chop-badge { background: #6e5a48; }
+.badge.spell-badge { background: var(--accent); }
+.badge.pick-flag { background: #444; color: #ccc; }
+
+/* スコアテーブル */
+.score-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.score-table th, .score-table td {
+  padding: 4px 6px;
+  text-align: left;
+  border-bottom: 1px solid #3a3342;
+}
+.score-table th { color: var(--text-dim); font-weight: normal; }
+.score-table tr.me td { color: var(--gold); }
+
+/* 手札エリア */
+#hand-area {
+  background: var(--panel);
+  border: 1px solid #3a3342;
+  border-radius: 10px;
+  padding: 16px;
+  min-height: 320px;
+}
+#hand-status { color: var(--text-dim); margin-bottom: 10px; }
+#btn-chopsticks { margin-bottom: 12px; }
+
+#hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.card {
+  width: 92px;
+  height: 132px;
+  border-radius: 8px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  user-select: none;
+}
+.card.clickable { cursor: pointer; }
+.card.clickable:hover { transform: translateY(-6px); transition: transform 0.1s; }
+.card.disabled { filter: brightness(0.6); cursor: default; }
+.card.selected { outline: 3px solid var(--gold); }
+.card-icon { font-size: 2.2rem; font-weight: bold; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+.card-name { font-size: 0.72rem; text-align: center; }
+.card-desc { font-size: 0.62rem; text-align: center; opacity: 0.85; line-height: 1.3; }
+
+/* ログ */
+#side {
+  background: var(--panel);
+  border: 1px solid #3a3342;
+  border-radius: 8px;
+  padding: 10px 12px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.log-line { font-size: 0.78rem; color: var(--text-dim); padding: 2px 0; }
+
+/* select フェーズの UI（取得カードの選択） */
+#select-area {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #3a3342;
+}
+.select-title { color: var(--gold); margin-bottom: 10px; font-size: 0.9rem; }
+.select-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.select-list .card { width: 76px; height: 110px; }
+.select-btn-row { margin-top: 10px; display: flex; gap: 8px; }
+.card-icons { font-size: 0.9rem; vertical-align: middle; color: var(--gold); }
+.badge.dessert-badge { background: var(--gold); color: #333; }
+
+/* ラウンド結果バナー */
+#banner {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 8, 12, 0.88);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 10;
+}
+#banner h2 { color: var(--gold); }
+#banner div { font-size: 1.1rem; padding: 2px; }
+#banner .banner-note { color: var(--text-dim); font-size: 0.85rem; margin-top: 18px; }
