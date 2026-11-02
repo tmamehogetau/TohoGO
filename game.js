@@ -367,6 +367,30 @@
     });
   }
 
+  // 直近ピック（state.lastPicks）で取られたカードに .new を付けてポップイン表示（renderTableRows 内で処理）
+
+  // プレイヤーごとの追跡リソース（春の合計・兎/妖精メイドの枚数など）
+  function trackedTags(pi) {
+    const p = STATE.players[pi];
+    const tags = [];
+    // 春雪: ラウンド統計の春アイコン合計（妖夢の吸収も反映済み）
+    if (STATE.incidentId === 'spring' && STATE.roundStats) {
+      tags.push({ label: `春 ${STATE.roundStats[pi].springIcons}`, color: '#d16a9e' });
+    }
+    // 多数決系カード（巻物=兎、妖精メイド等）のアイコン合計
+    for (const def of Object.values(STATE.cardMap)) {
+      if (def.kind !== 'maki' && def.kind !== 'temaki') continue;
+      // 春雪では春の合計を上で既に表示するため重複を避ける
+      if (STATE.incidentId === 'spring' && def.kind === 'maki') continue;
+      let n = 0;
+      for (const inst of p.taken) {
+        if (inst.key === def.key && !inst.flipped) n += inst.icons || 1;
+      }
+      tags.push({ label: `${def.icon} ${n}`, color: def.color });
+    }
+    return tags;
+  }
+
   // プレイヤーごとの「取ったカード」行（あなた → 他のプレイヤーの順）
   function renderTableRows() {
     const wrap = $('table-rows');
@@ -383,7 +407,17 @@
       main.className = 'row-main';
       const label = document.createElement('div');
       label.className = 'row-label';
-      label.textContent = `${pi === 0 ? 'あなた' : ''}${p.name} の取ったカード`;
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = `${pi === 0 ? 'あなた' : ''}${p.name} の取ったカード`;
+      label.appendChild(nameSpan);
+      // 追跡リソース（春合計・兎枚数など）
+      for (const t of trackedTags(pi)) {
+        const tag = document.createElement('span');
+        tag.className = 'row-tag';
+        tag.style.background = t.color;
+        tag.textContent = t.label;
+        label.appendChild(tag);
+      }
       main.appendChild(label);
 
       const cards = document.createElement('div');
@@ -394,7 +428,15 @@
         empty.textContent = '—';
         cards.appendChild(empty);
       } else {
-        p.taken.forEach((inst) => cards.appendChild(cardEl(inst.key, inst.icons, 'mini')));
+        // 今ピック分だけ .new を付ける: taken 末尾から lastPicks の keys と照合
+        const lp = STATE.lastPicks && STATE.lastPicks.find((x) => x.pi === pi);
+        const keys = lp ? [...lp.keys] : [];
+        const els = p.taken.map((inst) => cardEl(inst.key, inst.icons, 'mini'));
+        for (let i = els.length - 1; i >= 0 && keys.length; i--) {
+          const k = keys.indexOf(p.taken[i].key);
+          if (k >= 0) { els[i].classList.add('new'); keys.splice(k, 1); }
+        }
+        els.forEach((el) => cards.appendChild(el));
       }
       main.appendChild(cards);
       row.appendChild(main);
@@ -408,7 +450,14 @@
       dbox.appendChild(dlabel);
       const dcards = document.createElement('div');
       dcards.className = 'box-cards';
-      p.desserts.forEach((inst) => dcards.appendChild(cardEl(inst.key, null, 'mini')));
+      const dlp = STATE.lastPicks && STATE.lastPicks.find((x) => x.pi === pi);
+      const dkeys = dlp ? [...dlp.keys] : [];
+      const dels = p.desserts.map((inst) => cardEl(inst.key, null, 'mini'));
+      for (let i = dels.length - 1; i >= 0 && dkeys.length; i--) {
+        const k = dkeys.indexOf(p.desserts[i].key);
+        if (k >= 0) { dels[i].classList.add('new'); dkeys.splice(k, 1); }
+      }
+      dels.forEach((el) => dcards.appendChild(el));
       dbox.appendChild(dcards);
       row.appendChild(dbox);
 
@@ -455,6 +504,51 @@
     el.onclick = () => { STATE.roundBanner = null; renderAll(); };
   }
 
+  // 異変カード一覧モーダル（現在のセットの全カード・説明・構成枚数）
+  function toggleCardRef() {
+    const el = $('cardref');
+    if (!el.classList.contains('hidden')) { el.classList.add('hidden'); return; }
+    el.innerHTML = '';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'secondary ref-close';
+    closeBtn.textContent = '閉じる';
+    closeBtn.addEventListener('click', toggleCardRef);
+    el.appendChild(closeBtn);
+
+    const h2 = document.createElement('h2');
+    h2.textContent = `異変「${STATE.incidentName}」・${STATE.incidentSubtitle}`;
+    el.appendChild(h2);
+
+    // メイン → 乱入者 → デザート の順に種別ごと表示
+    const allKeys = Object.keys(STATE.cardMap);
+    const groups = [
+      { title: 'メインカード', keys: allKeys.filter((k) => k !== STATE.dessert.key && k !== STATE.intruderKey) },
+      { title: '乱入者', keys: STATE.intruderKey ? [STATE.intruderKey] : [] },
+      { title: 'デザート', keys: [STATE.dessert.key] },
+    ];
+    for (const g of groups) {
+      if (!g.keys.length) continue;
+      const h3 = document.createElement('h3');
+      h3.textContent = g.title;
+      el.appendChild(h3);
+      const grid = document.createElement('div');
+      grid.className = 'ref-grid';
+      for (const key of g.keys) {
+        const def = STATE.cardMap[key];
+        const n = (STATE.initialCounts && STATE.initialCounts[key]) || 0;
+        const cell = cardEl(key, null, 'ref');
+        const cnt = document.createElement('div');
+        cnt.className = 'ref-count';
+        cnt.textContent = `×${n}`;
+        cell.appendChild(cnt);
+        grid.appendChild(cell);
+      }
+      el.appendChild(grid);
+    }
+    el.classList.remove('hidden');
+  }
+
   function renderLog() {
     const el = $('log');
     el.innerHTML = STATE.log.slice(-30).reverse().map((l) => `<div class="log-line">R${l.round + 1} ${l.text}</div>`).join('');
@@ -475,6 +569,7 @@
     $('btn-start').addEventListener('click', startGame);
     $('input-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') startGame(); });
     $('btn-chopsticks').addEventListener('click', toggleChopsticks);
+    $('btn-cardref').addEventListener('click', toggleCardRef);
     buildIncidentPicker();
   }
 

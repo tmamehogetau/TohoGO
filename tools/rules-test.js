@@ -484,4 +484,15 @@ test('UI API 存在: game.js が使う Engine 関数がすべて公開されて�
   assert.strictEqual(counts['k_sakuya'], 1, 'icons なしは 1 として数える');
 });
 
+test('initialCounts: 全異変でカードリファレンス用の構成枚数が記録される', () => {
+  for (const inc of ['scarlet', 'spring', 'eternal']) {
+    const s = Engine.newGame(2, ['A', 'B'], { incident: inc });
+    const total = Object.values(s.initialCounts).reduce((a, b) => a + b, 0);
+    assert.strictEqual(total, 54 + 15, `${inc} の構成合計はメイン54+デザート15`);
+  }
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  assert.strictEqual(s.initialCounts['y_reimu'], 8, '乱入者は参加分のみ記録');
+  assert.strictEqual(s.initialCounts['y_marisa'], undefined, '不参加の乱入者は記録されない');
+});
+
 console.log(`\n${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);

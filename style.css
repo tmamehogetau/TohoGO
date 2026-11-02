@@ -189,6 +189,26 @@ main {
 .card.mini .card-desc { display: none; }
 .card.mini:hover { transform: translateY(-2px); z-index: 2; position: relative; }
 
+/* 取得アニメーション: 直近ピックのカードがポップイン */
+@keyframes popIn {
+  0% { transform: scale(0.4) translateY(8px); opacity: 0; }
+  65% { transform: scale(1.15) translateY(-3px); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+.card.mini.new { animation: popIn 0.4s ease-out; }
+
+/* 行ラベルの追跡リソース（春の合計・兎枚数など） */
+.row-tag {
+  display: inline-block;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: bold;
+  padding: 1px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
 /* 手札エリア */
 #hand-area {
   background: var(--panel);
@@ -270,3 +290,38 @@ main {
 #banner div { font-size: 1.1rem; padding: 2px; }
 #banner div.banner-me { color: var(--gold); font-weight: bold; }
 #banner .banner-note { color: var(--text-dim); font-size: 0.85rem; margin-top: 18px; }
+
+/* 異変カード一覧モーダル */
+.btn-cardref { margin-left: auto; padding: 6px 14px; font-size: 0.8rem; }
+#cardref {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 8, 12, 0.94);
+  z-index: 11;
+  overflow-y: auto;
+  padding: 40px 24px;
+}
+#cardref h2 { color: var(--gold); text-align: center; margin: 0 0 8px; }
+#cardref h3 { text-align: center; margin-top: 18px; }
+.ref-close { position: fixed; top: 16px; right: 20px; }
+.ref-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  max-width: 900px;
+  margin: 10px auto;
+}
+.card.ref { width: 100px; height: 142px; }
+.ref-count {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--gold);
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+.card.ref { position: relative; }

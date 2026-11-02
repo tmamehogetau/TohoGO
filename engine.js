@@ -55,6 +55,11 @@
       const deck = buildMainDeck(incident, intruderDef);
       const dessertPool = buildDessertPool(incident);
 
+      // カードリファレンス用: このゲームに存在する全カードの構成枚数
+      const initialCounts = {};
+      for (const inst of deck) initialCounts[inst.key] = (initialCounts[inst.key] || 0) + 1;
+      for (const inst of dessertPool) initialCounts[inst.key] = (initialCounts[inst.key] || 0) + 1;
+
       const players = [];
       for (let i = 0; i < playerCount; i++) {
         players.push({
@@ -79,6 +84,7 @@
         incidentSubtitle: incident.subtitle,
         incidentTheme: incident.theme,
         cardMap,
+        initialCounts,
         intruderKey: intruderDef ? intruderDef.key : null,
         round: 0,
         passDir: PASS_DIRS[0],
