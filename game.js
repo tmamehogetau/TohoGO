@@ -53,36 +53,58 @@
     return STATE.cardMap[key];
   }
 
-  // kind から簡易説明テキストを生成（カード裏面の説明相当）
+  function nameOf(key) {
+    const d = STATE.cardMap[key];
+    return d ? d.name : key;
+  }
+
+  // kind から説明テキストを生成（実パラメータを数字で見せる・全文はツールチップと一覧で使う）
   function descOf(def) {
+    const MAKI = Data.RULES.MAKI_POINTS;
     switch (def.kind) {
-      case 'instant':
-        if (def.absentKeys) return '主と同席で 0 点・なければ 3 点';
-        if (def.comboKeys) return '揃うとボーナス';
-        if (def.hidden) return '出すと情報が隠れる';
-        return `${def.points} 点`;
-      case 'maki': return 'アイコン合計で順位競争';
-      case 'temaki': return `最多 ${def.most} 点 / 最少 ${def.least} 点`;
-      case 'springMost': return '春最多なら 4 点';
-      case 'springSteal': return '全員の春を 1 個ずつ吸収';
-      case 'pair': return '2 枚 1 セット = 5 点';
-      case 'set3': return '3 枚 1 セット = 10 点';
-      case 'collect': return '収集 1/3/6/10/15 点';
-      case 'roundComboCount': return '今ラウンドの⑨ 1 枚ごとに 1 点';
-      case 'tofu': return '1 枚 2 点 / 2 枚 6 点 / 3 枚以上 0 点';
-      case 'kindCount': return '種類数 − 3 点';
-      case 'letty': return '(冬枚数 − 春枚数) × 2 点';
-      case 'coop': return '仲間のリグル 1 人につき 1 点';
-      case 'flip': return '出したら裏返し対象を選べる';
-      case 'copy': return '取得カードの効果をコピー';
-      case 'deckPeek': return '山札 4 枚見て 1 枚獲得';
-      case 'collectByTwo': return '2 枚ごとに 4 点・4 枚以上 +2';
-      case 'parity': return '偶数なら 2 枚ごとに 6 点';
-      case 'dessertLeast': return `ゲーム末・最少 ${def.least} 点`;
-      case 'dessertIce': return `ゲーム末・${def.per} 枚ごとに ${def.points} 点`;
-      case 'dessertRound': return '各ラウンド末・最多で判定';
+      case 'instant': {
+        const parts = [`${def.points} 点`];
+        if (def.absentKeys) parts.push(`誰かが同時に${def.absentKeys.map(nameOf).join('か')}を取ると 0 点`);
+        if (def.comboKeys) parts.push(`ラウンド末に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`);
+        if (def.discardBonus) parts.push(`取得時・手元 1 枚を山札へ戻し +${def.discardBonus} 点`);
+        if (def.intruderPenalty) parts.push(`乱入者が誰かに取られると -${def.intruderPenalty} 点`);
+        return parts.join('／');
+      }
+      case 'maki': return `このアイコンの合計を競う・最多 ${MAKI.first} 点／2 位 ${MAKI.second} 点`;
+      case 'temaki': return `この枚数を競う・最多 +${def.most}／最少 ${def.least} 点`;
+      case 'springMost': return `ラウンド末・春の獲得数が全員最多なら +${def.most} 点（このカードの所持が条件）`;
+      case 'springSteal': return `取った瞬間・全員の春を ${def.steal} 個ずつ奪って自分の春にする`;
+      case 'pair': return `2 枚で 1 ペア = ${def.points} 点`;
+      case 'set3': return `3 枚で 1 セット = ${def.points} 点`;
+      case 'collect': return `1/2/3/4/5+ 枚で ${def.table.join('/')} 点`;
+      case 'roundComboCount': return `このラウンドに自分がデザートを取るたび +${def.per} 点`;
+      case 'tofu': return `1 枚 ${def.table[0]} 点・2 枚 ${def.table[1]} 点・3 枚以上 0 点`;
+      case 'kindCount': return `ラウンド末・「取ったカードの種類数 ${def.offset >= 0 ? '+' : ''}${def.offset}」点`;
+      case 'letty': return `ラウンド末・(自分の冬の枚数 − 自分の春の個数) × ${def.mult} 点`;
+      case 'coop': return `ラウンド末・自分以外が出したリグル 1 枚につき +1 点`;
+      case 'flip': return `取得時・手元のカードを裏返せる（判定から外れ 1 枚 ${def.flipPoints} 点）`;
+      case 'copy': return `取得時・手元の他のカード 1 枚の効果をコピー`;
+      case 'deckPeek': return `ラウンド末・山札の上 ${def.peek} 枚から 1 枚獲得`;
+      case 'collectByTwo': return `ゲーム末・2 枚ごとに ${def.per2} 点・4 枚以上で +${def.bonusAt4}`;
+      case 'parity': return `ゲーム末・偶数枚なら 2 枚ごとに ${def.per2Even} 点／奇数なら ${def.per2Odd} 点`;
+      case 'dessertLeast': return `ゲーム末・このデザートの枚数が最少なら ${def.least} 点`;
+      case 'dessertIce': return `ゲーム末・${def.per} 枚ごとに +${def.points} 点`;
+      case 'dessertRound': return `ラウンド末・最多保有で +${def.roundMost} 点／ゲーム末に最多で ${def.finalLeast} 点`;
       default: return '';
     }
+  }
+
+  // カード面に載せる短縮版（全文はツールチップ・カード一覧で見れる）
+  function shortDesc(def) {
+    const full = descOf(def);
+    if (full.length <= 30) return full;
+    const parts = full.split('／');
+    let out = parts[0];
+    for (let i = 1; i < parts.length; i++) {
+      if ((out + '／' + parts[i]).length > 30) break;
+      out += '／' + parts[i];
+    }
+    return out.length > 30 ? out.slice(0, 28) + '…' : out;
   }
 
   // ---- 人間の入力 ----
@@ -244,7 +266,7 @@
     el.innerHTML = `
       <div class="card-icon">${iconText}</div>
       <div class="card-name">${def.name}</div>
-      <div class="card-desc">${descOf(def)}</div>`;
+      <div class="card-desc">${shortDesc(def)}</div>`;
     el.title = `${def.name}：${descOf(def)}`;
     return el;
   }
@@ -577,12 +599,15 @@
       for (const key of g.keys) {
         const def = STATE.cardMap[key];
         const n = (STATE.initialCounts && STATE.initialCounts[key]) || 0;
-        const cell = cardEl(key, null, 'ref');
-        const cnt = document.createElement('div');
-        cnt.className = 'ref-count';
-        cnt.textContent = `×${n}`;
-        cell.appendChild(cnt);
-        grid.appendChild(cell);
+        // ミニカード + 横に完全な説明文（カード面に長文を詰め込まない）
+        const item = document.createElement('div');
+        item.className = 'ref-item';
+        item.appendChild(cardEl(key, null, 'mini'));
+        const txt = document.createElement('div');
+        txt.className = 'ref-text';
+        txt.innerHTML = `<div class="ref-name">${def.name}<span class="ref-count">×${n}</span></div><div class="ref-desc">${descOf(def)}</div>`;
+        item.appendChild(txt);
+        grid.appendChild(item);
       }
       el.appendChild(grid);
     }

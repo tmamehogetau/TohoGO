@@ -231,14 +231,14 @@ main {
 
 .card {
   width: 92px;
-  height: 132px;
+  height: 140px;
   border-radius: 8px;
   color: #fff;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
   padding: 6px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
   border: 2px solid rgba(255, 255, 255, 0.25);
@@ -248,9 +248,18 @@ main {
 .card.clickable:hover { transform: translateY(-6px); transition: transform 0.1s; }
 .card.disabled { filter: brightness(0.6); cursor: default; }
 .card.selected { outline: 3px solid var(--gold); }
-.card-icon { font-size: 2.2rem; font-weight: bold; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
-.card-name { font-size: 0.72rem; text-align: center; }
-.card-desc { font-size: 0.62rem; text-align: center; opacity: 0.85; line-height: 1.3; }
+.card-icon { font-size: 1.8rem; font-weight: bold; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+.card-name { font-size: 0.65rem; text-align: center; }
+.card-desc {
+  font-size: 0.56rem;
+  text-align: center;
+  opacity: 0.9;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
 /* ログ */
 #side {
@@ -308,21 +317,22 @@ main {
 .ref-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  max-width: 900px;
+  gap: 8px;
+  max-width: 880px;
   margin: 10px auto;
 }
-.card.ref { width: 100px; height: 142px; }
-.ref-count {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  background: rgba(0, 0, 0, 0.55);
-  color: var(--gold);
-  font-size: 0.7rem;
-  font-weight: bold;
-  padding: 1px 6px;
+.ref-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel2);
+  border: 1px solid #3a3342;
   border-radius: 8px;
+  padding: 8px 12px 8px 8px;
+  width: calc(50% - 4px);
+  box-sizing: border-box;
 }
-.card.ref { position: relative; }
+.ref-text { flex: 1; min-width: 0; }
+.ref-name { font-weight: bold; }
+.ref-count { color: var(--gold); margin-left: 8px; font-size: 0.8rem; }
+.ref-desc { font-size: 0.78rem; color: var(--text-dim); line-height: 1.45; margin-top: 3px; }
