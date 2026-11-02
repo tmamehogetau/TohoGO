@@ -218,7 +218,8 @@ main {
   padding: 16px;
 }
 #hand-status { color: var(--text-dim); margin-bottom: 10px; }
-#btn-chopsticks { margin-bottom: 12px; }
+#hand-buttons { display: flex; gap: 8px; margin-bottom: 12px; }
+#hand-buttons button { font-size: 0.9rem; padding: 8px 16px; }
 
 #hand {
   display: flex;

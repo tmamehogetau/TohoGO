@@ -7,6 +7,7 @@
   let STATE = null;
   let CHOPSTICKS_MODE = false;
   let CHOP_SELECTED = []; // pick2 モード中の選択 idx
+  let PICK_SELECTED = null; // 通常ピックで選択中の idx（決定ボタンで確定）
   let SEL_MODE = null;    // 取得時選択: 'discard' | 'flip' | 'copy' | null
   let SEL_SELECTED = [];  // flip モード中の選択 idx
 
@@ -40,6 +41,7 @@
     STATE = Engine.newGame(4, [name, '萃香', '魔理沙', 'にとり'], opts);
     CHOPSTICKS_MODE = false;
     CHOP_SELECTED = [];
+    PICK_SELECTED = null;
     SEL_MODE = null;
     SEL_SELECTED = [];
     FINAL_CLOSED = false;
@@ -109,6 +111,7 @@
 
   // ---- 人間の入力 ----
 
+  // クリックは選択のトグルのみ。確定は決定ボタン（confirmPick）で行う（ミスクリック防止）
   function onHandClick(idx) {
     if (!STATE || STATE.phase !== 'pick' || STATE.picks[0] !== null) return;
     const p = STATE.players[0];
@@ -116,25 +119,39 @@
     if (CHOPSTICKS_MODE && p.chopsticks > 0) {
       if (CHOP_SELECTED.includes(idx)) {
         CHOP_SELECTED = CHOP_SELECTED.filter((i) => i !== idx);
-        FLY_FROMS.pop(); // 選択解除したカードの座標記録も取り消す
         renderAll();
         return;
       }
-      recordFlyFrom(idx);
+      if (CHOP_SELECTED.length >= 2) return;
       CHOP_SELECTED.push(idx);
-      if (CHOP_SELECTED.length === 2) {
-        Engine.dispatch(STATE, { kind: 'pick2', pi: 0, idxs: [...CHOP_SELECTED].sort((a, b) => a - b) });
-        CHOP_SELECTED = [];
-        afterHumanPick();
-      } else {
-        renderAll();
-      }
+      renderAll();
       return;
     }
 
-    recordFlyFrom(idx);
-    const res = Engine.dispatch(STATE, { kind: 'pick', pi: 0, idx });
+    if (PICK_SELECTED === idx) PICK_SELECTED = null;
+    else PICK_SELECTED = idx;
+    renderAll();
+  }
+
+  // 決定ボタン: 選択したカードで確定してエンジンに送る
+  function confirmPick() {
+    if (!STATE || STATE.phase !== 'pick' || STATE.picks[0] !== null) return;
+    const p = STATE.players[0];
+
+    if (CHOPSTICKS_MODE && p.chopsticks > 0) {
+      if (CHOP_SELECTED.length !== 2) return;
+      CHOP_SELECTED.forEach((i) => flyFromIdx(i));
+      Engine.dispatch(STATE, { kind: 'pick2', pi: 0, idxs: [...CHOP_SELECTED].sort((a, b) => a - b) });
+      CHOP_SELECTED = [];
+      afterHumanPick();
+      return;
+    }
+
+    if (PICK_SELECTED === null) return;
+    flyFromIdx(PICK_SELECTED);
+    const res = Engine.dispatch(STATE, { kind: 'pick', pi: 0, idx: PICK_SELECTED });
     if (!res.ok) { FLY_FROMS.pop(); alert(res.error); return; }
+    PICK_SELECTED = null;
     afterHumanPick();
   }
 
@@ -288,17 +305,23 @@
       statusEl.textContent = '他の幹事の選択を待っている…';
     } else if (CHOPSTICKS_MODE) {
       statusEl.textContent = `早飲みモード：2枚選んでね（${CHOP_SELECTED.length}/2 枚選択）`;
+    } else if (PICK_SELECTED !== null && p.hand[PICK_SELECTED]) {
+      statusEl.textContent = `「${defOf(p.hand[PICK_SELECTED].key).name}」を選択中。決定ボタンで確定`;
     } else {
-      statusEl.textContent = '手札から 1 枚選んで隣に回そう';
+      statusEl.textContent = '手札から 1 枚選んで決定ボタンを押してね';
     }
 
     const chopBtn = $('btn-chopsticks');
     chopBtn.classList.toggle('hidden', !(myTurn && p.chopsticks > 0));
     chopBtn.classList.toggle('active', CHOPSTICKS_MODE);
 
+    const confirmBtn = $('btn-confirm-pick');
+    const canConfirm = myTurn && (CHOPSTICKS_MODE ? CHOP_SELECTED.length === 2 : PICK_SELECTED !== null);
+    confirmBtn.classList.toggle('hidden', !canConfirm);
+
     p.hand.forEach((card, idx) => {
       const el = cardEl(card.key, card.icons);
-      const selected = CHOP_SELECTED.includes(idx);
+      const selected = CHOP_SELECTED.includes(idx) || PICK_SELECTED === idx;
       if (selected) el.classList.add('selected');
       if (myTurn) {
         el.classList.add('clickable');
@@ -503,9 +526,10 @@
   }
 
   let FINAL_CLOSED = false; // 最終結果バナーを一度閉じたら再表示しない
-  let FLY_FROMS = []; // FLIP アニメ用: クリックした手札カードの中心座標
+  let FLY_FROMS = []; // FLIP アニメ用: 確定した手札カードの中心座標
 
-  function recordFlyFrom(idx) {
+  // 確定時に選択カードの現在座標を記録（FLIP アニメの移動元）
+  function flyFromIdx(idx) {
     const el = document.querySelectorAll('#hand .card')[idx];
     if (!el) return;
     const r = el.getBoundingClientRect();
@@ -635,6 +659,7 @@
     $('btn-start').addEventListener('click', startGame);
     $('input-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') startGame(); });
     $('btn-chopsticks').addEventListener('click', toggleChopsticks);
+    $('btn-confirm-pick').addEventListener('click', confirmPick);
     $('btn-cardref').addEventListener('click', toggleCardRef);
     buildIncidentPicker();
   }
