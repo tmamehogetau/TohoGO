@@ -19,6 +19,7 @@
     CHOP_SELECTED = [];
     SEL_MODE = null;
     SEL_SELECTED = [];
+    FINAL_CLOSED = false;
     $('lobby').classList.add('hidden');
     $('app').classList.remove('hidden');
     renderAll();
@@ -217,6 +218,7 @@
       <div class="card-icon">${iconText}</div>
       <div class="card-name">${def.name}</div>
       <div class="card-desc">${descOf(def)}</div>`;
+    el.title = `${def.name}：${descOf(def)}`;
     return el;
   }
 
@@ -321,63 +323,74 @@
     areaEl.appendChild(btnRow);
   }
 
-  function renderPlayers() {
-    const wrap = $('players');
+  // 上部プレイヤーバー（BGA 風コンパクト表示: 名前・今ラウンド即時点・合計）
+  function renderPlayerBar() {
+    const wrap = $('player-bar');
     wrap.innerHTML = '';
     STATE.players.forEach((p, pi) => {
-      const counts = Engine.countKeys(p.taken);
-      const badges = Object.entries(counts)
-        .map(([key, n]) => {
-          const def = defOf(key);
-          if (!def) return '';
-          return `<span class="badge" style="background:${def.color}">${def.icon}×${n}</span>`;
-        })
-        .join('');
-      const dessertCount = p.desserts.length;
-      const dessertBadge = dessertCount > 0 ? `<span class="badge dessert-badge">デザート×${dessertCount}</span>` : '';
-      const chopBadge = p.chopsticks > 0 ? `<span class="badge chop-badge">早×${p.chopsticks}</span>` : '';
       const picked = STATE.picks[pi] !== null;
+      const roundPts = p.roundScores[STATE.round];
+      const tags = [];
+      if (p.chopsticks > 0) tags.push(`早×${p.chopsticks}`);
+      if (p.desserts.length > 0) tags.push(`デザート×${p.desserts.length}`);
       const el = document.createElement('div');
-      el.className = `player-panel${pi === 0 ? ' me' : ''}${picked ? ' picked' : ''}`;
+      el.className = `player-chip${pi === 0 ? ' me' : ''}${picked ? ' picked' : ''}`;
       el.innerHTML = `
-        <div class="player-head">
-          <span class="player-name">${pi === 0 ? 'あなた' : ''}${p.name}</span>
-          <span class="player-score">${Engine.scorePlayer(STATE, pi)}点</span>
-        </div>
-        <div class="player-badges">${badges}${dessertBadge}${chopBadge}${picked ? '<span class="badge pick-flag">選択済み</span>' : ''}</div>`;
+        <span class="chip-name">${pi === 0 ? 'あなた' : ''}${p.name}</span>
+        <span class="chip-round">${STATE.phase !== 'over' && roundPts ? `R${STATE.round + 1} +${roundPts}` : ''}</span>
+        <span class="chip-tags">${tags.join(' ')}</span>
+        <span class="chip-score">${Engine.scorePlayer(STATE, pi)}点</span>`;
       wrap.appendChild(el);
     });
   }
 
-  function renderScore() {
-    const el = $('score-panel');
-    if (STATE.phase !== 'over') {
-      const rows = STATE.players
-        .map((p, pi) => {
-          const rs = p.roundScores;
-          return `<tr><td>${pi === 0 ? 'あなた' : ''}${p.name}</td><td>${rs[0]}</td><td>${rs[1]}</td><td>${rs[2]}</td><td><b>${Engine.scorePlayer(STATE, pi)}</b></td></tr>`;
-        })
-        .join('');
-      el.innerHTML = `
-        <h3>スコア</h3>
-        <table class="score-table">
-          <tr><th>幹事</th><th>R1</th><th>R2</th><th>R3</th><th>合計</th></tr>
-          ${rows}
-        </table>`;
-      return;
+  // プレイヤーごとの「取ったカード」行（あなた → 他のプレイヤーの順）
+  function renderTableRows() {
+    const wrap = $('table-rows');
+    wrap.innerHTML = '';
+    const order = [];
+    for (let i = 0; i < STATE.playerCount; i++) order.push(i);
+    order.sort((a, b) => (a === 0 ? -1 : b === 0 ? 1 : a - b));
+    for (const pi of order) {
+      const p = STATE.players[pi];
+      const row = document.createElement('div');
+      row.className = `table-row${pi === 0 ? ' me' : ''}`;
+
+      const main = document.createElement('div');
+      main.className = 'row-main';
+      const label = document.createElement('div');
+      label.className = 'row-label';
+      label.textContent = `${pi === 0 ? 'あなた' : ''}${p.name} の取ったカード`;
+      main.appendChild(label);
+
+      const cards = document.createElement('div');
+      cards.className = 'row-cards';
+      if (p.taken.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'row-empty';
+        empty.textContent = '—';
+        cards.appendChild(empty);
+      } else {
+        p.taken.forEach((inst) => cards.appendChild(cardEl(inst.key, inst.icons, 'mini')));
+      }
+      main.appendChild(cards);
+      row.appendChild(main);
+
+      // デザート置き場（右端固定・BGA 版準拠）
+      const dbox = document.createElement('div');
+      dbox.className = 'dessert-box';
+      const dlabel = document.createElement('div');
+      dlabel.className = 'box-label';
+      dlabel.textContent = p.desserts.length ? `デザート ×${p.desserts.length}` : 'デザート置き場';
+      dbox.appendChild(dlabel);
+      const dcards = document.createElement('div');
+      dcards.className = 'box-cards';
+      p.desserts.forEach((inst) => dcards.appendChild(cardEl(inst.key, null, 'mini')));
+      dbox.appendChild(dcards);
+      row.appendChild(dbox);
+
+      wrap.appendChild(row);
     }
-    const ranked = STATE.players
-      .map((p, pi) => ({ pi, name: p.name, total: Engine.scorePlayer(STATE, pi), dessert: p.desserts.length }))
-      .sort((a, b) => b.total - a.total || b.dessert - a.dessert);
-    const rows = ranked
-      .map((r, i) => `<tr class="${r.pi === 0 ? 'me' : ''}"><td>${i + 1}位</td><td>${r.pi === 0 ? 'あなた' : ''}${r.name}</td><td>${r.total}点</td><td>デザート${r.dessert}</td></tr>`)
-      .join('');
-    el.innerHTML = `
-      <h3>最終結果</h3>
-      <table class="score-table">
-        <tr><th>順位</th><th>幹事</th><th>合計</th><th>デザート</th></tr>
-        ${rows}
-      </table>`;
   }
 
   function renderRound() {
@@ -390,8 +403,24 @@
     $('pass-indicator').textContent = STATE.passDir === 1 ? '手札は右隣へ流れる' : '手札は左隣へ流れる';
   }
 
+  let FINAL_CLOSED = false; // 最終結果バナーを一度閉じたら再表示しない
+
   function renderBanner() {
     const el = $('banner');
+    // ゲーム終了: 最終結果バナー（スコアテーブル廃止に伴いここで表示）
+    if (STATE.phase === 'over' && !STATE.roundBanner) {
+      if (FINAL_CLOSED) { el.classList.add('hidden'); return; }
+      const ranked = STATE.players
+        .map((p, pi) => ({ pi, name: p.name, total: Engine.scorePlayer(STATE, pi), dessert: p.desserts.length }))
+        .sort((a, b) => b.total - a.total || b.dessert - a.dessert);
+      const rows = ranked
+        .map((r, i) => `<div class="${r.pi === 0 ? 'banner-me' : ''}">${i + 1}位 ${r.pi === 0 ? 'あなた' : ''}${r.name}: ${r.total}点（デザート${r.dessert}）</div>`)
+        .join('');
+      el.innerHTML = `<h2>宴会が幕を閉じた</h2>${rows}<p class="banner-note">クリックで閉じる</p>`;
+      el.classList.remove('hidden');
+      el.onclick = () => { FINAL_CLOSED = true; renderAll(); };
+      return;
+    }
     if (!STATE.roundBanner) { el.classList.add('hidden'); return; }
     const b = STATE.roundBanner;
     const rows = b.results
@@ -413,8 +442,8 @@
     renderRound();
     renderHand();
     renderSelectArea();
-    renderPlayers();
-    renderScore();
+    renderPlayerBar();
+    renderTableRows();
     renderBanner();
     renderLog();
   }

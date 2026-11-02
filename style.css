@@ -85,51 +85,89 @@ header h1 { color: var(--accent); }
 
 main {
   display: grid;
-  grid-template-columns: 280px 1fr 240px;
+  grid-template-columns: 1fr 240px;
   gap: 16px;
   align-items: start;
 }
 
-/* プレイヤーパネル */
-#left-col { display: flex; flex-direction: column; gap: 12px; }
+/* ボード（プレイヤーバー・手札・テーブル行） */
+#board { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 
-.player-panel {
+/* ---- 上部プレイヤーバー（BGA 風コンパクト表示） ---- */
+#player-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.player-chip {
   background: var(--panel);
   border: 1px solid #3a3342;
   border-radius: 8px;
-  padding: 10px 12px;
-}
-.player-panel.me { border-color: var(--accent); }
-.player-panel.picked { opacity: 0.75; }
-.player-head {
+  padding: 8px 10px;
   display: flex;
-  justify-content: space-between;
   align-items: baseline;
+  gap: 8px;
+  min-width: 0;
 }
-.player-name { font-weight: bold; }
-.player-score { color: var(--gold); font-weight: bold; }
-.player-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.player-chip.me { border-color: var(--accent); }
+.player-chip.picked { opacity: 0.6; }
+.chip-name { font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-round { color: var(--accent2); font-size: 0.78rem; white-space: nowrap; }
+.chip-tags { color: var(--text-dim); font-size: 0.72rem; white-space: nowrap; }
+.chip-score { margin-left: auto; color: var(--gold); font-weight: bold; white-space: nowrap; }
 
-.badge {
-  color: #fff;
-  font-size: 0.75rem;
-  padding: 2px 6px;
-  border-radius: 4px;
+/* ---- プレイヤーごとの「取ったカード」行 ---- */
+#table-rows { display: flex; flex-direction: column; gap: 10px; }
+.table-row {
+  background: var(--panel);
+  border: 1px solid #3a3342;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  min-height: 104px;
 }
-.badge.charm-badge { background: #a08b3c; }
-.badge.chop-badge { background: #6e5a48; }
-.badge.spell-badge { background: var(--accent); }
-.badge.pick-flag { background: #444; color: #ccc; }
+.table-row.me { border-color: var(--accent); }
+.row-main { flex: 1; min-width: 0; }
+.row-label { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 8px; }
+.table-row.me .row-label { color: var(--gold); }
+.row-cards { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+.row-empty { color: #4a4352; font-size: 0.8rem; padding: 20px 0; }
 
-/* スコアテーブル */
-.score-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-.score-table th, .score-table td {
-  padding: 4px 6px;
-  text-align: left;
-  border-bottom: 1px solid #3a3342;
+/* デザート置き場（右端固定） */
+.dessert-box {
+  width: 160px;
+  flex-shrink: 0;
+  border: 2px dashed #4a4352;
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.25);
 }
-.score-table th { color: var(--text-dim); font-weight: normal; }
-.score-table tr.me td { color: var(--gold); }
+.dessert-box .box-label {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  text-align: center;
+}
+.dessert-box .box-cards { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+
+/* ミニカード（取得行・デザート用） */
+.card.mini {
+  width: 56px;
+  height: 80px;
+  padding: 3px 2px;
+  gap: 1px;
+  border-width: 1px;
+  border-radius: 6px;
+}
+.card.mini .card-icon { font-size: 1.15rem; }
+.card.mini .card-icons { font-size: 0.68rem; }
+.card.mini .card-name { font-size: 0.52rem; line-height: 1.15; }
+.card.mini .card-desc { display: none; }
+.card.mini:hover { transform: translateY(-2px); z-index: 2; position: relative; }
 
 /* 手札エリア */
 #hand-area {
@@ -137,7 +175,6 @@ main {
   border: 1px solid #3a3342;
   border-radius: 10px;
   padding: 16px;
-  min-height: 320px;
 }
 #hand-status { color: var(--text-dim); margin-bottom: 10px; }
 #btn-chopsticks { margin-bottom: 12px; }
@@ -145,9 +182,11 @@ main {
 #hand {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 6px;
   justify-content: center;
 }
+
+#hand .card { width: 90px; }
 
 .card {
   width: 92px;
@@ -194,7 +233,6 @@ main {
 .select-list .card { width: 76px; height: 110px; }
 .select-btn-row { margin-top: 10px; display: flex; gap: 8px; }
 .card-icons { font-size: 0.9rem; vertical-align: middle; color: var(--gold); }
-.badge.dessert-badge { background: var(--gold); color: #333; }
 
 /* ラウンド結果バナー */
 #banner {
@@ -210,4 +248,5 @@ main {
 }
 #banner h2 { color: var(--gold); }
 #banner div { font-size: 1.1rem; padding: 2px; }
+#banner div.banner-me { color: var(--gold); font-weight: bold; }
 #banner .banner-note { color: var(--text-dim); font-size: 0.85rem; margin-top: 18px; }
