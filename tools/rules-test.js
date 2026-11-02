@@ -175,6 +175,14 @@ test('紅霧: 美鈴=同ラウンドに咲夜を獲得していたら+1点', () 
   assert.strictEqual(s.players[0].roundScores[0], 1 + 3 + 2);
 });
 
+test('紅霧: 美鈴コンボは獲得時判定（後から咲夜を取っても+1されない）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  cycle(s, [['k_meirin', D], [D, D]], [0, 0]); // 美鈴1点（取得時に咲夜なし → コンボ不発）
+  cycle(s, [['k_sakuya', D], [D, D]], [0, 0]); // 咲夜を後から取得
+  cycle(s, [[D], [D]], [0, 0]); // ラウンド終了
+  assert.strictEqual(s.players[0].roundScores[0], 1 + 3, '美鈴1+咲夜3（コンボは加算されない）');
+});
+
 test('紅霧: パチュリー=種類数−3（最低0・チルノ含む）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
   cycle(s, [['k_patch', 'k_remi', D], [D, D]], [0, 0]); // patch+remi 取得（2種）
@@ -493,6 +501,24 @@ test('initialCounts: 全異変でカードリファレンス用の構成枚数�
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   assert.strictEqual(s.initialCounts['y_reimu'], 8, '乱入者は参加分のみ記録');
   assert.strictEqual(s.initialCounts['y_marisa'], undefined, '不参加の乱入者は記録されない');
+});
+
+// UI 契約: select フェーズ中、人間（seat 0）の選択は AI 側処理で {} 自動解決してはならない。
+// （2026-11-03 事故: runAiSelections が人間のフラン破棄も {} で解決し、効果が発揮されないまま進行していた）
+test('select フェーズ: 人間の選択は AI 解決で埋められない', () => {
+  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'scarlet' });
+  setHands(s, [['k_fran'], [D], [D], [D]]);
+  pickAll(s, [0, 0, 0, 0]);
+  assert.strictEqual(s.phase, 'select', 'フラン取得で select フェーズに入る');
+  assert.ok(s.selectNeeded.includes(0), '人間が選択対象に含まれる');
+  // game.js の runAiSelections と同じ処理（pi === 0 を除外）
+  for (const pi of s.selectNeeded) {
+    if (pi !== 0 && s.selections[pi] === null) {
+      Engine.dispatch(s, { kind: 'choose', pi, choice: {} });
+    }
+  }
+  assert.strictEqual(s.selections[0], null, '人間の選択は null のまま残る');
+  assert.strictEqual(s.phase, 'select', '人間が選ぶまで select のまま');
 });
 
 console.log(`\n${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);

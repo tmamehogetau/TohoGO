@@ -65,7 +65,8 @@
       case 'instant': {
         const parts = [`${def.points} 点`];
         if (def.absentKeys) parts.push(`誰かが同時に${def.absentKeys.map(nameOf).join('か')}を取ると 0 点`);
-        if (def.comboKeys) parts.push(`ラウンド末に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`);
+        if (def.comboAtTake) parts.push(`取った瞬間に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`);
+        else if (def.comboKeys) parts.push(`ラウンド末に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`);
         if (def.discardBonus) parts.push(`取得時・手元 1 枚を山札へ戻し +${def.discardBonus} 点`);
         if (def.intruderPenalty) parts.push(`乱入者が誰かに取られると -${def.intruderPenalty} 点`);
         return parts.join('／');
@@ -168,6 +169,7 @@
   function runAiSelections() {
     if (STATE.phase !== 'select') return;
     for (const pi of STATE.selectNeeded) {
+      if (pi === 0) continue; // 人間の選択は select UI に委ねる（{} で自動解決しない）
       if (STATE.selections[pi] === null) {
         Engine.dispatch(STATE, { kind: 'choose', pi, choice: {} });
       }
@@ -640,5 +642,6 @@
 
   document.addEventListener('DOMContentLoaded', init);
 
-  return { startGame, renderAll, get state() { return STATE; } };
+  // デバッグ・テスト用に公開（Game.state でヘッドレスエンジンの state を直接参照できる）
+  window.Game = { startGame, renderAll, get state() { return STATE; } };
 })();

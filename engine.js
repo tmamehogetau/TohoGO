@@ -239,6 +239,14 @@
       // 即時点数（コンボはラウンド末判定で加算する: 藍⇔橙の循環コンボは取得順に依存するため）
       if (def.kind === 'instant') {
         let pts = def.points;
+        // 獲得時コンボ（美鈴）: 取った瞬間にコンボ相手が手元にいればボーナス
+        if (def.comboAtTake && def.comboKeys && def.comboKeys.length) {
+          const owned = new Set(p.taken.map((i2) => i2.key));
+          if (def.comboKeys.every((k) => owned.has(k))) {
+            pts += def.comboBonus;
+            addLog(state, `${p.name}: ${def.name}は${def.comboKeys.map((k) => (state.cardMap[k] ? state.cardMap[k].name : k)).join('・')}と連携した（+${def.comboBonus}点）`);
+          }
+        }
         // 乱入者ペナルティ（輝夜・永琳）
         if (def.intruderPenalty && stats.intruderTaken) pts -= def.intruderPenalty;
         p.roundScores[state.round] += pts;
@@ -556,8 +564,9 @@
         if (n === 0) continue;
         switch (def.kind) {
           case 'instant': {
-            // ラウンド内コンボ（美鈴・藍・橙）はラウンド末時点の所持で判定（循環コンボ対応）
-            if (def.comboKeys && def.comboKeys.length) {
+            // ラウンド末コンボ（藍・橙の循環コンボ）はラウンド末時点の所持で判定
+            // （美鈴の comboAtTake は取得時に applyTake で判定済み）
+            if (def.comboKeys && def.comboKeys.length && !def.comboAtTake) {
               const owned = new Set();
               for (const inst of p.taken) {
                 if (!inst.flipped) owned.add(inst.key);
