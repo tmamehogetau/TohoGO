@@ -94,9 +94,11 @@
     if (CHOPSTICKS_MODE && p.chopsticks > 0) {
       if (CHOP_SELECTED.includes(idx)) {
         CHOP_SELECTED = CHOP_SELECTED.filter((i) => i !== idx);
+        FLY_FROMS.pop(); // 選択解除したカードの座標記録も取り消す
         renderAll();
         return;
       }
+      recordFlyFrom(idx);
       CHOP_SELECTED.push(idx);
       if (CHOP_SELECTED.length === 2) {
         Engine.dispatch(STATE, { kind: 'pick2', pi: 0, idxs: [...CHOP_SELECTED].sort((a, b) => a - b) });
@@ -108,8 +110,9 @@
       return;
     }
 
+    recordFlyFrom(idx);
     const res = Engine.dispatch(STATE, { kind: 'pick', pi: 0, idx });
-    if (!res.ok) { alert(res.error); return; }
+    if (!res.ok) { FLY_FROMS.pop(); alert(res.error); return; }
     afterHumanPick();
   }
 
@@ -154,6 +157,7 @@
     runAiSelections();
     CHOPSTICKS_MODE = false;
     renderAll();
+    flyNewCards();
   }
 
   // ---- 取得時選択（select フェーズ）の入力 ----
@@ -476,6 +480,42 @@
   }
 
   let FINAL_CLOSED = false; // 最終結果バナーを一度閉じたら再表示しない
+  let FLY_FROMS = []; // FLIP アニメ用: クリックした手札カードの中心座標
+
+  function recordFlyFrom(idx) {
+    const el = document.querySelectorAll('#hand .card')[idx];
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    FLY_FROMS.push({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+  }
+
+  // 取得アニメ: 手札にあった位置から自分の取得行へカードを飛ばす（FLIP）
+  function flyNewCards() {
+    if (!FLY_FROMS.length) return;
+    const targets = document.querySelectorAll('.table-row.me .card.mini.new');
+    targets.forEach((el) => {
+      const f = FLY_FROMS.length > 1 ? FLY_FROMS.shift() : FLY_FROMS[0];
+      const r = el.getBoundingClientRect();
+      const dx = f.x - (r.left + r.width / 2);
+      const dy = f.y - (r.top + r.height / 2);
+      el.classList.add('fly'); // CSS の popIn を無効化して JS で動かす
+      el.style.transition = 'none';
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          el.style.transition = 'transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1)';
+          el.style.transform = 'translate(0, 0)';
+        });
+      });
+      el.addEventListener('transitionend', function h(e) {
+        if (e.propertyName !== 'transform') return;
+        el.style.transition = '';
+        el.style.transform = '';
+        el.removeEventListener('transitionend', h);
+      });
+    });
+    FLY_FROMS = [];
+  }
 
   function renderBanner() {
     const el = $('banner');

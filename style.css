@@ -189,13 +189,14 @@ main {
 .card.mini .card-desc { display: none; }
 .card.mini:hover { transform: translateY(-2px); z-index: 2; position: relative; }
 
-/* 取得アニメーション: 直近ピックのカードがポップイン */
+/* 取得アニメーション: AI のカードは浮上ポップ / あなたのカードは JS の FLIP（fly）で手札から移動 */
 @keyframes popIn {
   0% { transform: scale(0.4) translateY(8px); opacity: 0; }
   65% { transform: scale(1.15) translateY(-3px); }
   100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 .card.mini.new { animation: popIn 0.4s ease-out; }
+.card.mini.new.fly { animation: none; }
 
 /* 行ラベルの追跡リソース（春の合計・兎枚数など） */
 .row-tag {
