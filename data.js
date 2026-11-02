@@ -10,14 +10,18 @@
     // スシGOパーティー準拠: 2-3人10枚 / 4-5人9枚
     HAND_SIZES: { 2: 10, 3: 10, 4: 9, 5: 9 },
     DESSERT_MIX: [5, 3, 2], // ラウンド1/2/3 のデザート混入数
+    // 多数決の標準配点（DESIGN 2-4）: 2人=1位4点/同点各2点、3人以上=1位6点/一意の2位3点
     MAKI_POINTS: { first: 6, second: 3 },
+    MAKI_2P: { first: 4, tie: 2 },
+    // パス方向（DESIGN 4）: ラウンド1・3 は左、ラウンド 2 は右（-1=左隣 / 1=右隣）
+    PASS_DIRS: [-1, 1, -1],
   };
 
   // ---------------- 紅霧異変（紅魔郷） ----------------
   const SCARLET_MAIN = [
     { key: 'k_remi', kind: 'instant', points: 3, name: 'レミリア', icon: '王', color: '#8b1a2b', count: 3 },
     { key: 'k_fran', kind: 'instant', points: 2, discardBonus: 2, name: 'フランドール', icon: '妹', color: '#c22a4e', count: 4 },
-    { key: 'k_meirin', kind: 'instant', points: 1, comboKeys: ['k_sakuya'], comboBonus: 1, comboAtTake: true, name: '紅美鈴', icon: '門', color: '#b8434a', count: 5 },
+    { key: 'k_meirin', kind: 'instant', points: 1, comboKeys: ['k_sakuya'], comboBonus: 1, name: '紅美鈴', icon: '門', color: '#b8434a', count: 5 },
     { key: 'k_sakuya', kind: 'instant', points: 3, absentKeys: ['k_remi', 'k_fran'], name: '十六夜咲夜', icon: 'メ', color: '#9aa5b1', count: 8 },
     { key: 'k_patch', kind: 'kindCount', offset: -3, name: 'パチュリー', icon: '図', color: '#8e3b8e', count: 3 },
     { key: 'k_rumia', kind: 'collect', table: [1, 3, 6, 10, 15], name: 'ルーミア', icon: '闇', color: '#3a3a42', count: 8 },

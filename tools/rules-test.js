@@ -112,14 +112,15 @@ test('ラウンド終了時に取得カードが山札へ戻る（デザート�
   assert.strictEqual(s.phase, 'pick');
 });
 
-test('ラウンド2のパス方向は -1・ラウンド3は +1', () => {
+test('ラウンド 1 は左(-1)・ラウンド 2 は右(+1)・ラウンド 3 は左（DESIGN 4）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
-  cycle(s, [['k_remi'], ['k_remi']], [0, 0]);
-  assert.strictEqual(s.round, 1);
   assert.strictEqual(s.passDir, -1);
   cycle(s, [['k_remi'], ['k_remi']], [0, 0]);
-  assert.strictEqual(s.round, 2);
+  assert.strictEqual(s.round, 1);
   assert.strictEqual(s.passDir, 1);
+  cycle(s, [['k_remi'], ['k_remi']], [0, 0]);
+  assert.strictEqual(s.round, 2);
+  assert.strictEqual(s.passDir, -1);
 });
 
 // ================= 紅霧メカニズム =================
@@ -246,13 +247,31 @@ test('春雪: 春=マキ準拠多数決（アイコン合計で順位）', () =>
   assert.strictEqual(s.players[2].roundScores[0], 3);
 });
 
+test('春雪: 春=2人配点（1位4点・同点は各2点・DESIGN 2-4）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  cycle(s, [[inst('s_spring', 2), DS], [inst('s_spring', 1), DS]], [0, 0]);
+  cycle(s, [[inst('s_spring', 1)], [DS]], [0, 0]); // ラウンド終了
+  // p0: 3 / p1: 1 → 一意の1位 = 4点（2位ボーナスなし）。p1 はダミー紫の+3点も持つ
+  assert.strictEqual(s.players[0].roundScores[0], 4);
+  assert.strictEqual(s.players[1].roundScores[0], 3);
+});
+
+test('春雪: 春=2人同点は各2点', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  cycle(s, [[inst('s_spring', 2), DS], [inst('s_spring', 2), DS]], [0, 0]);
+  cycle(s, [[DS], [DS]], [0, 0]); // ラウンド終了
+  // 2/2 で同点 → 各 2 点。ダミー紫の+3点も加算
+  assert.strictEqual(s.players[0].roundScores[0], 2 + 3);
+  assert.strictEqual(s.players[1].roundScores[0], 2 + 3);
+});
+
 test('春雪: 幽々子=ラウンド内の春最多なら4点（幽々子取得が必須・春多数決も併走）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
   cycle(s, [['s_yuyuko', inst('s_spring', 3)], [inst('s_spring', 1), DS]], [0, 0]); // p0 幽々子・p1 春1
   cycle(s, [[inst('s_spring', 3)], [DS]], [0, 0]); // p0 春3取得・ラウンド終了
-  // p0 春3 / p1 春1 → 幽々子4点 + 春1位6点 = 10点。p1: 春2位3点 = 3点
-  assert.strictEqual(s.players[0].roundScores[0], 10);
-  assert.strictEqual(s.players[1].roundScores[0], 3); // 幽々子なしは春最多でも0点
+  // 2人配点: p0 春3（1位4点）→ 幽々子4 + 春4 = 8点。p1: 春2位ボーナスなし・ダミー紫3点
+  assert.strictEqual(s.players[0].roundScores[0], 8);
+  assert.strictEqual(s.players[1].roundScores[0], 3); // 幽々子なしは春最多でも0点（紫の即時3点のみ）
 });
 
 test('春雪: 妖夢=他プレイヤー全員の春を1個ずつ引き自分に足す', () => {
@@ -280,13 +299,22 @@ test('春雪: レティ=(レティ枚数−春枚数)×2・最低0', () => {
   assert.strictEqual(s.players[1].roundScores[0], 9); // 紫2枚×3点
 });
 
-test('春雪: 藍・橙=紫を含む主従コンボ（循環・ラウンド末判定）', () => {
+test('春雪: 藍・橙=紫を含む主従コンボ（獲得時判定・最後に揃えた1枚だけ発動）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
   cycle(s, [['s_yukari', DS], [DS, DS]], [0, 0]); // 紫3点
-  cycle(s, [['s_ran', DS], [DS, DS]], [0, 0]); // 藍2点
-  cycle(s, [['s_chen'], [DS]], [0, 0]); // 橙取得・ラウンド終了
-  // ラウンド末時点で紫+藍+橙が揃う → 循環コンボ発動: 紫3 + 藍(2+1)=3 + 橙(1+1)=2 = 8点
-  assert.strictEqual(s.players[0].roundScores[0], 8);
+  cycle(s, [['s_ran', DS], [DS, DS]], [0, 0]); // 藍2点（取得時に橙なし → コンボ不発）
+  cycle(s, [['s_chen'], [DS]], [0, 0]); // 橙取得（取得時に紫+藍あり → 発動）・ラウンド終了
+  // 紫3 + 藍2 + 橙(1+1)=2 = 7点
+  assert.strictEqual(s.players[0].roundScores[0], 7);
+});
+
+test('春雪: 紅霧と同じく逆順（紫→橙→藍）では藍のみ発動', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  cycle(s, [['s_yukari', DS], [DS, DS]], [0, 0]); // 紫3点
+  cycle(s, [['s_chen', DS], [DS, DS]], [0, 0]); // 橙1点（取得時に藍なし → 不発）
+  cycle(s, [['s_ran'], [DS]], [0, 0]); // 藍取得（取得時に紫+橙あり → 発動）・ラウンド終了
+  // 紫3 + 橙1 + 藍(2+1)=3 = 7点
+  assert.strictEqual(s.players[0].roundScores[0], 7);
 });
 
 test('春雪: アリス=ペア2枚5点・三姉妹=3枚セット10点', () => {
@@ -356,15 +384,15 @@ test('永夜: リグル=他プレイヤーのリグル出し回数×1点', () =>
   assert.strictEqual(s.players[2].roundScores[0], 2);
 });
 
-test('永夜: 玉兎=兎アイコンマキ準拠多数決', () => {
+test('永夜: 玉兎=兎アイコンマキ準拠多数決（2人配点 1位4点）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   cycle(s, [
     [inst('y_rabbit', 3), inst('y_rabbit', 2), DY],
     [inst('y_rabbit', 1), DY],
   ], [0, 0]);
   cycle(s, [[DY], [DY]], [0, 0]); // ラウンド終了
-  // p0: 5 / p1: 1 → 1位のみ 6点 + ダミーうどんげ1点
-  assert.strictEqual(s.players[0].roundScores[0], 7);
+  // p0: 5 / p1: 1 → 1位のみ 4点（2人配点・2位ボーナスなし）+ ダミーうどんげ1点
+  assert.strictEqual(s.players[0].roundScores[0], 5);
   assert.strictEqual(s.players[1].roundScores[0], 1);
 });
 

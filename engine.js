@@ -13,7 +13,7 @@
   const Engine = (() => {
     const { RULES, INCIDENT_IDS, incidentById, buildCardMap, buildMainDeck, buildDessertPool } = DATA;
 
-    const PASS_DIRS = [1, -1, 1];
+    const PASS_DIRS = RULES.PASS_DIRS;
 
     function shuffle(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
@@ -236,11 +236,11 @@
         addLog(state, `${p.name}: 庭師が春を剪定して自分の庭に集めた`);
       }
 
-      // 即時点数（コンボはラウンド末判定で加算する: 藍⇔橙の循環コンボは取得順に依存するため）
+      // 即時点数。コンボ（美鈴・藍・橙）は DESIGN のタイミング「即時（条件）」に従い
+      // 取得時判定: 取った瞬間にコンボ相手が手元にいればボーナス
       if (def.kind === 'instant') {
         let pts = def.points;
-        // 獲得時コンボ（美鈴）: 取った瞬間にコンボ相手が手元にいればボーナス
-        if (def.comboAtTake && def.comboKeys && def.comboKeys.length) {
+        if (def.comboKeys && def.comboKeys.length) {
           const owned = new Set(p.taken.map((i2) => i2.key));
           if (def.comboKeys.every((k) => owned.has(k))) {
             pts += def.comboBonus;
@@ -494,8 +494,9 @@
         if (max === 0) continue;
         const topIdx = counts.map((c, i) => (c === max ? i : -1)).filter((i) => i >= 0);
         if (n === 2) {
-          if (topIdx.length === 1) scores[topIdx[0]] += RULES.MAKI_POINTS.first;
-          else topIdx.forEach((i) => { scores[i] += Math.floor(RULES.MAKI_POINTS.first / 2); });
+          // 2人: 1位 4 点 / 同点は各 2 点（2 位ボーナスなし・DESIGN 2-4）
+          if (topIdx.length === 1) scores[topIdx[0]] += RULES.MAKI_2P.first;
+          else topIdx.forEach((i) => { scores[i] += RULES.MAKI_2P.tie; });
         } else {
           if (topIdx.length === 1) {
             scores[topIdx[0]] += RULES.MAKI_POINTS.first;
@@ -548,13 +549,13 @@
       }
       pts += flippedPts * 2;
 
-      // 各カード種別の判定
+      // 各カード種別の判定（instant は即時点+取得時コンボで完結するため対象外）
       const seenKinds = {};
       for (const inst of p.taken) {
         if (inst.flipped) continue;
         const def = state.cardMap[inst.key];
         if (!def) continue;
-        if (['pair', 'set3', 'collect', 'tofu', 'kindCount', 'letty', 'roundComboCount', 'instant'].includes(def.kind)) {
+        if (['pair', 'set3', 'collect', 'tofu', 'kindCount', 'letty', 'roundComboCount'].includes(def.kind)) {
           seenKinds[def.key] = true;
         }
       }
@@ -563,18 +564,6 @@
         const n = countKey(p, key);
         if (n === 0) continue;
         switch (def.kind) {
-          case 'instant': {
-            // ラウンド末コンボ（藍・橙の循環コンボ）はラウンド末時点の所持で判定
-            // （美鈴の comboAtTake は取得時に applyTake で判定済み）
-            if (def.comboKeys && def.comboKeys.length && !def.comboAtTake) {
-              const owned = new Set();
-              for (const inst of p.taken) {
-                if (!inst.flipped) owned.add(inst.key);
-              }
-              if (def.comboKeys.every((k) => owned.has(k))) pts += def.comboBonus;
-            }
-            break;
-          }
           case 'collect': {
             const idx = Math.min(n, def.table.length) - 1;
             pts += def.table[idx];

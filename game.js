@@ -65,8 +65,7 @@
       case 'instant': {
         const parts = [`${def.points} 点`];
         if (def.absentKeys) parts.push(`誰かが同時に${def.absentKeys.map(nameOf).join('か')}を取ると 0 点`);
-        if (def.comboAtTake) parts.push(`取った瞬間に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`);
-        else if (def.comboKeys) parts.push(`ラウンド末に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`);
+        if (def.comboKeys) parts.push(`取った瞬間に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`);
         if (def.discardBonus) parts.push(`取得時・手元 1 枚を山札へ戻し +${def.discardBonus} 点`);
         if (def.intruderPenalty) parts.push(`乱入者が誰かに取られると -${def.intruderPenalty} 点`);
         return parts.join('／');
