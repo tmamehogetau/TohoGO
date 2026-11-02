@@ -12,9 +12,32 @@
 
   const $ = (id) => document.getElementById(id);
 
+  let SEL_INCIDENT = ''; // '' = おまかせ（ランダム抽選）
+
+  // ロビーの異変選択 UI（data.js の INCIDENTS から動的生成）
+  function incidentOption(id, title, desc) {
+    const el = document.createElement('div');
+    el.className = `incident-option${id === SEL_INCIDENT ? ' selected' : ''}`;
+    el.innerHTML = `<div class="opt-title">${title}</div><div class="opt-desc">${desc}</div>`;
+    el.addEventListener('click', () => { SEL_INCIDENT = id; buildIncidentPicker(); });
+    return el;
+  }
+
+  function buildIncidentPicker() {
+    const wrap = $('incident-picker');
+    wrap.innerHTML = '';
+    wrap.appendChild(incidentOption('', 'おまかせ', '異変はゲーム開始時にランダムで決まる'));
+    for (const id of Data.INCIDENT_IDS) {
+      const inc = Data.incidentById(id);
+      const extra = inc.intruders ? '（乱入者はランダムで 1 種参加）' : '';
+      wrap.appendChild(incidentOption(id, inc.name, `${inc.subtitle}／${inc.theme}${extra}`));
+    }
+  }
+
   function startGame() {
     const name = $('input-name').value.trim() || '幹事';
-    STATE = Engine.newGame(4, [name, '萃香', '魔理沙', 'にとり']);
+    const opts = SEL_INCIDENT ? { incident: SEL_INCIDENT } : {};
+    STATE = Engine.newGame(4, [name, '萃香', '魔理沙', 'にとり'], opts);
     CHOPSTICKS_MODE = false;
     CHOP_SELECTED = [];
     SEL_MODE = null;
@@ -452,6 +475,7 @@
     $('btn-start').addEventListener('click', startGame);
     $('input-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') startGame(); });
     $('btn-chopsticks').addEventListener('click', toggleChopsticks);
+    buildIncidentPicker();
   }
 
   document.addEventListener('DOMContentLoaded', init);

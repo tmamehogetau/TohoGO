@@ -67,6 +67,26 @@ button.active { outline: 2px solid var(--gold); }
   text-align: center;
 }
 
+/* 異変選択 */
+.incident-picker {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 4px 0 20px;
+  text-align: left;
+}
+.incident-option {
+  background: var(--panel2);
+  border: 2px solid #3a3342;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.incident-option:hover { border-color: #5a5264; }
+.incident-option.selected { border-color: var(--accent); background: #2e2028; }
+.opt-title { font-weight: bold; color: var(--gold); font-size: 0.95rem; }
+.opt-desc { font-size: 0.72rem; color: var(--text-dim); margin-top: 3px; line-height: 1.35; }
+
 /* ---- ゲーム画面 ---- */
 
 #app { max-width: 1200px; margin: 0 auto; padding: 16px; }
