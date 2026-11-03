@@ -33,11 +33,18 @@
     return Engine.dispatch(STATE, { ...action, pi: 0 });
   }
 
-  // ロビー: 最初はモード選択だけ。ホットシートの異変は「ひとりで遊ぶ」の中のコンパクトな select
+  // ロビー: 最初はモード選択だけ。選んだら2択を隠し、「← 戻る」で戻る
   function showMode(mode) {
+    $('mode-select').classList.add('hidden');
     $('solo-panel').classList.toggle('hidden', mode !== 'solo');
     $('mp-entry').classList.toggle('hidden', mode !== 'online');
     if (mode === 'online') $('input-code').focus();
+  }
+
+  function showModeSelect() {
+    $('mode-select').classList.remove('hidden');
+    $('solo-panel').classList.add('hidden');
+    $('mp-entry').classList.add('hidden');
   }
 
   function buildSoloIncidentOptions() {
@@ -1015,6 +1022,8 @@
     $('setting-timer').addEventListener('change', sendSettings);
     $('btn-mode-solo').addEventListener('click', () => showMode('solo'));
     $('btn-mode-online').addEventListener('click', () => showMode('online'));
+    $('btn-solo-back').addEventListener('click', showModeSelect);
+    $('btn-mp-back').addEventListener('click', showModeSelect);
     buildSoloIncidentOptions();
     buildSettingOptions();
     setInterval(updateTimerIndicator, 500);

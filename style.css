@@ -437,6 +437,7 @@ main {
   margin: 8px 0 4px;
 }
 #solo-panel { margin-top: 10px; }
+.back-btn { margin-top: 10px; font-size: 0.85rem; padding: 6px 14px; }
 
 /* 対戦ロビー */
 #mp-entry {
