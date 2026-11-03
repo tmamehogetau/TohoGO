@@ -714,17 +714,16 @@ test('永夜: 魔理沙=ラウンド内3枚ごとに9点', () => {
   assert.strictEqual(s.players[0].roundScores[1], 0);
 });
 
-test('永夜: 魔理沙=通算最多でも追加点はない（ラウンド単位のみ）', () => {
+test('永夜: 魔理沙=通算最多でないと +9 は入らない', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_marisa' });
   fixPeek(s);
-  // 3 ラウンドとも p0 だけ 1 枚 → ラウンド点は 0（3枚未満）
+  // 各ラウンド p0 は 1 枚、p1 は 2 枚 → 通算 3 対 6 で p1 が最多
   for (let r = 0; r < 3; r++) {
-    cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
-    cycle(s, [['y_mystia'], [DY]], [0, 0]); // ラウンド終了
+    cycle(s, [['y_marisa', 'y_marisa'], ['y_marisa', 'y_marisa']], [0, 0]);
+    cycle(s, [['y_mystia'], ['y_marisa']], [0, 0]); // ラウンド終了
   }
   const roundTotal = s.players[0].roundScores.reduce((a, b) => a + b, 0);
-  assert.strictEqual(roundTotal, 0);
-  assert.strictEqual(Engine.scorePlayer(s, 0) - roundTotal, 0, '通算しても追加点はない');
+  assert.strictEqual(Engine.scorePlayer(s, 0) - roundTotal, 0, '最多ではないので 0');
 });
 
 test('永夜: 霊夢=通算7枚で +7（未達なら 0）', () => {
