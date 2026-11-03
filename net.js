@@ -10,8 +10,7 @@
   let pendingJoin = null;
   let reconnectTimer = null;
 
-  const idKey = (code) => `touhou:${code}:playerId`;
-  const nameKey = (code) => `touhou:${code}:name`;
+  const idKey = (code, name) => `touhou:${code}:${encodeURIComponent(name)}:playerId`;
 
   function connect() {
     if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
@@ -68,8 +67,8 @@
     const c = String(code || '').trim().toUpperCase();
     const n = String(name || '').trim();
     if (!c || !n) return;
-    const savedName = localStorage.getItem(nameKey(c));
-    const playerId = savedName === n ? localStorage.getItem(idKey(c)) : null;
+    // 同じブラウザの別タブでも席がぶつからないよう、ルーム×名前ごとに id を保存する
+    const playerId = localStorage.getItem(idKey(c, n)) || null;
     identity = { code: c, name: n, playerId };
     pendingJoin = makeJoinMessage();
     connect();
@@ -82,8 +81,7 @@
     switch (m.type) {
       case 'joined':
         identity.playerId = m.playerId;
-        localStorage.setItem(idKey(m.roomCode), m.playerId);
-        localStorage.setItem(nameKey(m.roomCode), identity.name);
+        localStorage.setItem(idKey(m.roomCode, identity.name), m.playerId);
         localStorage.setItem('touhou:lastRoom', m.roomCode);
         if (window.App && App.onJoined) App.onJoined(m);
         break;

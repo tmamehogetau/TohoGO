@@ -910,6 +910,7 @@
     ONLINE = true;
     $('online-lobby').classList.remove('hidden');
     $('mp-entry').classList.add('hidden');
+    $('btn-start').classList.add('hidden'); // 対戦中はホットシート開始ボタンを隠す
     $('online-code').textContent = lobby.roomCode;
     $('online-players').innerHTML = lobby.players
       .map((p) => `<div class="online-player${p.seat === MY_SEAT ? ' me' : ''}">${p.isHost ? '★' : ''}${p.name}${p.connected ? '' : ' <span class="off">（切断）</span>'}</div>`)
