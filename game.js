@@ -23,8 +23,13 @@
   function actHuman(action) {
     if (ONLINE) {
       Net.action(action);
-      // 連打・再送を防ぐため、ピック系は提出済み表示にする（サーバーの state で上書きされる）
-      if (action.kind !== 'choose' && STATE && STATE.picks) STATE.picks[0] = true;
+      // 連打・再送を防ぐため、送信済みの表示にする（サーバーの state で上書きされる）
+      if (action.kind === 'choose' && STATE) {
+        STATE.selectNeeded = []; // 自分の選択は送信済み。古い選択UIの再表示を防ぐ
+        if (Array.isArray(STATE.selections)) STATE.selections[0] = true;
+      } else if (STATE && STATE.picks) {
+        STATE.picks[0] = true;
+      }
       return { ok: true };
     }
     return Engine.dispatch(STATE, { ...action, pi: 0 });
@@ -514,12 +519,25 @@
     const areaEl = SELECT_AREA;
     if (!STATE || STATE.phase !== 'select') {
       areaEl.classList.remove('active');
+      // 選択フェーズが終わったらモードを持ち越さない（次の小悪魔取得で古い破棄UIが出るのを防ぐ）
+      SEL_MODE = null;
+      SEL_SELECTED = [];
+      STAGED_CHOICE = null;
       return;
     }
     const p = STATE.players[0];
     const selectTurn = STATE.selectNeeded.includes(0);
 
-    if (!SEL_MODE && selectTurn) enterSelectMode();
+    if (!selectTurn) {
+      // 他人の選択待ち。古いモードを残さない
+      SEL_MODE = null;
+      SEL_SELECTED = [];
+      STAGED_CHOICE = null;
+    } else {
+      const need = humanSelectNeeded();
+      // 今の必要モードと一致しない古いモードが残っていたら選び直す
+      if (!SEL_MODE || !need[SEL_MODE]) enterSelectMode();
+    }
 
     areaEl.classList.add('active');
     areaEl.innerHTML = '';

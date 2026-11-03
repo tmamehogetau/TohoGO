@@ -467,10 +467,13 @@
         const c = state.selections[i];
         const p = state.players[i];
         const map = state.cardMap;
+        // そのプレイヤーに本当に必要な選択だけを適用する。
+        // （UI に古いモードが残っていて不要な discard が送られても +2 しない）
+        const need = selectionNeeded(state, i);
 
         // フラン破棄: 破棄するカードは taken から削除せず discarded フラグを立てる
         // （ラウンド末集計で点数計上されない・UI には半透明の「破棄」で残る。ラウンド末に山札へ戻る）
-        if (c.discard !== null && c.discard !== undefined && Number.isInteger(c.discard)) {
+        if (need.discard && c.discard !== null && c.discard !== undefined && Number.isInteger(c.discard)) {
           const inst = p.taken[c.discard];
           if (inst && !inst.discarded) {
             const franBonus = map['k_fran'] ? map['k_fran'].discardBonus : 2;
@@ -483,7 +486,7 @@
 
         // ミスティア裏返し: 裏返されたカードは「2 点のみの効果を持つカード」になり、
         // 点数はラウンド末判定（endRoundIndividual の flippedPts×2）で一括加算される
-        if (Array.isArray(c.flip) && c.flip.length) {
+        if (need.flip && Array.isArray(c.flip) && c.flip.length) {
           const flipPoints = 2;
           let flippedN = 0;
           for (const idx of c.flip) {
@@ -498,7 +501,7 @@
         }
 
         // 慧音コピー
-        if (c.copy !== null && c.copy !== undefined && Number.isInteger(c.copy)) {
+        if (need.copy && c.copy !== null && c.copy !== undefined && Number.isInteger(c.copy)) {
           const inst = p.taken[c.copy];
           const idef = map[inst.key];
           if (idef && idef.kind !== 'copy') {
@@ -509,7 +512,7 @@
 
         // 小悪魔の山札確認: 選んだ 1 枚を獲得（applyTake を通して統計・コンボ判定を反映）し、
         // 残りは山札の下へ戻す。選択待ちフラグは解除する
-        if (state.peekNeeded && state.peekNeeded[i]) {
+        if (need.peek && state.peekNeeded && state.peekNeeded[i]) {
           const candidates = state.peekCards[i] || [];
           const chosen = Number.isInteger(c.pick) ? candidates[c.pick] : null;
           if (chosen) {

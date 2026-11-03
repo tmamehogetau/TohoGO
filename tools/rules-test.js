@@ -313,6 +313,25 @@ test('紅霧: ルーミア=収集 3枚=6点', () => {
   assert.strictEqual(s.players[0].roundScores[0], 6);
 });
 
+test('紅霧: フランをスキップ後の小悪魔選択に古い破棄キーが混ざっても +2 しない', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  const F = 'k_meirin';
+  setHands(s, [['k_fran', F], [F, F]]);
+  pickAll(s, [0, 0]); // フラン取得
+  assert.strictEqual(s.phase, 'select');
+  Engine.dispatch(s, { kind: 'choose', pi: 0, choice: {} }); // 破棄せずスキップ
+  setHands(s, [['k_kozue', F], [F, F]]);
+  pickAll(s, [0, 0]); // 小悪魔取得 → peek の選択フェーズ
+  assert.strictEqual(s.phase, 'select');
+  assert.strictEqual(s.players[0].roundScores[0], 0);
+  // UI に古い discard モードが残った場合を想定し、discard と pick を同時に送る
+  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { discard: 0, pick: 0 } });
+  assert.ok(r.ok, r.error);
+  assert.strictEqual(s.players[0].roundScores[0], 0, '不要な破棄では +2 されない');
+  assert.strictEqual(s.phase, 'pick');
+});
+
 test('紅霧: 大妖精=今ラウンドのチルノ1枚ごとに1点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
   fixPeek(s);
