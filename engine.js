@@ -174,6 +174,7 @@
     function instKey(inst) { return inst.key; }
 
     function resolvePicks(state) {
+      const wasHidden = state.hidden; // このピックの前に幻覚がかかっていたか
       state.lastPicks = [];
       for (let i = 0; i < state.playerCount; i++) {
         const idxs = [...state.picks[i]].sort((a, b) => b - a);
@@ -184,9 +185,9 @@
       }
       state.picks = new Array(state.playerCount).fill(null);
 
-      // うどんげの幻覚: 幻覚がかかっている間の全員のピックは非公開マーク
-      // （出した本人だけ全員分が見える。マークはラウンド末の判定で解除＝公開される）
-      if (state.hidden && state.hiddenOwner !== null) {
+      // うどんげの幻覚: 「うどんげを出した番」に公開されるカードがすべてうどんげとして見える
+      // （出した本人は影響を受けない。以降のピックは通常どおり公開・ラウンド末に判定で解除）
+      if (!wasHidden && state.hidden && state.hiddenOwner !== null) {
         for (const lp of state.lastPicks) {
           if (lp.pi === state.hiddenOwner) continue;
           const p = state.players[lp.pi];

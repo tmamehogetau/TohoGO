@@ -414,7 +414,7 @@ test('デザート=効果の対象に含まれる（破棄/裏返しで判定か
   assert.strictEqual(s2.players[0].desserts.length, 0, '裏返されたデザートは置き場にいかない');
 });
 
-test('永夜: うどんげ=幻覚中の他プレイヤーピックが非公開マーク（判定で公開）', () => {
+test('永夜: うどんげ=出した番のピックだけうどんげ表示（次のピックは通常公開）', () => {
   const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal', intruder: 'y_reimu' });
   // p0 がうどんげ取得（幻覚開始）・他はダミー
   cycle(s, [['y_reisen', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
@@ -422,12 +422,12 @@ test('永夜: うどんげ=幻覚中の他プレイヤーピックが非公開�
   assert.strictEqual(s.hiddenOwner, 0);
   const r1 = s.players.map((p) => p.taken.map((i) => Boolean(i.hiddenTaken)));
   assert.strictEqual(r1[0][0], false, '出した本人の取得は見える');
-  assert.strictEqual(r1[1][0], true, '他プレイヤーの取得は非公開マーク');
-  assert.strictEqual(r1[2][0], true, '他プレイヤーの取得は非公開マーク');
-  assert.strictEqual(r1[3][0], true, '他プレイヤーの取得は非公開マーク');
-  // 幻覚中の次のピックも非公開マークが付く
+  assert.strictEqual(r1[1][0], true, '出した番の他プレイヤーの取得はうどんげ表示');
+  assert.strictEqual(r1[2][0], true, '出した番の他プレイヤーの取得はうどんげ表示');
+  assert.strictEqual(r1[3][0], true, '出した番の他プレイヤーの取得はうどんげ表示');
+  // 次のピックは通常公開（マークは付かない）
   cycle(s, [['y_tewi', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
-  assert.strictEqual(s.players[1].taken.filter((i) => i.hiddenTaken).length, 2);
+  assert.strictEqual(s.players[1].taken.filter((i) => i.hiddenTaken).length, 1, '2 枚目以降はマークされない');
   cycle(s, [['y_tewi'], ['y_reimu'], ['y_reimu'], ['y_reimu']], [0, 0, 0, 0]); // ラウンド終了
   // 判定で公開される（マーク解除）・次ラウンドで幻覚はリセット
   const allVisible = s.players.every((p) => p.taken.every((i) => !i.hiddenTaken));
@@ -435,7 +435,7 @@ test('永夜: うどんげ=幻覚中の他プレイヤーピックが非公開�
   assert.strictEqual(s.hidden, false);
 });
 
-test('永夜: うどんげ=幻覚は出したラウンドのみ・次ラウンドは通常公開', () => {
+test('永夜: うどんげ=出した番のみ効果あり・次ラウンドは通常公開', () => {
   const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal', intruder: 'y_reimu' });
   cycle(s, [['y_reisen', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
   assert.strictEqual(s.hidden, true);

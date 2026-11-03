@@ -348,8 +348,8 @@
       statusEl.textContent = `「${defOf(p.hand[PICK_SELECTED].key).name}」を選択中。決定ボタンで確定`;
     } else if (STATE.hidden) {
       statusEl.textContent = STATE.hiddenOwner === 0
-        ? '幻覚をかけている：全員のピックがあなたにだけ見えている'
-        : '幻覚がかかっている：他の幹事のピックは非公開';
+        ? '幻覚をかけている：出した番の全員のピックがうどんげに見えている'
+        : '幻覚がかかっている：出した番のピックがうどんげに見えている';
     } else {
       statusEl.textContent = '手札から 1 枚選んで決定ボタンを押してね';
     }
