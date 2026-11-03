@@ -357,4 +357,7 @@ function main() {
   }
 }
 
-main();
+// スクリプトから再利用できるように公開（require されたときは main を走らせない）
+module.exports = { run, playGame, runWithSeed, mean, fmt, parseArgs };
+
+if (require.main === module) main();
