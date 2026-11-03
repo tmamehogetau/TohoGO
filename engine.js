@@ -93,6 +93,7 @@
         choices: new Array(playerCount).fill(null), // 取得時選択（select フェーズ用）
         phase: 'pick',
         lastPicks: [],
+        pickSeq: 0, // ピック解決の連番（UI の「新しく取った」アニメ用）
         roundBanner: null,
         log: [],
         hidden: false, // うどんげの情報隠蔽
@@ -182,6 +183,7 @@
 
     function resolvePicks(state) {
       const wasHidden = state.hidden; // このピックの前に幻覚がかかっていたか
+      state.pickSeq = (state.pickSeq || 0) + 1;
       state.lastPicks = [];
       let hiddenActivated = null; // このピックでうどんげを出したプレイヤー
       const coopThisTurn = []; // この手番で同時に取得されたリグル（{ pi, inst }）

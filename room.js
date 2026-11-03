@@ -72,6 +72,7 @@ function viewFor(room, seat) {
       pi: rot(lp.pi),
       keys: hideForViewer && lp.pi !== state.hiddenOwner ? lp.keys.map(() => 'y_reisen') : lp.keys,
     })),
+    pickSeq: state.pickSeq || 0,
     roundBanner: state.roundBanner
       ? {
           round: state.roundBanner.round,

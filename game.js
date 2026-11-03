@@ -663,6 +663,9 @@
   function renderTableRows() {
     const wrap = $('table-rows');
     wrap.innerHTML = '';
+    // 「新しく取った」アニメはピック解決の瞬間だけ。カード選択などによる再描画では再生しない
+    const animateNew = STATE.pickSeq !== PICK_ANIM_SIG;
+    PICK_ANIM_SIG = STATE.pickSeq;
     const order = [];
     for (let i = 0; i < STATE.playerCount; i++) order.push(i);
     order.sort((a, b) => (a === 0 ? -1 : b === 0 ? 1 : a - b));
@@ -709,7 +712,7 @@
           }
           return cardEl(inst.key, inst.icons, 'mini', inst, roundPtsOf(inst, pi));
         });
-        for (let i = els.length - 1; i >= 0 && keys.length; i--) {
+        for (let i = els.length - 1; i >= 0 && keys.length && animateNew; i--) {
           const k = keys.indexOf(shown[i].key);
           if (k >= 0) { els[i].classList.add('new'); keys.splice(k, 1); }
         }
@@ -742,7 +745,7 @@
       const dlp = STATE.lastPicks && STATE.lastPicks.find((x) => x.pi === pi);
       const dkeys = dlp ? [...dlp.keys] : [];
       const dels = p.desserts.map((inst) => cardEl(inst.key, null, 'mini'));
-      for (let i = dels.length - 1; i >= 0 && dkeys.length; i--) {
+      for (let i = dels.length - 1; i >= 0 && dkeys.length && animateNew; i--) {
         const k = dkeys.indexOf(p.desserts[i].key);
         if (k >= 0) { dels[i].classList.add('new'); dkeys.splice(k, 1); }
       }
@@ -771,6 +774,7 @@
   let HAND_COUNT = null; // 前回 render 時の手札枚数
   let DEAL_ANIM = false; // ラウンド開始直後フラグ（配りアニメを1回だけ発動）
   let LAST_FLOW_DIR = 1; // 最後のパス方向（流れ込みアニメの来る方向）
+  let PICK_ANIM_SIG = -1; // 前回アニメしたピック連番（取得カードの popIn を解決時だけに絞る）
 
   // 確定時に選択カードの現在座標を記録（FLIP アニメの移動元）
   function flyFromIdx(idx) {
