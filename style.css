@@ -289,6 +289,27 @@ main {
 #hand-buttons { display: flex; gap: 8px; margin-bottom: 12px; min-height: 40px; align-items: center; }
 #hand-buttons button { font-size: 0.9rem; padding: 8px 16px; }
 
+/* 手札の配り・流れ込みアニメーション */
+@keyframes dealIn {
+  0% { transform: translateY(-70px) rotate(-10deg); opacity: 0; }
+  60% { transform: translateY(6px) rotate(1deg); opacity: 1; }
+  100% { transform: translateY(0) rotate(0); opacity: 1; }
+}
+@keyframes flowL {
+  0% { transform: translateX(-70px) rotate(-4deg); opacity: 0; }
+  100% { transform: translateX(0) rotate(0); opacity: 1; }
+}
+@keyframes flowR {
+  0% { transform: translateX(70px) rotate(4deg); opacity: 0; }
+  100% { transform: translateX(0) rotate(0); opacity: 1; }
+}
+#hand .card.deal {
+  animation: dealIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--deal-i) * 0.055s);
+}
+#hand .card.flow.from-left { animation: flowL 0.35s ease-out both; }
+#hand .card.flow.from-right { animation: flowR 0.35s ease-out both; }
+
 #hand {
   display: flex;
   flex-wrap: wrap;

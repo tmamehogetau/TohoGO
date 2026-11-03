@@ -45,6 +45,9 @@
     SEL_MODE = null;
     SEL_SELECTED = [];
     FINAL_CLOSED = false;
+    DEAL_ANIM = true; // 初回配りアニメ
+    HAND_SIG = '';
+    HAND_COUNT = null;
     $('lobby').classList.add('hidden');
     $('app').classList.remove('hidden');
     renderAll();
@@ -196,6 +199,7 @@
     runAiPicks();
     runAiSelections();
     CHOPSTICKS_MODE = false;
+    LAST_FLOW_DIR = STATE.passDir; // パス方向を記録（flow アニメの来る方向に使う）
     renderAll();
     flyNewCards();
   }
@@ -321,6 +325,16 @@
     const myTurn = STATE.phase === 'pick' && STATE.picks[0] === null;
     const selectTurn = STATE.phase === 'select' && STATE.selectNeeded.includes(0);
 
+    // 手札変化の検出: DEAL_ANIM 中 or 枚数増=配り・それ以外の内容変化=パス流れ込み
+    // （render はピック+パス解決後の最終状態を描くため、枚数減でもパスで手札が入れ替わっている）
+    const sig = p.hand.map((c) => c.key + (c.icons || '')).join('|');
+    let anim = null;
+    if (DEAL_ANIM && p.hand.length > 0) anim = 'deal';
+    else if (HAND_COUNT !== null && sig !== HAND_SIG && p.hand.length > 0) anim = 'flow';
+    HAND_SIG = sig;
+    HAND_COUNT = p.hand.length;
+    DEAL_ANIM = false;
+
     const statusEl = $('hand-status');
     if (STATE.phase === 'over') {
       statusEl.textContent = '宴会終了！';
@@ -352,6 +366,13 @@
       const el = cardEl(card.key, card.icons);
       const selected = CHOP_SELECTED.includes(idx) || PICK_SELECTED === idx;
       if (selected) el.classList.add('selected');
+      // 配り・流れ込みアニメ（deal は枚数分ずらして1枚ずつ配られる演出）
+      if (anim === 'deal') {
+        el.classList.add('deal');
+        el.style.setProperty('--deal-i', idx);
+      } else if (anim === 'flow') {
+        el.classList.add('flow', LAST_FLOW_DIR === 1 ? 'from-left' : 'from-right');
+      }
       if (myTurn) {
         el.classList.add('clickable');
         el.addEventListener('click', () => onHandClick(idx));
@@ -598,6 +619,10 @@
   let FINAL_CLOSED = false; // 最終結果バナーを一度閉じたら再表示しない
   let FLY_FROMS = []; // FLIP アニメ用: 確定した手札カードの中心座標
   let SELECT_AREA = null; // 取得時選択欄の要素（table-rows 再構築で detached になるため参照を保持）
+  let HAND_SIG = ''; // 前回 render 時の手札シグネチャ（パス・配りアニメの判定用）
+  let HAND_COUNT = null; // 前回 render 時の手札枚数
+  let DEAL_ANIM = false; // ラウンド開始直後フラグ（配りアニメを1回だけ発動）
+  let LAST_FLOW_DIR = 1; // 最後のパス方向（流れ込みアニメの来る方向）
 
   // 確定時に選択カードの現在座標を記録（FLIP アニメの移動元）
   function flyFromIdx(idx) {
@@ -659,7 +684,7 @@
       .join('');
     el.innerHTML = `<h2>ラウンド ${b.round + 1} 結果</h2>${rows}<p class="banner-note">カードをクリックで次のラウンド開始</p>`;
     el.classList.remove('hidden');
-    el.onclick = () => { STATE.roundBanner = null; renderAll(); };
+    el.onclick = () => { STATE.roundBanner = null; DEAL_ANIM = true; renderAll(); }; // 次ラウンドの配りアニメ
   }
 
   // 異変カード一覧モーダル（現在のセットの全カード・説明・構成枚数）
