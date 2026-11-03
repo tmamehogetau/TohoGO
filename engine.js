@@ -185,8 +185,6 @@
       state.lastPicks = [];
       let hiddenActivated = null; // このピックでうどんげを出したプレイヤー
       const coopThisTurn = []; // この手番で同時に取得されたリグル（{ pi, inst }）
-      const youmuThisTurn = []; // この手番で取得された妖夢
-      let springTakers = 0; // この手番に春アイコンを取ったプレイヤー数
       for (let i = 0; i < state.playerCount; i++) {
         const idxs = [...state.picks[i]].sort((a, b) => b - a);
         const insts = idxs.map((idx) => state.players[i].hand.splice(idx, 1)[0]);
@@ -195,9 +193,7 @@
           applyTake(state, i, inst);
           const def = state.cardMap[inst.key];
           if (def && def.kind === 'coop') coopThisTurn.push({ pi: i, inst });
-          if (def && def.kind === 'springSteal') youmuThisTurn.push({ pi: i, inst });
         }
-        if (insts.some((inst) => (inst.icons || 0) > 0)) springTakers += 1;
         state.lastPicks.push({ pi: i, keys: insts.map(instKey) });
         // うどんげは「出した番」に発動する（小悪魔の山札確認で獲得した場合は発動しない）
         if (insts.some((inst) => inst.key === 'y_reisen')) hiddenActivated = i;
@@ -207,12 +203,6 @@
       for (const { pi, inst } of coopThisTurn) {
         const others = coopThisTurn.filter((x) => x.pi !== pi).length;
         inst.coopPoints = others * coopPointValue(state.cardMap[inst.key]);
-      }
-      // 妖夢: 同じ手番に春を取ったプレイヤー数だけ、春アイコンと点を得る
-      // （誰も春を取っていない手番では不発）
-      for (const { pi, inst } of youmuThisTurn) {
-        inst.springGain = springTakers;
-        if (springTakers > 0) state.roundStats[pi].springIcons += springTakers;
       }
       state.picks = new Array(state.playerCount).fill(null);
 
@@ -270,8 +260,26 @@
         p.gameEndCounts[inst.key] = (p.gameEndCounts[inst.key] || 0) + 1;
       }
 
-      // 妖夢の効果は手番解決時に確定する（同じ手番に春を取った人数ぶんの春と点）。
-      // ここでは何もしない。
+      // 妖夢の春吸収（即座に適用）: 他の全員から春を 1 個ずつ奪う。
+      // 全員から奪えたときだけ +1 点（誰か1人でも春を持っていないと点は入らない）
+      if (def.kind === 'springSteal') {
+        const steal = def.steal || 1;
+        const opponents = state.playerCount - 1;
+        let holders = 0;
+        for (let j = 0; j < state.playerCount; j++) {
+          if (j === pi) continue;
+          const loss = Math.min(steal, Math.max(0, state.roundStats[j].springIcons));
+          if (loss > 0) {
+            state.roundStats[j].springIcons -= loss;
+            stats.springIcons += loss;
+            holders += 1;
+          }
+        }
+        inst.springGain = holders === opponents && opponents > 0 ? (def.allBonus || 1) : 0;
+        if (inst.springGain > 0) addLog(state, `${p.name}: 全員の春を剪定して +${inst.springGain} 点`);
+        else if (holders > 0) addLog(state, `${p.name}: ${holders} 人から春を剪定した（全員からは奪えず）`);
+        else addLog(state, `${p.name}: 奪える春がなく、妖夢の効果は不発に終わった`);
+      }
 
       // 即時点数はラウンド末に一括集計する（ここでは加点しない）。
       // コンボ（美鈴・藍・橙）の発動だけは取得順依存のため、取得時にフラグを記録する。
