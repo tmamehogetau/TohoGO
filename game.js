@@ -14,8 +14,6 @@
 
   const $ = (id) => document.getElementById(id);
 
-  let SEL_INCIDENT = ''; // '' = おまかせ（ランダム抽選）
-
   let ONLINE = false; // 対戦モード（サーバー権威）
   let MY_SEAT = 0;
 
@@ -35,29 +33,33 @@
     return Engine.dispatch(STATE, { ...action, pi: 0 });
   }
 
-  // ロビーの異変選択 UI（data.js の INCIDENTS から動的生成）
-  function incidentOption(id, title, desc) {
-    const el = document.createElement('div');
-    el.className = `incident-option${id === SEL_INCIDENT ? ' selected' : ''}`;
-    el.innerHTML = `<div class="opt-title">${title}</div><div class="opt-desc">${desc}</div>`;
-    el.addEventListener('click', () => { SEL_INCIDENT = id; buildIncidentPicker(); });
-    return el;
+  // ロビー: 最初はモード選択だけ。ホットシートの異変は「ひとりで遊ぶ」の中のコンパクトな select
+  function showMode(mode) {
+    $('solo-panel').classList.toggle('hidden', mode !== 'solo');
+    $('mp-entry').classList.toggle('hidden', mode !== 'online');
+    if (mode === 'online') $('input-code').focus();
   }
 
-  function buildIncidentPicker() {
-    const wrap = $('incident-picker');
-    wrap.innerHTML = '';
-    wrap.appendChild(incidentOption('', 'おまかせ', '異変はゲーム開始時にランダムで決まる'));
+  function buildSoloIncidentOptions() {
+    const sel = $('solo-incident');
+    sel.innerHTML = '';
+    const auto = document.createElement('option');
+    auto.value = '';
+    auto.textContent = 'おまかせ（ランダム）';
+    sel.appendChild(auto);
     for (const id of Data.INCIDENT_IDS) {
       const inc = Data.incidentById(id);
-      const extra = inc.intruders ? '（乱入者はランダムで 1 種参加）' : '';
-      wrap.appendChild(incidentOption(id, inc.name, `${inc.subtitle}／${inc.theme}${extra}`));
+      const o = document.createElement('option');
+      o.value = id;
+      o.textContent = inc.name;
+      sel.appendChild(o);
     }
   }
 
   function startGame() {
     const name = $('input-name').value.trim() || '幹事';
-    const opts = SEL_INCIDENT ? { incident: SEL_INCIDENT } : {};
+    const incident = $('solo-incident').value;
+    const opts = incident ? { incident } : {};
     ONLINE = false;
     STATE = Engine.newGame(4, [name, '萃香', '魔理沙', 'にとり'], opts);
     CHOPSTICKS_MODE = false;
@@ -935,8 +937,9 @@
     $('online-lobby').classList.remove('hidden');
     $('mp-entry').classList.add('hidden');
     $('btn-start').classList.add('hidden'); // 対戦中はホットシート開始ボタンを隠す
-    $('incident-picker').classList.add('hidden'); // ホットシート用の異変選択は隠す（設定は下のルーム設定）
-    $('hotseat-note').classList.add('hidden');
+    $('mode-select').classList.add('hidden');
+    $('solo-panel').classList.add('hidden');
+    $('mp-entry').classList.add('hidden');
     $('online-code').textContent = lobby.roomCode;
     $('online-players').innerHTML = lobby.players
       .map((p) => `<div class="online-player${p.seat === MY_SEAT ? ' me' : ''}">${p.isHost ? '★' : ''}${p.name}${p.connected ? '' : ' <span class="off">（切断）</span>'}</div>`)
@@ -996,7 +999,11 @@
 
   function init() {
     $('btn-start').addEventListener('click', startGame);
-    $('input-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') startGame(); });
+    $('input-name').addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      if (!$('solo-panel').classList.contains('hidden')) startGame();
+      else if (!$('mp-entry').classList.contains('hidden')) joinRoom();
+    });
     $('btn-chopsticks').addEventListener('click', toggleChopsticks);
     $('btn-confirm-pick').addEventListener('click', confirmPick);
     $('btn-cardref').addEventListener('click', toggleCardRef);
@@ -1006,7 +1013,9 @@
     $('btn-online-start').addEventListener('click', () => Net.start());
     $('setting-incident').addEventListener('change', sendSettings);
     $('setting-timer').addEventListener('change', sendSettings);
-    buildIncidentPicker();
+    $('btn-mode-solo').addEventListener('click', () => showMode('solo'));
+    $('btn-mode-online').addEventListener('click', () => showMode('online'));
+    buildSoloIncidentOptions();
     buildSettingOptions();
     setInterval(updateTimerIndicator, 500);
   }

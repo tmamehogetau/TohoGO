@@ -13,12 +13,21 @@
     <h1>幻想宴会ドラフト</h1>
     <p class="subtitle">東方Project二次創作 × スシGO風ドラフト</p>
     <p class="note">プロトタイプ v0.3（異変パックシステム）— ホットシート / オンライン対戦（2〜5人）</p>
-    <p class="note" id="hotseat-note">異変を選ぶか「おまかせ」でランダム抽選（ホットシート）</p>
     <input id="input-name" placeholder="幹事の名前" value="貴殿" maxlength="12">
-    <div id="incident-picker" class="incident-picker"></div>
-    <button id="btn-start">宴会を始める</button>
 
-    <div id="mp-entry">
+    <div id="mode-select">
+      <button id="btn-mode-solo" class="secondary">ひとりで遊ぶ（AI3人）</button>
+      <button id="btn-mode-online" class="secondary">みんなで遊ぶ（ルーム）</button>
+    </div>
+
+    <div id="solo-panel" class="hidden">
+      <label class="setting-row">異変
+        <select id="solo-incident"></select>
+      </label>
+      <button id="btn-start">宴会を始める</button>
+    </div>
+
+    <div id="mp-entry" class="hidden">
       <button id="btn-create" class="secondary">ルームを作る</button>
       <input id="input-code" placeholder="コード" maxlength="4" autocomplete="off">
       <button id="btn-join" class="secondary">参加する</button>

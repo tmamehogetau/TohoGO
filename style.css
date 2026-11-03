@@ -429,6 +429,15 @@ main {
 .ref-count { color: var(--gold); margin-left: 8px; font-size: 0.8rem; }
 .ref-desc { font-size: 0.78rem; color: var(--text-dim); line-height: 1.45; margin-top: 3px; }
 
+/* ロビー: モード選択 */
+#mode-select {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 8px 0 4px;
+}
+#solo-panel { margin-top: 10px; }
+
 /* 対戦ロビー */
 #mp-entry {
   display: flex;
