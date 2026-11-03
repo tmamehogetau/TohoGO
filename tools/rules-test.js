@@ -150,17 +150,16 @@ test('紅霧: フラン破棄で+2点・破棄カードは taken に残り判定
   // taken: [レミリア(idx0), ダミー(idx1), フラン(idx2)] — フラン自身は破棄できない
   const self = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { discard: 2 } });
   assert.ok(!self.ok, 'フラン自身を破棄しようとすると拒否される');
-  // レミリアを破棄 → フラン2点+2点
+  // レミリアを破棄（点数はラウンド末集計で反映されるためこの時点では roundScores は変動しない）
   const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { discard: 0 } });
   assert.ok(res.ok, res.error);
   settleSelection(s);
-  assert.strictEqual(s.players[0].roundScores[0], 4); // 3点は取り消され、フラン2+2
   // 手札が残っているのでラウンドは続行・破棄カードは taken に残る（UI で半透明「破棄」表示）
   assert.strictEqual(s.players[0].taken.length, 2);
   assert.strictEqual(s.players[0].taken[0].discarded, true);
   cycle(s, [['k_rumia', D], [D, D]], [0, 0]); // ルーミア1枚取得（収集1点）
-  cycle(s, [[D], [D]], [0, 0]); // ラウンド終了
-  // 破棄済みレミリアは instant 点数取消済み・ルーミア1枚で収集1点 → 4+1 = 5
+  cycle(s, [[D], [D]], [0, 0]); // ラウンド終了・即時点を一括集計
+  // 破棄済みレミリアは集計から外れ（3点は計上されない）・フラン2+2・ルーミア収集1点 = 5
   assert.strictEqual(s.players[0].roundScores[0], 5);
   // ラウンド末に山札へ戻る（dealRound で手札に配られた後なら手札の中にいる）
   const backInDeck = s.deck.some((i) => i.key === 'k_remi');
@@ -177,30 +176,35 @@ test('紅霧: 破棄されたカードは収集判定から除外される', () 
   const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { discard: 0 } });
   assert.ok(res.ok, res.error);
   settleSelection(s);
-  cycle(s, [[D], [D]], [0, 0]); // ラウンド終了
+  cycle(s, [[D], [D]], [0, 0]); // ラウンド終了・即時点を一括集計
   // 破棄されたルーミアは収集判定から除外 → 収集 0 点。フラン2+2 のみ
   assert.strictEqual(s.players[0].roundScores[0], 4);
 });
 
 test('紅霧: 咲夜=同ピックで他プレイヤーがレミリア/フランを出したら0点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
-  cycle(s, [['k_sakuya', D], ['k_remi', D]], [0, 0]);
-  assert.strictEqual(s.players[0].roundScores[0], 0);
-  assert.strictEqual(s.players[1].roundScores[0], 3);
+  setHands(s, [['k_sakuya', 'k_kozue'], ['k_remi', 'k_kozue']]);
+  pickAll(s, [0, 0]); // 咲夜取得（同ピックで相手がレミリア）
+  setHands(s, [['k_kozue'], ['k_kozue']]);
+  pickAll(s, [0, 0]); // ラウンド終了・集計
+  assert.strictEqual(s.players[0].roundScores[0], 0, '同席したので 0 点');
+  assert.strictEqual(s.players[1].roundScores[0], 3, 'レミリアは 3 点');
 });
 
 test('紅霧: 咲夜=相手がレミリア/フランなしのピックなら3点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
-  cycle(s, [['k_sakuya', D], [D, D]], [0, 0]);
+  setHands(s, [['k_sakuya', 'k_kozue'], ['k_kozue', 'k_kozue']]);
+  pickAll(s, [0, 0]); // 咲夜取得（相手はダミーのみ）
+  setHands(s, [['k_kozue'], ['k_kozue']]);
+  pickAll(s, [0, 0]); // ラウンド終了・集計
   assert.strictEqual(s.players[0].roundScores[0], 3);
 });
 
 test('紅霧: 美鈴=同ラウンドに咲夜を獲得していたら+1点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
-  cycle(s, [['k_meirin', D], [D, D]], [0, 0]); // 美鈴1点（咲夜なし）
-  assert.strictEqual(s.players[0].roundScores[0], 1);
+  cycle(s, [['k_meirin', D], [D, D]], [0, 0]); // 美鈴取得（咲夜なし → コンボ不発）
   cycle(s, [['k_sakuya', 'k_meirin'], [D, D]], [0, 0]); // 咲夜取得
-  cycle(s, [['k_meirin'], [D]], [0, 0]); // 美鈴取得（ラウンド内に咲夜あり → 2点）・ラウンド終了
+  cycle(s, [['k_meirin'], [D]], [0, 0]); // 美鈴取得（ラウンド内に咲夜あり → コンボ発動）・ラウンド終了・集計
   assert.strictEqual(s.players[0].roundScores[0], 1 + 3 + 2);
 });
 
@@ -208,7 +212,7 @@ test('紅霧: 美鈴コンボは獲得時判定（後から咲夜を取っても
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
   cycle(s, [['k_meirin', D], [D, D]], [0, 0]); // 美鈴1点（取得時に咲夜なし → コンボ不発）
   cycle(s, [['k_sakuya', D], [D, D]], [0, 0]); // 咲夜を後から取得
-  cycle(s, [[D], [D]], [0, 0]); // ラウンド終了
+  cycle(s, [[D], [D]], [0, 0]); // ラウンド終了・集計
   assert.strictEqual(s.players[0].roundScores[0], 1 + 3, '美鈴1+咲夜3（コンボは加算されない）');
 });
 

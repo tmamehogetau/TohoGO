@@ -249,21 +249,16 @@
         addLog(state, `${p.name}: 庭師が春を剪定して自分の庭に集めた`);
       }
 
-      // 即時点数。コンボ（美鈴・藍・橙）は DESIGN のタイミング「即時（条件）」に従い
-      // 取得時判定: 取った瞬間にコンボ相手が手元にいればボーナス
+      // 即時点数はラウンド末に一括集計する（ここでは加点しない）。
+      // コンボ（美鈴・藍・橙）の発動だけは取得順依存のため、取得時にフラグを記録する。
       if (def.kind === 'instant') {
-        let pts = def.points;
         if (def.comboKeys && def.comboKeys.length) {
           const owned = new Set(p.taken.map((i2) => i2.key));
           if (def.comboKeys.every((k) => owned.has(k))) {
-            pts += def.comboBonus;
-            addLog(state, `${p.name}: ${def.name}は${def.comboKeys.map((k) => (state.cardMap[k] ? state.cardMap[k].name : k)).join('・')}と連携した（+${def.comboBonus}点）`);
+            inst.instantCombo = true;
+            addLog(state, `${p.name}: ${def.name}は${def.comboKeys.map((k) => (state.cardMap[k] ? state.cardMap[k].name : k)).join('・')}と連携した（ラウンド末に+${def.comboBonus}点）`);
           }
         }
-        // 乱入者ペナルティ（輝夜・永琳）
-        if (def.intruderPenalty && stats.intruderTaken) pts -= def.intruderPenalty;
-        p.roundScores[state.round] += pts;
-        p.taken[p.taken.length - 1].instantScored = pts;
       }
     }
 
@@ -280,11 +275,37 @@
           const others = state.lastPicks.filter((x) => x.pi !== pi).flatMap((x) => x.keys);
           const blocked = others.some((k) => def.absentKeys.includes(k));
           if (blocked) {
-            p.roundScores[state.round] -= (inst.instantScored || 0);
-            inst.instantScored = 0;
+            // 点数はラウンド末集計で 0 点として計上される
+            inst.absentBlocked = true;
             addLog(state, `${p.name}: ${def.name}は主と同席のときは控えた（0点）`);
           }
         }
+      }
+    }
+
+    // 即時点数のラウンド末一括集計（破棄/裏返し/咲夜同席/コンボ/乱入者ペナルティをここで反映）
+    function settleInstantScores(state) {
+      for (let i = 0; i < state.playerCount; i++) {
+        const p = state.players[i];
+        let pts = 0;
+        for (const inst of p.taken) {
+          const def = state.cardMap[inst.key];
+          if (!def || def.kind !== 'instant') continue;
+          if (inst.flipped || inst.discarded) continue; // 破棄・裏返しは点数計上から外れる
+          pts += inst.absentBlocked ? 0 : def.points; // 咲夜の同席判定
+          if (inst.instantCombo && def.comboBonus) pts += def.comboBonus; // 取得時コンボ（美鈴・藍・橙）
+        }
+        // 乱入者ペナルティ（輝夜・永琳）: ラウンド内に乱入者を取得していたら、
+        // 所持している乱入者影響カード 1 枚ごとに -1（取得順は問わない）
+        if (state.roundStats[i].intruderTaken) {
+          for (const inst of p.taken) {
+            const def = state.cardMap[inst.key];
+            if (!def || def.kind !== 'instant' || !def.intruderPenalty) continue;
+            if (inst.flipped || inst.discarded) continue;
+            pts -= def.intruderPenalty;
+          }
+        }
+        p.roundScores[state.round] += pts;
       }
     }
 
@@ -371,15 +392,12 @@
         const map = state.cardMap;
 
         // フラン破棄: 破棄するカードは taken から削除せず discarded フラグを立てる
-        // （判定から除外・UI には半透明の「破棄」で残る。ラウンド末に他の取得カードと一緒に山札へ戻る）
+        // （ラウンド末集計で点数計上されない・UI には半透明の「破棄」で残る。ラウンド末に山札へ戻る）
         if (c.discard !== null && c.discard !== undefined && Number.isInteger(c.discard)) {
           const inst = p.taken[c.discard];
           if (inst && !inst.discarded) {
             const franBonus = map['k_fran'] ? map['k_fran'].discardBonus : 2;
             const idef = map[inst.key];
-            // 破棄したカードの計上済み点数を取り消してからフラグを立てる
-            p.roundScores[state.round] -= (inst.instantScored || 0);
-            inst.instantScored = 0;
             inst.discarded = true;
             // 破棄されたリグルは共闘カウントからも外す
             if (idef && idef.kind === 'coop') state.coopCount[pi] = Math.max(0, state.coopCount[pi] - 1);
@@ -398,11 +416,6 @@
             const idef = map[inst.key];
             if (!idef) continue;
             if (idef.kind === 'flip') continue; // ミスティア自身は対象外
-            if (idef.kind === 'instant') {
-              // 即時カードは計上済み点数を取り消して判定から外れる
-              p.roundScores[state.round] -= (inst.instantScored || 0);
-              inst.instantScored = 0;
-            }
             inst.flipped = true;
             flippedN++;
           }
@@ -466,6 +479,9 @@
       // 判定時のラウンド統計スナップショット（テスト・UI 参照用。dealRound で roundStats はリセットされる）
       state.lastRoundStats = state.roundStats.map((s) => ({ ...s }));
 
+      // 即時点数のラウンド末一括集計（先頭で行い、バナーの点数内訳に含める）
+      settleInstantScores(state);
+
       // 全体判定（多数決系・共闘・幽々子）
       const scores = endRoundGlobal(state);
       // 個別判定（収集・ペア・セット・豆腐・種類数・相反・連動・コンボ・裏返し）
@@ -496,7 +512,8 @@
           delete inst.discarded;
           delete inst.hiddenTaken; // 幻覚はラウンド末判定で解除＝公開される
           delete inst.absentChecked;
-          delete inst.instantScored;
+          delete inst.absentBlocked;
+          delete inst.instantCombo;
           delete inst.selectionDone;
           delete inst.copied;
         }
