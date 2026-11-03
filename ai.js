@@ -34,6 +34,17 @@
     return inTaken + p.desserts.filter((i) => i.key === key).length;
   }
 
+  // メインデッキの総枚数（デザートは別プールなので除く）。他人の同時取得の期待値に使う
+  function packCardCount(state) {
+    let n = 0;
+    for (const d of Object.values(state.cardMap)) {
+      if (d.pool) continue;
+      if (d.iconCounts) n += Object.values(d.iconCounts).reduce((a, b) => a + b, 0);
+      else n += d.count || 1;
+    }
+    return n;
+  }
+
   // 手札 1 枚を取ったときの「今ラウンドの得点」増分の見積もり。
   // engine.js のラウンド末・ゲーム末判定と同じ式をなぞり、増えるぶんだけを返す近似。
   // 条件系（同席・乱入者・ペナルティ）は「今の自分の場」で満たしているかで価値を変える。
@@ -103,9 +114,13 @@
         const own = countKey(p, def.ownKey);
         return own > stats.springIcons ? def.mult : 0.4;
       }
-      case 'coop':
-        // 自分以外がリグルを出した回数がそのまま点になる（他人の枚数は読めないので期待値）
-        return 0.8 + state.coopCount.reduce((a, b) => a + b, 0) * 0.15;
+      case 'coop': {
+        // 同じ手番に何人も取るほど得なので、他人が同時に取る期待値を足す。
+        // 他人の手札は見えないため、パック内のリグルの密度で近似する
+        const others = state.playerCount - 1;
+        const expectedN = 1 + others * ((def.count || 1) / Math.max(1, packCardCount(state)));
+        return (typeof def.points === 'number' ? def.points : 1) * expectedN;
+      }
       case 'flip':
         return 2.6; // 腐ったカードを 2 点に変換できる
       case 'copy':

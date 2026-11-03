@@ -88,7 +88,7 @@ const TARGETS = {
     ['y_reisen', '鈴仙 1点', (d) => { d.points = 0; }],
     ['y_tewi', 'てゐ 2枚6点', (d) => { d.table = [0, 0, 0]; }],
     ['y_moko', '妹紅 ラウンド+3/最終-6', (d) => { d.roundMost = 0; d.finalLeast = 0; }],
-    ['y_riggle', 'リグル 共闘', (d) => { d.count = 0; }],
+    ['y_riggle', 'リグル 同時取得', (d) => { d.points = 0; }],
     ['__maki', '玉兎 マキ配点', null],
   ],
 };

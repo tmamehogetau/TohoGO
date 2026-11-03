@@ -88,7 +88,7 @@
       case 'tofu': return `1 枚 ${def.table[0]} 点・2 枚 ${def.table[1]} 点・3 枚以上 ${def.table[def.table.length - 1]} 点`;
       case 'kindCount': return `ラウンド末・「取ったカードの種類数 ${def.offset >= 0 ? '+' : ''}${def.offset}」点`;
       case 'letty': return `ラウンド末・(自分の冬の枚数 − 自分の春の個数) × ${def.mult} 点`;
-      case 'coop': return `ラウンド末・自分以外が出したリグル 1 枚につき +1 点`;
+      case 'coop': return `取得した手番に、同じ手番で取得されたリグル 1 枚につき +${def.points} 点（1 人だけなら ${def.points} 点）`;
       case 'flip': return `取得時・手元のカードを任意枚数裏返せる（判定から外れ 1 枚 ${def.flipPoints} 点・ミスティア自身は対象外）`;
       case 'copy': return `取得時・手元の他のカード 1 枚の効果をコピー`;
       case 'deckPeek': return `取得時・山札の上 ${def.peek} 枚を見て 1 枚獲得（残りは山札の下へ・使わなくてもよい）`;
@@ -378,7 +378,9 @@
   // 取得行に表示する「確定済み点数」（即時系カードのみ・破棄/裏返しはタグが代わりに表示される）
   function roundPtsOf(inst, pi) {
     const def = defOf(inst.key);
-    if (!def || def.kind !== 'instant' || inst.flipped || inst.discarded) return null;
+    if (!def || inst.flipped || inst.discarded) return null;
+    if (def.kind === 'coop') return inst.coopPoints || null; // リグルは取得した手番で確定
+    if (def.kind !== 'instant') return null;
     let pts = def.points;
     if (inst.instantCombo && def.comboBonus) pts += def.comboBonus; // 美鈴・藍・橙の取得時コンボ
     if (inst.absentBlocked) pts = 0; // 咲夜の同席判定

@@ -122,7 +122,6 @@
       state.peekNeeded = null;
       state.peekCards = null;
       state.roundStats = state.players.map(() => ({ springIcons: 0, dessertTaken: 0, intruderTaken: false }));
-      state.coopCount = new Array(state.playerCount).fill(0);
     }
 
     function dispatch(state, action) {
@@ -175,18 +174,35 @@
 
     function instKey(inst) { return inst.key; }
 
+    // リグルの 1 枚あたりの点数（未指定なら 1 点）
+    function coopPointValue(def) {
+      return def && typeof def.points === 'number' ? def.points : 1;
+    }
+
     function resolvePicks(state) {
       const wasHidden = state.hidden; // このピックの前に幻覚がかかっていたか
       state.lastPicks = [];
       let hiddenActivated = null; // このピックでうどんげを出したプレイヤー
+      const coopThisTurn = []; // この手番で同時に取得されたリグル
       for (let i = 0; i < state.playerCount; i++) {
         const idxs = [...state.picks[i]].sort((a, b) => b - a);
         const insts = idxs.map((idx) => state.players[i].hand.splice(idx, 1)[0]);
         insts.reverse();
-        for (const inst of insts) applyTake(state, i, inst);
+        for (const inst of insts) {
+          applyTake(state, i, inst);
+          const def = state.cardMap[inst.key];
+          if (def && def.kind === 'coop') coopThisTurn.push(inst);
+        }
         state.lastPicks.push({ pi: i, keys: insts.map(instKey) });
         // うどんげは「出した番」に発動する（小悪魔の山札確認で獲得した場合は発動しない）
         if (insts.some((inst) => inst.key === 'y_reisen')) hiddenActivated = i;
+      }
+      // リグル: 同じ手番に取得されたリグル 1 枚につき points 点。
+      // 1 人で取れば 1 点、2 人同時なら各 2 点という「同時取得の賭け」になる
+      const coopN = coopThisTurn.length;
+      for (const inst of coopThisTurn) {
+        const def = state.cardMap[inst.key];
+        inst.coopPoints = coopN * coopPointValue(def);
       }
       state.picks = new Array(state.playerCount).fill(null);
 
@@ -231,9 +247,6 @@
       }
 
       p.taken.push(inst);
-
-      // リグル共闘カウント
-      if (def.kind === 'coop') state.coopCount[pi]++;
 
       // 春アイコンの記録（幽々子・レティ・妖夢の判定に使用）
       if (inst.icons) stats.springIcons += inst.icons;
@@ -294,8 +307,14 @@
         let pts = 0;
         for (const inst of p.taken) {
           const def = state.cardMap[inst.key];
-          if (!def || def.kind !== 'instant') continue;
+          if (!def) continue;
           if (inst.flipped || inst.discarded) continue; // 破棄・裏返しは点数計上から外れる
+          // リグル: 取得した手番に同時取得された枚数ぶんの点（取得時に確定済み）
+          if (def.kind === 'coop') {
+            pts += inst.coopPoints || 0;
+            continue;
+          }
+          if (def.kind !== 'instant') continue;
           pts += inst.absentBlocked ? 0 : def.points; // 咲夜の同席判定
           if (inst.instantCombo && def.comboBonus) pts += def.comboBonus; // 取得時コンボ（美鈴・藍・橙）
         }
@@ -421,8 +440,6 @@
             const franBonus = map['k_fran'] ? map['k_fran'].discardBonus : 2;
             const idef = map[inst.key];
             inst.discarded = true;
-            // 破棄されたリグルは共闘カウントからも外す
-            if (idef && idef.kind === 'coop') state.coopCount[pi] = Math.max(0, state.coopCount[pi] - 1);
             p.roundScores[state.round] += franBonus;
             addLog(state, `${p.name}: フランが${idef ? idef.name : inst.key}を破棄した（+${franBonus}点）`);
           }
@@ -459,7 +476,12 @@
         if (state.peekNeeded && state.peekNeeded[i]) {
           const candidates = state.peekCards[i] || [];
           const chosen = Number.isInteger(c.pick) ? candidates[c.pick] : null;
-          if (chosen) applyTake(state, i, chosen);
+          if (chosen) {
+            applyTake(state, i, chosen);
+            // リグルを山札確認で得た場合は手番ではないので、単独取得（1 枚ぶん）として扱う
+            const cdef = map[chosen.key];
+            if (cdef && cdef.kind === 'coop') chosen.coopPoints = coopPointValue(cdef);
+          }
           // 選ばなかったカード（スキップ時は全部）は失われないよう山札の下へ戻す
           for (const inst of candidates) {
             if (inst !== chosen) state.deck.push(inst);
@@ -615,11 +637,6 @@
           const hasYuyuko = state.players[i].taken.some((inst) => inst.key === 's_yuyuko' && !inst.flipped);
           if (hasYuyuko && s.springIcons === springMax) scores[i] += 4;
         });
-      }
-      // coop（リグル）: 他プレイヤーのリグル出し回数 × 1 点
-      const totalCoop = state.coopCount.reduce((a, b) => a + b, 0);
-      for (let i = 0; i < n; i++) {
-        scores[i] += totalCoop - state.coopCount[i];
       }
       return scores;
     }

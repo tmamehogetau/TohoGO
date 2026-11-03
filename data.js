@@ -54,7 +54,7 @@
     { key: 'y_tewi', kind: 'tofu', table: [2, 6, 0], name: '因幡てゐ', icon: '幸', color: '#6a9955', count: 8 },
     { key: 'y_mystia', kind: 'flip', flipPoints: 2, name: 'ミスティア', icon: '歌', color: '#a67c52', count: 3 },
     { key: 'y_keine', kind: 'copy', name: '上白沢慧音', icon: '史', color: '#4a7ea6', count: 3 },
-    { key: 'y_riggle', kind: 'coop', name: 'リグル', icon: '蜻', color: '#c87a4a', count: 8 },
+    { key: 'y_riggle', kind: 'coop', points: 1, name: 'リグル', icon: '蜻', color: '#c87a4a', count: 8 },
     { key: 'y_rabbit', kind: 'maki', iconCounts: { 1: 4, 2: 5, 3: 3 }, name: '玉兎', icon: '兎', color: '#e8e6e3', count: 12 },
   ];
   const ETERNAL_INTRUDERS = [
