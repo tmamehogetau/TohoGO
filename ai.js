@@ -122,7 +122,7 @@
         return (typeof def.points === 'number' ? def.points : 1) * expectedOthers;
       }
       case 'flip':
-        return 2.6; // 腐ったカードを 2 点に変換できる
+        return 1.2; // 腐ったカードを 2 点に変換できる（変換先より高く評価すると取りすぎる）
       case 'copy':
         return 2.8; // 一番強いカードの効果を複製
       case 'deckPeek':
@@ -166,9 +166,36 @@
     return [ranked[0].idx, ranked[1].idx].sort((a, b) => a - b);
   }
 
-  // 取得時選択の AI 解答: 小悪魔の山札確認（peek）は候補の中で一番価値が高いカードを取る
+  // そのカード 1 枚が「今のまま」生むラウンド点。破棄/裏返しで失う分を見るのに使う。
+  // 収集・ペア・種類数などは他のカードとの兼ね合いで決まるため null（触らない）
+  function ownValue(state, pi, inst) {
+    const def = state.cardMap[inst.key];
+    if (!def) return null;
+    if (def.kind === 'instant') {
+      if (inst.absentBlocked) return 0;
+      let v = def.points;
+      if (inst.instantCombo && def.comboBonus) v += def.comboBonus;
+      const stats = state.roundStats[pi];
+      if (def.intruderPenalty && stats && stats.intruderTaken) v -= def.intruderPenalty;
+      return v;
+    }
+    if (def.kind === 'coop') return inst.coopPoints || 0;
+    return null;
+  }
+
+  // 慧音がコピーしたときの見返り。即時・リグルは実点、それ以外は取得したときの増分で近似
+  function copyTargetValue(state, pi, inst) {
+    const own = ownValue(state, pi, inst);
+    return own === null ? cardValue(state, pi, inst) : own;
+  }
+
+  // 取得時選択の AI 解答。山札確認（小悪魔）・コピー（慧音）・裏返し（ミスティア）・破棄（フラン）
+  // はいずれも「使わない」が既定なので、使ったほうが得なときだけ選ぶ
   function selectChoice(state, pi) {
     const need = engineOf().selectionNeeded(state, pi);
+    const p = state.players[pi];
+    const choice = {};
+
     if (need.peek && state.peekCards && state.peekCards[pi]) {
       let best = -1;
       let bestValue = -Infinity;
@@ -176,9 +203,48 @@
         const value = cardValue(state, pi, inst);
         if (value > bestValue) { bestValue = value; best = idx; }
       });
-      if (best >= 0) return { pick: best };
+      if (best >= 0) choice.pick = best;
     }
-    return {};
+
+    if (need.copy) {
+      // 一番価値の高いカードの効果をコピーする（慧音自身は対象外）
+      let best = -1;
+      let bestValue = 0.5;
+      p.taken.forEach((inst, idx) => {
+        const def = state.cardMap[inst.key];
+        if (!def || def.kind === 'copy' || inst.discarded || inst.flipped) return;
+        const value = copyTargetValue(state, pi, inst);
+        if (value > bestValue) { bestValue = value; best = idx; }
+      });
+      if (best >= 0) choice.copy = best;
+    }
+
+    if (need.flip) {
+      // 裏返すと 2 点になるので、2 点未満のカードだけ裏返す
+      const targets = [];
+      p.taken.forEach((inst, idx) => {
+        const def = state.cardMap[inst.key];
+        if (!def || def.kind === 'flip' || inst.discarded || inst.flipped) return;
+        const value = ownValue(state, pi, inst);
+        if (value !== null && value < 2) targets.push(idx);
+      });
+      if (targets.length) choice.flip = targets;
+    }
+
+    if (need.discard) {
+      // 破棄すると +2 点なので、2 点未満のカードを 1 枚選ぶ（フラン自身は対象外）
+      let best = -1;
+      let bestValue = 2;
+      p.taken.forEach((inst, idx) => {
+        const def = state.cardMap[inst.key];
+        if (!def || def.discardBonus || inst.discarded) return;
+        const value = ownValue(state, pi, inst);
+        if (value !== null && value < bestValue) { bestValue = value; best = idx; }
+      });
+      if (best >= 0) choice.discard = best;
+    }
+
+    return choice;
   }
 
   return { pick, pick2, cardValue, selectChoice };
