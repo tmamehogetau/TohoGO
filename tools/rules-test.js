@@ -370,7 +370,7 @@ test('春雪: リリーホワイト=デザート蓄積・ゲーム末に4枚ご�
 });
 
 test('永夜: うどんげ=幻覚中の他プレイヤーピックが非公開マーク（判定で公開）', () => {
-  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal' });
+  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal', intruder: 'y_reimu' });
   // p0 がうどんげ取得（幻覚開始）・他はダミー
   cycle(s, [['y_reisen', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
   assert.strictEqual(s.hidden, true);
@@ -391,7 +391,7 @@ test('永夜: うどんげ=幻覚中の他プレイヤーピックが非公開�
 });
 
 test('永夜: うどんげ=幻覚は出したラウンドのみ・次ラウンドは通常公開', () => {
-  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal' });
+  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal', intruder: 'y_reimu' });
   cycle(s, [['y_reisen', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
   assert.strictEqual(s.hidden, true);
   cycle(s, [['y_tewi', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);

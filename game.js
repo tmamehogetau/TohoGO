@@ -532,13 +532,18 @@
         const lp = STATE.lastPicks && STATE.lastPicks.find((x) => x.pi === pi);
         const keys = lp ? [...lp.keys] : [];
         const els = p.taken.map((inst) => {
-          // うどんげの幻覚: 幻覚中の他プレイヤーのピックは「？」カードで隠す
+          // うどんげの幻覚: 幻覚中の他プレイヤーのピックは「うどんげ」として表示される
+          // （出した本人は影響を受けない・ラウンド終了時に解除）
           if (inst.hiddenTaken && STATE.hiddenOwner !== pi) {
-            const hidden = document.createElement('div');
-            hidden.className = 'card mini hidden-card';
-            hidden.innerHTML = '<div class="card-icon">？</div><div class="card-name">？？？</div>';
-            hidden.title = '幻覚中のピック（ラウンド終了まで非公開）';
-            return hidden;
+            const rd = defOf('y_reisen');
+            const el2 = document.createElement('div');
+            el2.className = 'card mini';
+            el2.style.background = rd.color;
+            el2.innerHTML = `
+              <div class="card-icon">${rd.icon}</div>
+              <div class="card-name">${rd.name}</div>`;
+            el2.title = '幻覚中のピック（ラウンド終了までうどんげとして見える）';
+            return el2;
           }
           return cardEl(inst.key, inst.icons, 'mini', inst);
         });

@@ -265,14 +265,6 @@ main {
 .card.copy-overlay .card-icon { font-size: 0.95rem; }
 .card.copy-overlay .card-name { font-size: 0.42rem; }
 
-/* うどんげの幻覚: 他プレイヤーの非公開ピック */
-.card.hidden-card {
-  background: #3a3342;
-  border-style: dashed;
-}
-.card.hidden-card .card-icon { color: var(--text-dim); }
-.card.hidden-card .card-name { color: var(--text-dim); }
-
 /* 行ラベルの追跡リソース（春の合計・兎枚数など） */
 .row-tag {
   display: inline-block;
