@@ -146,7 +146,10 @@ test('紅霧: フラン破棄で+2点・破棄カードは taken に残り判定
   setHands(s, [['k_fran', D], [D, D]]);
   pickAll(s, [0, 0]); // フラン取得 → 選択フェーズ（settleSelection は手動）
   assert.strictEqual(s.phase, 'select');
-  // taken: [レミリア(idx0), ダミー(idx1), フラン(idx2)] → レミリアを破棄 → フラン2点+2点
+  // taken: [レミリア(idx0), ダミー(idx1), フラン(idx2)] — フラン自身は破棄できない
+  const self = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { discard: 2 } });
+  assert.ok(!self.ok, 'フラン自身を破棄しようとすると拒否される');
+  // レミリアを破棄 → フラン2点+2点
   const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { discard: 0 } });
   assert.ok(res.ok, res.error);
   settleSelection(s);
@@ -448,29 +451,34 @@ test('永夜: 妹紅=デザートラウンド別判定（R1/R2最多+3・R3最�
   assert.strictEqual(rs[2], -4); // 妹紅最多−6点+うどんげ2点
 });
 
-test('永夜: ミスティア=取得時にカードを裏返して2点化（最大 1 枚）', () => {
+test('永夜: ミスティア=取得時にカードを任意枚数裏返して2点化', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
-  cycle(s, [['y_tewi', 'y_tewi', DY], [DY, DY]], [0, 0]); // てゐ2枚（本来6点）
-  setHands(s, [['y_mystia'], [DY]]);
-  pickAll(s, [0, 0]); // ミスティア取得 → 選択フェーズ
+  cycle(s, [['y_tewi', 'y_tewi'], ['y_reimu', 'y_reimu']], [0, 0]); // てゐ1枚（手札1残る）
+  setHands(s, [['y_mystia', 'y_tewi'], ['y_reimu', 'y_reimu']]);
+  pickAll(s, [0, 0]); // ミスティア取得（手札1残る）→ 選択フェーズ
   assert.strictEqual(s.phase, 'select');
-  // 2 枚指定はエラー（2026-11-03 仕様変更: 裏返しは最大 1 枚）
-  const over = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [0, 1] } });
-  assert.ok(!over.ok, '2 枚の裏返し指定は拒否される');
-  // てゐ1枚（taken idx0）だけ裏返す → 裏返し2点 + 残りてゐ1枚2点 = 4点
+  // taken: [てゐ(idx0), ミスティア(idx1)] — ミスティア自身（idx1）は裏返せない
+  const self = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [0, 1] } });
+  assert.ok(!self.ok, 'ミスティア自身を裏返そうとすると拒否される');
+  // てゐ1枚を裏返す → 裏返し2点
   const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [0] } });
   assert.ok(res.ok, res.error);
   settleSelection(s);
-  cycle(s, [[DY], [DY]], [0, 0]); // ラウンド終了
+  cycle(s, [['y_tewi'], ['y_reimu']], [0, 0]); // てゐ1枚追加（手札2→1）
+  cycle(s, [['y_reimu'], ['y_reimu']], [0, 0]); // ラウンド終了
+  // 裏返し2点 + てゐ1枚の豆腐2点 = 4点（裏返されたてゐは豆腐判定から外れる）
   assert.strictEqual(s.players[0].roundScores[0], 4);
 });
 
-test('永夜: 慧音=ラウンド中取得カードの効果をコピー', () => {
+test('永夜: 慧音=ラウンド中取得カードの効果をコピー（自身は対象外）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   cycle(s, [['y_tewi', DY], [DY, DY]], [0, 0]); // R1 pick1: てゐ1枚
   setHands(s, [['y_keine'], [DY]]);
   pickAll(s, [0, 0]); // R1 pick2: 慧音取得 → 選択フェーズ（settleSelection は手動）
   assert.strictEqual(s.phase, 'select');
+  // taken: [てゐ(idx0), 慧音(idx1)] — 慧音自身はコピーできない
+  const self = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { copy: 1 } });
+  assert.ok(!self.ok, '慧音自身をコピーしようとすると拒否される');
   const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { copy: 0 } });
   assert.ok(res.ok, res.error);
   settleSelection(s);

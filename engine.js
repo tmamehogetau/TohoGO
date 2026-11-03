@@ -315,24 +315,31 @@
       // 慧音: { copy: idx|null } — taken 内の idx（ラウンド中に取得した他のカード・慧音自身は対象外）
       const p = state.players[pi];
       const need = selectionNeeded(state, pi);
+      const map = state.cardMap;
 
       if (need.discard && c.discard !== null && c.discard !== undefined) {
         const idx = c.discard;
         if (!Number.isInteger(idx) || idx < 0 || idx >= p.taken.length) return err('無効な破棄対象');
         if (p.taken[idx].discarded) return err('すでに破棄されたカードは選べない');
+        // 効果カード自身は対象外（フラン自身を破棄して自己完結することを防ぐ）
+        if (map[p.taken[idx].key] && map[p.taken[idx].key].discardBonus) return err('フラン自身は破棄できない');
       }
       if (need.flip && Array.isArray(c.flip)) {
-        // 裏返しは最大 1 枚（2026-11-03 仕様変更: 旧「任意枚数」から制限）
-        if (c.flip.length > 1) return err('裏返せるのは 1 枚まで');
+        // 任意枚数・0 可（重複不可）
+        if (new Set(c.flip).size !== c.flip.length) return err('裏返し対象が重複している');
         for (const idx of c.flip) {
           if (!Number.isInteger(idx) || idx < 0 || idx >= p.taken.length) return err('無効な裏返し対象');
           if (p.taken[idx].discarded) return err('破棄されたカードは裏返せない');
+          // 効果カード自身は対象外（ミスティアを歌で裏返すのは変なので）
+          if (map[p.taken[idx].key] && map[p.taken[idx].key].kind === 'flip') return err('ミスティア自身は裏返せない');
         }
       }
       if (need.copy && c.copy !== null && c.copy !== undefined) {
         const idx = c.copy;
         if (!Number.isInteger(idx) || idx < 0 || idx >= p.taken.length) return err('無効なコピー対象');
         if (p.taken[idx].discarded) return err('破棄されたカードはコピーできない');
+        // 効果カード自身は対象外（慧音が慧音をコピーする循環を防ぐ）
+        if (map[p.taken[idx].key] && map[p.taken[idx].key].kind === 'copy') return err('慧音自身はコピーできない');
       }
 
       state.selections[pi] = c;
@@ -367,7 +374,8 @@
           }
         }
 
-        // ミスティア裏返し
+        // ミスティア裏返し: 裏返されたカードは「2 点のみの効果を持つカード」になり、
+        // 点数はラウンド末判定（endRoundIndividual の flippedPts×2）で一括加算される
         if (Array.isArray(c.flip) && c.flip.length) {
           const flipPoints = 2;
           let flippedN = 0;
@@ -377,15 +385,14 @@
             if (!idef) continue;
             if (idef.kind === 'flip') continue; // ミスティア自身は対象外
             if (idef.kind === 'instant') {
-              // 即時カードは計上済み点数を取り消して 2 点に変わる
+              // 即時カードは計上済み点数を取り消して判定から外れる
               p.roundScores[state.round] -= (inst.instantScored || 0);
               inst.instantScored = 0;
             }
             inst.flipped = true;
             flippedN++;
           }
-          p.roundScores[state.round] += flippedN * flipPoints;
-          addLog(state, `${p.name}: 夜雀の歌で${flippedN}枚の価値が変わった（各${flipPoints}点）`);
+          if (flippedN) addLog(state, `${p.name}: 夜雀の歌で${flippedN}枚の価値が変わった（判定時に各${flipPoints}点）`);
         }
 
         // 慧音コピー
