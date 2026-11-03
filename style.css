@@ -249,6 +249,8 @@ main {
 }
 .card-tag.tag-flip { left: auto; right: 3px; background: var(--gold); color: #333; }
 .card { position: relative; }
+/* 獲得時に確定した点数（ラウンド末集計待ちでもカードに表示） */
+.card-tag.tag-pts { left: auto; right: 3px; background: var(--gold); color: #333; }
 
 /* 慧音のコピー: コピー元カードを慧音カードの右上に重ねる */
 .card.copy-overlay {

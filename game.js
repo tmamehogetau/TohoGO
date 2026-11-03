@@ -291,7 +291,7 @@
 
   // ---- 描画 ----
 
-  function cardEl(key, icons, extra, inst) {
+  function cardEl(key, icons, extra, inst, roundPts) {
     const def = defOf(key);
     const el = document.createElement('div');
     el.className = `card${extra ? ' ' + extra : ''}`;
@@ -312,10 +312,27 @@
         el.insertAdjacentHTML('beforeend', '<div class="card-tag tag-flip">2点</div>');
       }
     }
+    // 獲得時に点数が確定するカード（即時系）は、ラウンド末集計待ちでも点数をカードに表示する
+    if (roundPts !== null && roundPts !== undefined) {
+      el.insertAdjacentHTML('beforeend', `<div class="card-tag tag-pts">${roundPts}点</div>`);
+    }
     el.title = inst && inst.copied
       ? `慧音のコピー・${def.name}：${descOf(def)}`
       : `${def.name}：${descOf(def)}`;
     return el;
+  }
+
+  // 取得行に表示する「確定済み点数」（即時系カードのみ・破棄/裏返しはタグが代わりに表示される）
+  function roundPtsOf(inst, pi) {
+    const def = defOf(inst.key);
+    if (!def || def.kind !== 'instant' || inst.flipped || inst.discarded) return null;
+    let pts = def.points;
+    if (inst.instantCombo && def.comboBonus) pts += def.comboBonus; // 美鈴・藍・橙の取得時コンボ
+    if (inst.absentBlocked) pts = 0; // 咲夜の同席判定
+    if (def.intruderPenalty && STATE.roundStats && STATE.roundStats[pi] && STATE.roundStats[pi].intruderTaken) {
+      pts -= def.intruderPenalty; // 輝夜・永琳の乱入者ペナルティ
+    }
+    return pts;
   }
 
   function renderHand() {
@@ -561,7 +578,7 @@
           if (inst.hiddenTaken && STATE.hiddenOwner !== pi) {
             return cardEl('y_reisen', null, 'mini');
           }
-          return cardEl(inst.key, inst.icons, 'mini', inst);
+          return cardEl(inst.key, inst.icons, 'mini', inst, roundPtsOf(inst, pi));
         });
         for (let i = els.length - 1; i >= 0 && keys.length; i--) {
           const k = keys.indexOf(shown[i].key);
