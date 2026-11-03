@@ -771,13 +771,14 @@
     // ゲーム終了: 最終結果バナー（スコアテーブル廃止に伴いここで表示）
     if (STATE.phase === 'over' && !STATE.roundBanner) {
       if (FINAL_CLOSED) { el.classList.add('hidden'); return; }
-      const ranked = STATE.players
-        .map((p, pi) => ({ pi, name: p.name, total: Engine.scorePlayer(STATE, pi), dessert: p.desserts.length }))
-        .sort((a, b) => b.total - a.total || b.dessert - a.dessert);
+      // 順位と同点処理は Engine 側の定義（合計点 → デザート枚数 → 同率）に従う
+      const ranked = Engine.finalRanking(STATE);
+      const rankCounts = new Map();
+      ranked.forEach((r) => rankCounts.set(r.rank, (rankCounts.get(r.rank) || 0) + 1));
       const rows = ranked
-        .map((r, i) => `<div class="${r.pi === 0 ? 'banner-me' : ''}">${i + 1}位 ${r.pi === 0 ? 'あなた' : ''}${r.name}: ${r.total}点（デザート${r.dessert}）</div>`)
+        .map((r) => `<div class="${r.pi === 0 ? 'banner-me' : ''}">${r.rank}位${rankCounts.get(r.rank) > 1 ? '（同率）' : ''} ${r.pi === 0 ? 'あなた' : ''}${r.name}: ${r.total}点（デザート${r.desserts}）</div>`)
         .join('');
-      el.innerHTML = `<h2>宴会が幕を閉じた</h2>${rows}<p class="banner-note">クリックで閉じる</p>`;
+      el.innerHTML = `<h2>宴会が幕を閉じた</h2>${rows}<p class="banner-note">同点はデザート枚数で判定 ・ クリックで閉じる</p>`;
       el.classList.remove('hidden');
       el.onclick = () => { FINAL_CLOSED = true; renderAll(); };
       return;

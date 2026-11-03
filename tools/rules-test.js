@@ -890,13 +890,61 @@ test('永夜で4人AI完走（両乱入者）', () => {
   fullRun('eternal', 'y_marisa');
 });
 
+// ================= 同点タイブレーキ =================
+// 合計点 → デザート合計枚数（多い方が上位） → それも同じなら同率1位。
+// 順位は競技方式（1,1,3,4）。UI・sim・ai-check は Engine.finalRanking を唯一の定義元にする。
+
+function tieState() {
+  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'scarlet' });
+  fixPeek(s);
+  s.players.forEach((p) => { p.roundScores = [10, 0, 0]; p.desserts = []; });
+  return s;
+}
+
+test('同点タイブレーキ: 合計点が同じならデザート枚数が多い方が上位', () => {
+  const s = tieState();
+  s.players[2].desserts = [inst('k_cirno'), inst('k_cirno')];
+  const ranked = Engine.finalRanking(s);
+  assert.strictEqual(ranked[0].pi, 2, 'デザート2枚の席が1位');
+  assert.strictEqual(ranked[0].rank, 1);
+  assert.deepStrictEqual(ranked.slice(1).map((r) => r.rank), [2, 2, 2], '残りは2位同率（競技方式）');
+  assert.strictEqual(ranked.filter((r) => r.winner).length, 1);
+});
+
+test('同点タイブレーキ: 合計点もデザート枚数も同じなら同率1位', () => {
+  const s = tieState();
+  const ranked = Engine.finalRanking(s);
+  assert.deepStrictEqual(ranked.map((r) => r.rank), [1, 1, 1, 1]);
+  assert.ok(ranked.every((r) => r.winner), '同率1位は全員が勝者');
+});
+
+test('同点タイブレーキ: デザート枚数より合計点が優先される', () => {
+  const s = tieState();
+  s.players[0].roundScores = [9, 0, 0];
+  s.players[0].desserts = [inst('k_cirno'), inst('k_cirno'), inst('k_cirno')];
+  const ranked = Engine.finalRanking(s);
+  assert.strictEqual(ranked[0].rank, 1);
+  assert.notStrictEqual(ranked[0].pi, 0, '合計点が低ければデザートが多くても1位にならない');
+});
+
+test('同点タイブレーキ: 順位は競技方式（1,1,3,4）で振る', () => {
+  const s = tieState();
+  s.players[0].desserts = [inst('k_cirno')];
+  s.players[1].desserts = [inst('k_cirno')];
+  s.players[2].roundScores = [9, 0, 0];
+  s.players[3].roundScores = [8, 0, 0];
+  const ranked = Engine.finalRanking(s);
+  assert.deepStrictEqual(ranked.map((r) => r.rank), [1, 1, 3, 4]);
+  assert.deepStrictEqual(ranked.filter((r) => r.winner).map((r) => r.pi).sort(), [0, 1]);
+});
+
 // ================= UI API 契約 =================
 // game.js が参照する Engine の関数は、Browser 実行時に未定義だと
 // renderAll が途中で例外を投げ、以降の描画（スコア・バナー・ログ）が
 // 全部欠落する（2026-11-03 の countKeys 未定義事故の再発防止）。
 
 test('UI API 存在: game.js が使う Engine 関数がすべて公開されている', () => {
-  for (const fn of ['newGame', 'dispatch', 'scorePlayer', 'countKey', 'countKeys']) {
+  for (const fn of ['newGame', 'dispatch', 'scorePlayer', 'finalRanking', 'countKey', 'countKeys']) {
     assert.strictEqual(typeof Engine[fn], 'function', `Engine.${fn} が未定義`);
   }
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });

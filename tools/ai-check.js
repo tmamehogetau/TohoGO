@@ -71,7 +71,7 @@ function play(incident, seatMults) {
       }
     }
   }
-  return [0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi));
+  return Engine.finalRanking(s);
 }
 
 // seat0 の勝率を返す。others は席 1..3 の重み（省略時は標準）。
@@ -85,10 +85,11 @@ function seat0WinRate(seat0Mult, others) {
     return out;
   });
   let win = 0;
-  for (const r of results) {
-    const best = Math.max(...r);
-    const winners = r.filter((x) => x === best).length;
-    if (r[0] === best) win += 1 / winners;
+  for (const rows of results) {
+    // 勝者定義は Engine.finalRanking（合計点 → デザート枚数 → 同率1位は分け合う）
+    const winners = rows.filter((r) => r.winner);
+    const me = rows.find((r) => r.pi === 0);
+    if (me && me.winner) win += 1 / winners.length;
   }
   return (win / results.length) * 100;
 }

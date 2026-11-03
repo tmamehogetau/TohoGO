@@ -816,6 +816,31 @@
       return total;
     }
 
+    // ゲーム末の順位（同点タイブレーキ込み）。
+    //   1) 合計点が高い方が上位
+    //   2) 合計点が同じなら、デザートの合計枚数が多い方が上位
+    //   3) それも同じなら同率（同じ順位・勝者を分け合う）
+    // 順位は競技方式（1,1,3,4）。winner は 1 位の全員に立つ。
+    // UI 表示・sim / ai-check の勝率集計はすべてこの関数を唯一の定義元にする。
+    function finalRanking(state) {
+      const rows = state.players.map((p, pi) => ({
+        pi,
+        name: p.name,
+        total: scorePlayer(state, pi),
+        desserts: p.desserts.length,
+      }));
+      rows.sort((a, b) => b.total - a.total || b.desserts - a.desserts || a.pi - b.pi);
+      let prev = null;
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        if (prev && prev.total === r.total && prev.desserts === r.desserts) r.rank = prev.rank;
+        else r.rank = i + 1;
+        r.winner = r.rank === 1;
+        prev = r;
+      }
+      return rows;
+    }
+
     function charmBonus(state, pi) {
       return gameEndScore(state, pi);
     }
@@ -838,6 +863,7 @@
       newGame,
       dispatch,
       scorePlayer,
+      finalRanking,
       charmBonus,
       roundBreakdown,
       countKey,

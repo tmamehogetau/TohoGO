@@ -118,6 +118,7 @@ function playGame(incident) {
     rounds: acq,
     roundScores: s.players.map((p) => p.roundScores.slice()),
     totals: s.players.map((_, pi) => Engine.scorePlayer(s, pi)),
+    ranking: Engine.finalRanking(s),
     cardMap: s.cardMap,
   };
 }
@@ -128,6 +129,15 @@ function playGame(incident) {
 // 「他に取るものが無いから取られた」ぶん下振れするため、ラウンド内比較で補正する。
 function newCardStat() {
   return { withN: 0, withSum: 0, deltaSum: 0, withoutN: 0, withoutSum: 0, roundSamples: 0 };
+}
+
+// 勝者を均等に分け合う（same-rank の同率1位は 1/人数）。Engine.finalRanking の winner に従う。
+function winShares(ranking) {
+  const shares = ranking.map(() => 0);
+  const winners = ranking.filter((r) => r.winner);
+  if (!winners.length) return shares;
+  for (const r of winners) shares[r.pi] = 1 / winners.length;
+  return shares;
 }
 
 function run(incidents, games) {
@@ -145,9 +155,8 @@ function run(incidents, games) {
     for (let g = 0; g < games; g++) {
       const game = playGame(incident);
       game.totals.forEach((t, pi) => scoreSamples[pi].push(t));
-      const best = Math.max(...game.totals);
-      const winners = game.totals.filter((x) => x === best).length;
-      game.totals.forEach((t, pi) => { if (t === best) wins[pi] += 1 / winners; });
+      // 勝率は Engine.finalRanking の勝者定義（合計点 → デザート枚数 → 同率）に従い、同率1位は分け合う
+      winShares(game.ranking).forEach((s, pi) => { wins[pi] += s; });
 
       for (let r = 0; r < game.rounds.length; r++) {
         const roundScores = game.roundScores.map((arr) => arr[r]);
@@ -310,13 +319,12 @@ function runByCard(args, key) {
   const byGame = new Map();
   for (const g of games) {
     const totals = g.rounds.reduce((acc, round) => round.map((m, pi) => acc[pi] + (m.get(key) || 0)), [0, 0, 0, 0]);
-    const best = Math.max(...g.totals);
-    const winners = g.totals.filter((t) => t === best).length;
+    const shares = winShares(g.ranking);
     for (let pi = 0; pi < g.totals.length; pi++) {
       const b = byGame.get(totals[pi]) || { n: 0, win: 0, scoreSum: 0 };
       b.n += 1;
       b.scoreSum += g.totals[pi];
-      if (g.totals[pi] === best) b.win += 1 / winners;
+      b.win += shares[pi];
       byGame.set(totals[pi], b);
     }
   }
@@ -341,14 +349,13 @@ function runByCard(args, key) {
   const needBuckets = new Map();
   for (const g of games) {
     const totals = g.rounds.reduce((acc, round) => round.map((m, pi) => acc[pi] + (m.get(key) || 0)), [0, 0, 0, 0]);
-    const best = Math.max(...g.totals);
-    const winners = g.totals.filter((t) => t === best).length;
+    const shares = winShares(g.ranking);
     const maxCopies = Math.max(...totals);
     for (let pi = 0; pi < g.totals.length; pi++) {
       const met = cond.type === 'totalAtLeast'
         ? totals[pi] >= cond.count
         : maxCopies > 0 && totals[pi] === maxCopies;
-      const win = g.totals[pi] === best ? 1 / winners : 0;
+      const win = shares[pi];
       if (met) { metN += 1; metWin += win; metScore += g.totals[pi]; }
       else { unmetN += 1; unmetWin += win; unmetScore += g.totals[pi]; }
 
@@ -358,7 +365,7 @@ function runByCard(args, key) {
         const need = Math.max(0, cond.count - before);
         const b = needBuckets.get(need) || { n: 0, win: 0, met: 0 };
         b.n += 1;
-        if (g.totals[pi] === best) b.win += 1 / winners;
+        if (shares[pi] > 0) b.win += shares[pi];
         if (met) b.met += 1;
         needBuckets.set(need, b);
       }
