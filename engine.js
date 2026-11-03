@@ -311,7 +311,7 @@
       if (state.selections[pi] !== null) return err('すでに選択済み');
       const c = choice || {};
       // フラン破棄: { discard: idx|null } — taken 内の idx（デザートは taken に入らないため対象外）
-      // ミスティア: { flip: [idx...] } — taken 内の idx の配列（任意枚数・0 可）
+      // ミスティア: { flip: [idx] } — taken 内の idx 1 枚（0 可・最大 1 枚）
       // 慧音: { copy: idx|null } — taken 内の idx（ラウンド中に取得した他のカード・慧音自身は対象外）
       const p = state.players[pi];
       const need = selectionNeeded(state, pi);
@@ -321,10 +321,11 @@
         if (!Number.isInteger(idx) || idx < 0 || idx >= p.taken.length) return err('無効な破棄対象');
       }
       if (need.flip && Array.isArray(c.flip)) {
+        // 裏返しは最大 1 枚（2026-11-03 仕様変更: 旧「任意枚数」から制限）
+        if (c.flip.length > 1) return err('裏返せるのは 1 枚まで');
         for (const idx of c.flip) {
           if (!Number.isInteger(idx) || idx < 0 || idx >= p.taken.length) return err('無効な裏返し対象');
         }
-        if (new Set(c.flip).size !== c.flip.length) return err('裏返し対象が重複している');
       }
       if (need.copy && c.copy !== null && c.copy !== undefined) {
         const idx = c.copy;

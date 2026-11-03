@@ -424,14 +424,17 @@ test('永夜: 妹紅=デザートラウンド別判定（R1/R2最多+3・R3最�
   assert.strictEqual(rs[2], -4); // 妹紅最多−6点+うどんげ2点
 });
 
-test('永夜: ミスティア=取得時にカードを裏返して2点化', () => {
+test('永夜: ミスティア=取得時にカードを裏返して2点化（最大 1 枚）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   cycle(s, [['y_tewi', 'y_tewi', DY], [DY, DY]], [0, 0]); // てゐ2枚（本来6点）
   setHands(s, [['y_mystia'], [DY]]);
   pickAll(s, [0, 0]); // ミスティア取得 → 選択フェーズ
   assert.strictEqual(s.phase, 'select');
-  // てゐ2枚（taken idx0, idx1）を裏返す → 裏返し2枚×2点 = 4点（てゐの収集判定からは外れる）
-  const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [0, 1] } });
+  // 2 枚指定はエラー（2026-11-03 仕様変更: 裏返しは最大 1 枚）
+  const over = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [0, 1] } });
+  assert.ok(!over.ok, '2 枚の裏返し指定は拒否される');
+  // てゐ1枚（taken idx0）だけ裏返す → 裏返し2点 + 残りてゐ1枚2点 = 4点
+  const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [0] } });
   assert.ok(res.ok, res.error);
   settleSelection(s);
   cycle(s, [[DY], [DY]], [0, 0]); // ラウンド終了

@@ -84,7 +84,7 @@
       case 'kindCount': return `ラウンド末・「取ったカードの種類数 ${def.offset >= 0 ? '+' : ''}${def.offset}」点`;
       case 'letty': return `ラウンド末・(自分の冬の枚数 − 自分の春の個数) × ${def.mult} 点`;
       case 'coop': return `ラウンド末・自分以外が出したリグル 1 枚につき +1 点`;
-      case 'flip': return `取得時・手元のカードを裏返せる（判定から外れ 1 枚 ${def.flipPoints} 点）`;
+      case 'flip': return `取得時・手元のカード 1 枚を裏返せる（判定から外れて 2 点）`;
       case 'copy': return `取得時・手元の他のカード 1 枚の効果をコピー`;
       case 'deckPeek': return `ラウンド末・山札の上 ${def.peek} 枚から 1 枚獲得`;
       case 'collectByTwo': return `ゲーム末・2 枚ごとに ${def.per2} 点・4 枚以上で +${def.bonusAt4}`;
@@ -229,16 +229,7 @@
   function onTakenClick(idx) {
     if (!STATE || STATE.phase !== 'select') return;
     if (!SEL_MODE) return;
-    if (SEL_MODE === 'flip') {
-      if (SEL_SELECTED.includes(idx)) {
-        SEL_SELECTED = SEL_SELECTED.filter((i) => i !== idx);
-      } else {
-        SEL_SELECTED.push(idx);
-      }
-      renderAll();
-      return;
-    }
-    // discard / copy: 単一選択のトグル（確定は決定ボタン）
+    // flip も 1 枚制限なので discard / copy と同じ単一選択トグル（確定は決定ボタン）
     if (SEL_SELECTED.includes(idx)) SEL_SELECTED = [];
     else SEL_SELECTED = [idx];
     renderAll();
@@ -336,7 +327,9 @@
   function selectStatusText(selectTurn) {
     const need = humanSelectNeeded();
     if (!selectTurn) return '他の幹事の選択を待っている…';
-    if (SEL_MODE === 'flip') return `裏返すカードを選んでね（${SEL_SELECTED.length} 枚選択・決定ボタンで確定）`;
+    if (SEL_MODE === 'flip') return SEL_SELECTED.length === 1
+      ? '裏返すカードを選択中。決定ボタンで確定（選ばなければ効果なし）'
+      : '裏返すカードを 1 枚選んでね（選ばなければ効果なし）';
     if (SEL_MODE === 'discard') return SEL_SELECTED.length === 1
       ? '破棄するカードを選択中。決定ボタンで確定'
       : '破棄するカードを 1 枚選んでね';
@@ -390,7 +383,7 @@
       const confirmBtn = document.createElement('button');
       confirmBtn.disabled = SEL_MODE !== 'flip' && SEL_SELECTED.length !== 1;
       if (SEL_MODE === 'flip') {
-        confirmBtn.textContent = `裏返しを決定（${SEL_SELECTED.length} 枚）`;
+        confirmBtn.textContent = 'このカードを裏返す';
       } else if (SEL_MODE === 'discard') {
         const bonus = (p.taken.map((inst) => defOf(inst.key)).find((d) => d.discardBonus) || {}).discardBonus || 2;
         confirmBtn.textContent = `このカードを破棄する（+${bonus} 点）`;
