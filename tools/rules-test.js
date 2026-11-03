@@ -833,6 +833,16 @@ test('永夜: 妹紅=固定加点モード（endMost）でも最多に加点さ�
   assert.deepStrictEqual([0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30), [10, 0, 0, 0]);
 });
 
+test('永夜: 妹紅=累計ペナルティモードだと保有枚数ぶん毎ラウンド減る', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  s.dessert = { ...s.dessert, roundPenaltyCumulative: true };
+  s.players[0].desserts.push(inst('y_moko'), inst('y_moko'));
+  cycle(s, [[DY, DY], [DY, DY]], [0, 0]);
+  cycle(s, [[DY], [DY]], [0, 0]);
+  assert.strictEqual(s.players[0].roundScores[0], 0, '鈴仙2点 − 累計2枚ぶんの2点');
+});
+
 test('永夜: ミスティア=取得時にカードを任意枚数裏返して2点化', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);

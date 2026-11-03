@@ -749,15 +749,20 @@
       return pts;
     }
 
-    // 妹紅（dessertRound）: ラウンド終了時に、そのラウンドに取った妹紅 1 枚につき roundPenalty
-    // ゲーム末の最多/最少は gameEndScore 側で判定する（endMost / endLeast）
+    // 妹紅（dessertRound）: ラウンド終了時にペナルティ
+    //   - 既定: そのラウンドに取った枚数ぶん（roundPenalty）
+    //   - roundPenaltyCumulative: 前ラウンドまでの蓄積＋今ラウンドの取得分の累計ぶん
+    // ゲーム末の最多加点は gameEndScore 側（endMost / endMostPer）
     // 破棄/裏返し/コピーされたデザートは判定から外れる
     function applyDessertRound(state, results) {
       const def = state.dessert;
       if (def.kind !== 'dessertRound' || !def.roundPenalty) return;
       for (let i = 0; i < state.players.length; i++) {
         const p = state.players[i];
-        const n = p.taken.filter((inst) => inst.key === def.key && !inst.discarded && !inst.flipped && !inst.copied).length;
+        const takenNow = p.taken.filter((inst) => inst.key === def.key && !inst.discarded && !inst.flipped && !inst.copied).length;
+        const n = def.roundPenaltyCumulative
+          ? p.desserts.filter((inst) => inst.key === def.key).length + takenNow
+          : takenNow;
         if (!n) continue;
         const pts = def.roundPenalty * n;
         p.roundScores[state.round] += pts;

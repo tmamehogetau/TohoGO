@@ -166,13 +166,20 @@
         // ラウンド内は 1 枚ごとに -1。ゲーム末は最多に「固定 endMost」または「枚数 × endMostPer」
         const mine = dessertCount(state, pi, key);
         const others = Math.max(...state.players.map((q, i) => (i === pi ? -1 : dessertCount(state, i, key))));
+        const inRace = mine + 1 >= others;
+        if (def.roundPenaltyCumulative && def.roundPenalty) {
+          // 累計ペナルティ: このカードは以後のラウンド末すべてで課税される（R1で取ると3回・R3で1回）
+          const remaining = RULES.ROUNDS - state.round;
+          const upside = inRace ? (def.endMostPer || 2) : 0;
+          return def.roundPenalty * remaining + upside;
+        }
         if (def.endMost !== undefined) {
           // 固定加点: 最多を取る価値が一跳びで大きいので、届く位置なら強く狙う
-          return mine + 1 >= others ? 2.2 : 0.4;
+          return inRace ? 2.2 : 0.4;
         }
         if (def.endMostPer) {
           // 枚数比例: 最多グループに入れば 1 枚あたり +2 - 1 = 純 +1。届かない位置なら -1 の損
-          return mine + 1 >= others ? 1.1 : 0.3;
+          return inRace ? 1.1 : 0.3;
         }
         return 1.5;
       }
