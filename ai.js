@@ -124,10 +124,11 @@
         return stats.springIcons > othersMax ? def.most * 0.45 : def.most * 0.18;
       }
       case 'springSteal': {
-        // 全員から春を奪えたときだけ 1 点。全員が春を持っている状況は終盤に限られる
+        // 春を持っていない相手 1 人につき 1 点。誰も春を持っていなければ失敗（0 点）
         const holders = others.filter((j) => state.roundStats[j].springIcons > 0).length;
-        const allHold = holders === others.length && others.length > 0;
-        return (allHold ? (def.allBonus || 1) : 0) + holders * 0.25;
+        if (holders === 0) return 0.1;
+        const springless = others.length - holders;
+        return springless * 0.8 + holders * 0.3; // 点＋春を奪う価値
       }
       case 'roundComboCount':
         return def.per * 0.7;

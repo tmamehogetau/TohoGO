@@ -38,7 +38,7 @@
     { key: 's_chen', kind: 'instant', points: 1, comboKeys: ['s_yukari', 's_ran'], comboBonus: 1, name: '橙', icon: '橙', color: '#d97e30', count: 5 },
     { key: 's_spring', kind: 'maki', iconCounts: { 1: 4, 2: 5, 3: 3 }, name: '春', icon: '春', color: '#e88ab8', count: 12 },
     { key: 's_yuyuko', kind: 'springMost', most: 4, name: '西行寺幽々子', icon: '姫', color: '#d8cfe8', count: 3 },
-    { key: 's_youmu', kind: 'springSteal', steal: 1, allBonus: 1, name: '魂魄妖夢', icon: '庭', color: '#8fb8a0', count: 3 },
+    { key: 's_youmu', kind: 'springSteal', steal: 1, pointPer: 1, name: '魂魄妖夢', icon: '庭', color: '#8fb8a0', count: 3 },
     { key: 's_alice', kind: 'pair', points: 5, name: 'アリス', icon: '人', color: '#c9a84c', count: 8 },
     { key: 's_prism', kind: 'set3', points: 10, name: 'プリズムリバー3姉妹', icon: '奏', color: '#6a9fd8', count: 8 },
     { key: 's_letty', kind: 'letty', mult: 2, ownKey: 's_letty', targetKey: 's_spring', name: 'レティ', icon: '冬', color: '#a8c8e8', count: 8 },

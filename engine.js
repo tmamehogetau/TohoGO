@@ -261,9 +261,10 @@
       }
 
       // 妖夢の春吸収（即座に適用）: 他の全員から春を 1 個ずつ奪う。
-      // 全員から奪えたときだけ +1 点（誰か1人でも春を持っていないと点は入らない）
+      // 春を持っていない相手 1 人につき +1 点。誰からも奪えないと失敗（点も入らない）
       if (def.kind === 'springSteal') {
         const steal = def.steal || 1;
+        const pointPer = def.pointPer || 1;
         const opponents = state.playerCount - 1;
         let holders = 0;
         for (let j = 0; j < state.playerCount; j++) {
@@ -275,10 +276,14 @@
             holders += 1;
           }
         }
-        inst.springGain = holders === opponents && opponents > 0 ? (def.allBonus || 1) : 0;
-        if (inst.springGain > 0) addLog(state, `${p.name}: 全員の春を剪定して +${inst.springGain} 点`);
-        else if (holders > 0) addLog(state, `${p.name}: ${holders} 人から春を剪定した（全員からは奪えず）`);
-        else addLog(state, `${p.name}: 奪える春がなく、妖夢の効果は不発に終わった`);
+        if (holders === 0) {
+          inst.springGain = 0;
+          addLog(state, `${p.name}: 奪える春がなく、妖夢の効果は失敗に終わった`);
+        } else {
+          const springless = opponents - holders;
+          inst.springGain = springless * pointPer;
+          addLog(state, `${p.name}: ${holders} 人から春を奪い、春を持たない ${springless} 人ぶんの ${inst.springGain} 点を得た`);
+        }
       }
 
       // 即時点数はラウンド末に一括集計する（ここでは加点しない）。
