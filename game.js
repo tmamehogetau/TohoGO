@@ -229,22 +229,6 @@
   function onTakenClick(idx) {
     if (!STATE || STATE.phase !== 'select') return;
     if (!SEL_MODE) return;
-    if (SEL_MODE === 'discard') {
-      // 破棄するカードを選択 → 即確定
-      Engine.dispatch(STATE, { kind: 'choose', pi: 0, choice: { discard: idx } });
-      SEL_MODE = null;
-      runAiSelections();
-      renderAll();
-      return;
-    }
-    if (SEL_MODE === 'copy') {
-      // コピーするカードを選択 → 即確定
-      Engine.dispatch(STATE, { kind: 'choose', pi: 0, choice: { copy: idx } });
-      SEL_MODE = null;
-      runAiSelections();
-      renderAll();
-      return;
-    }
     if (SEL_MODE === 'flip') {
       if (SEL_SELECTED.includes(idx)) {
         SEL_SELECTED = SEL_SELECTED.filter((i) => i !== idx);
@@ -252,12 +236,28 @@
         SEL_SELECTED.push(idx);
       }
       renderAll();
+      return;
     }
+    // discard / copy: 単一選択のトグル（確定は決定ボタン）
+    if (SEL_SELECTED.includes(idx)) SEL_SELECTED = [];
+    else SEL_SELECTED = [idx];
+    renderAll();
   }
 
-  function confirmFlip() {
-    if (SEL_MODE !== 'flip') return;
-    Engine.dispatch(STATE, { kind: 'choose', pi: 0, choice: { flip: [...SEL_SELECTED] } });
+  // select フェーズの決定ボタン（flip は 0 枚でも確定可・discard/copy は 1 枚選択が条件）
+  function confirmSelect() {
+    if (!STATE || STATE.phase !== 'select') return;
+    if (SEL_MODE === 'discard') {
+      if (SEL_SELECTED.length !== 1) return;
+      Engine.dispatch(STATE, { kind: 'choose', pi: 0, choice: { discard: SEL_SELECTED[0] } });
+    } else if (SEL_MODE === 'copy') {
+      if (SEL_SELECTED.length !== 1) return;
+      Engine.dispatch(STATE, { kind: 'choose', pi: 0, choice: { copy: SEL_SELECTED[0] } });
+    } else if (SEL_MODE === 'flip') {
+      Engine.dispatch(STATE, { kind: 'choose', pi: 0, choice: { flip: [...SEL_SELECTED] } });
+    } else {
+      return;
+    }
     SEL_MODE = null;
     SEL_SELECTED = [];
     runAiSelections();
@@ -337,16 +337,22 @@
     const need = humanSelectNeeded();
     if (!selectTurn) return '他の幹事の選択を待っている…';
     if (SEL_MODE === 'flip') return `裏返すカードを選んでね（${SEL_SELECTED.length} 枚選択・決定ボタンで確定）`;
-    if (SEL_MODE === 'discard') return '破棄するカードを 1 枚選んでね';
-    if (SEL_MODE === 'copy') return 'コピーするカードを 1 枚選んでね';
+    if (SEL_MODE === 'discard') return SEL_SELECTED.length === 1
+      ? '破棄するカードを選択中。決定ボタンで確定'
+      : '破棄するカードを 1 枚選んでね';
+    if (SEL_MODE === 'copy') return SEL_SELECTED.length === 1
+      ? 'コピーするカードを選択中。決定ボタンで確定'
+      : 'コピーするカードを 1 枚選んでね';
     return '取得カードの効果を選択中…';
   }
 
   // select フェーズの UI（取得カードの選択）
+  // スペースは常時確保（visibility 制御・レイアウトずれ防止）
   function renderSelectArea() {
     const areaEl = $('select-area');
     if (!STATE || STATE.phase !== 'select') {
-      areaEl.classList.add('hidden');
+      areaEl.innerHTML = '';
+      areaEl.classList.remove('active');
       return;
     }
     const p = STATE.players[0];
@@ -354,7 +360,7 @@
 
     if (!SEL_MODE && selectTurn) enterSelectMode();
 
-    areaEl.classList.remove('hidden');
+    areaEl.classList.add('active');
     areaEl.innerHTML = '';
 
     const title = document.createElement('div');
@@ -380,13 +386,20 @@
 
     const btnRow = document.createElement('div');
     btnRow.className = 'select-btn-row';
-    if (SEL_MODE === 'flip' && selectTurn) {
+    if (SEL_MODE && selectTurn) {
       const confirmBtn = document.createElement('button');
-      confirmBtn.textContent = `裏返しを決定（${SEL_SELECTED.length} 枚）`;
-      confirmBtn.addEventListener('click', confirmFlip);
+      confirmBtn.disabled = SEL_MODE !== 'flip' && SEL_SELECTED.length !== 1;
+      if (SEL_MODE === 'flip') {
+        confirmBtn.textContent = `裏返しを決定（${SEL_SELECTED.length} 枚）`;
+      } else if (SEL_MODE === 'discard') {
+        const bonus = (p.taken.map((inst) => defOf(inst.key)).find((d) => d.discardBonus) || {}).discardBonus || 2;
+        confirmBtn.textContent = `このカードを破棄する（+${bonus} 点）`;
+      } else if (SEL_MODE === 'copy') {
+        confirmBtn.textContent = 'この効果をコピーする';
+      }
+      confirmBtn.addEventListener('click', confirmSelect);
       btnRow.appendChild(confirmBtn);
-    }
-    if (selectTurn) {
+
       const skipBtn = document.createElement('button');
       skipBtn.className = 'secondary';
       skipBtn.textContent = '効果を使わない';

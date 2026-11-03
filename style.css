@@ -218,8 +218,19 @@ main {
   padding: 16px;
 }
 #hand-status { color: var(--text-dim); margin-bottom: 10px; }
-#hand-buttons { display: flex; gap: 8px; margin-bottom: 12px; }
+/* ボタンが出たり消えたりしてもレイアウトがずれないよう高さを常時確保 */
+#hand-buttons { display: flex; gap: 8px; margin-bottom: 12px; min-height: 40px; align-items: center; }
 #hand-buttons button { font-size: 0.9rem; padding: 8px 16px; }
+
+/* select フェーズのスペースも常時確保（visibility で内容だけ切り替え） */
+#select-area {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #3a3342;
+  min-height: 185px;
+  visibility: hidden;
+}
+#select-area.active { visibility: visible; }
 
 #hand {
   display: flex;
@@ -274,15 +285,12 @@ main {
 .log-line { font-size: 0.78rem; color: var(--text-dim); padding: 2px 0; }
 
 /* select フェーズの UI（取得カードの選択） */
-#select-area {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px dashed #3a3342;
-}
 .select-title { color: var(--gold); margin-bottom: 10px; font-size: 0.9rem; }
-.select-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.select-list { display: flex; flex-wrap: wrap; gap: 8px; min-height: 92px; }
 .select-list .card { width: 76px; height: 110px; }
-.select-btn-row { margin-top: 10px; display: flex; gap: 8px; }
+.select-btn-row { margin-top: 10px; display: flex; gap: 8px; min-height: 40px; align-items: center; }
+.select-btn-row button { font-size: 0.9rem; padding: 8px 16px; }
+.select-btn-row button:disabled { opacity: 0.45; cursor: default; }
 .card-icons { font-size: 0.9rem; vertical-align: middle; color: var(--gold); }
 
 /* ラウンド結果バナー */
