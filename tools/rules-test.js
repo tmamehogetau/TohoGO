@@ -663,6 +663,35 @@ test('永夜: リグル=裏返すと取得点が消えて2点になる', () => {
   assert.strictEqual(s.players[0].roundScores[0], 2, '裏返した 1 枚は 2 点');
 });
 
+test('永夜: 霊夢=ゲーム通算4枚で10点（ラウンドをまたいで数える）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  // R1: 霊夢2枚
+  cycle(s, [['y_reimu', 'y_reimu'], [DY, DY]], [0, 0]);
+  cycle(s, [['y_reimu'], [DY]], [0, 0]);
+  // R2: 霊夢2枚
+  cycle(s, [['y_reimu', 'y_reimu'], [DY, DY]], [0, 0]);
+  cycle(s, [['y_reimu'], [DY]], [0, 0]);
+  // R3: 霊夢なし
+  cycle(s, [['y_mystia'], [DY]], [0, 0]);
+  const roundTotal = s.players[0].roundScores.reduce((a, b) => a + b, 0);
+  // 4 枚 = 2 組 × 4 点 + 4 枚ボーナス 2 点
+  assert.strictEqual(Engine.scorePlayer(s, 0) - roundTotal, 10);
+});
+
+test('永夜: 魔理沙=ゲーム通算4枚（偶数）で12点', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_marisa' });
+  fixPeek(s);
+  cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
+  cycle(s, [['y_marisa'], [DY]], [0, 0]);
+  cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
+  cycle(s, [['y_marisa'], [DY]], [0, 0]);
+  cycle(s, [['y_mystia'], [DY]], [0, 0]);
+  const roundTotal = s.players[0].roundScores.reduce((a, b) => a + b, 0);
+  // 4 枚は偶数 → 2 組 × 6 点
+  assert.strictEqual(Engine.scorePlayer(s, 0) - roundTotal, 12);
+});
+
 test('永夜: 玉兎=兎アイコンマキ準拠多数決（2人配点 1位4点）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
@@ -679,7 +708,7 @@ test('永夜: 玉兎=兎アイコンマキ準拠多数決（2人配点 1位4点�
 test('永夜: 霊夢=ゲーム末に2枚ごと4点・4枚以上で+2', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
-  s.players[0].taken.push(inst('y_reimu'), inst('y_reimu'), inst('y_reimu'), inst('y_reimu'), inst('y_reimu'));
+  s.players[0].gameEndCounts['y_reimu'] = 5; // ゲーム通算5枚
   s.phase = 'over';
   assert.strictEqual(Engine.charmBonus(s, 0), 10); // 5枚 = 4+4+2
 });
@@ -687,7 +716,7 @@ test('永夜: 霊夢=ゲーム末に2枚ごと4点・4枚以上で+2', () => {
 test('永夜: 魔理沙=ゲーム末に偶数なら2枚ごと6点・奇数なら3点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_marisa' });
   fixPeek(s);
-  s.players[0].taken.push(inst('y_marisa'), inst('y_marisa'), inst('y_marisa'));
+  s.players[0].gameEndCounts['y_marisa'] = 3; // ゲーム通算3枚
   s.phase = 'over';
   assert.strictEqual(Engine.charmBonus(s, 0), 3); // 3枚・奇数 → floor(3/2)=1組×3点
 });

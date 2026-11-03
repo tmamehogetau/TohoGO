@@ -566,6 +566,11 @@
       const tags = [];
       if (p.chopsticks > 0) tags.push(`早×${p.chopsticks}`);
       if (p.desserts.length > 0) tags.push(`デザート×${p.desserts.length}`);
+      // 乱入者（霊夢/魔理沙）はゲーム通算で数えるので、手元ではなく通算カウントを出す
+      if (STATE.intruderKey && p.gameEndCounts) {
+        const cnt = p.gameEndCounts[STATE.intruderKey] || 0;
+        if (cnt > 0) tags.push(`${nameOf(STATE.intruderKey)}×${cnt}`);
+      }
       const el = document.createElement('div');
       el.className = `player-chip${pi === 0 ? ' me' : ''}${picked ? ' picked' : ''}`;
       el.innerHTML = `

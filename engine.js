@@ -67,6 +67,7 @@
           hand: [],
           taken: [],   // インスタンス { key, icons?, flipped?, copied? }
           desserts: [], // デザート蓄積
+          gameEndCounts: {}, // ゲーム末判定カード（霊夢・魔理沙）の通算取得数
           chopsticks: 0,
           roundScores: [0, 0, 0],
         });
@@ -252,6 +253,12 @@
 
       // 乱入者の取得記録（輝夜・永琳のペナルティ判定に使用）
       if (state.intruderKey && inst.key === state.intruderKey) stats.intruderTaken = true;
+
+      // ゲーム末判定カード（霊夢・魔理沙）はラウンドをまたいで数える。
+      // taken はラウンド末に山札へ戻るため、ここで通算を記録しておく
+      if (def.gameEnd) {
+        p.gameEndCounts[inst.key] = (p.gameEndCounts[inst.key] || 0) + 1;
+      }
 
       // 妖夢の春吸収（即座に適用）
       if (def.kind === 'springSteal') {
@@ -754,15 +761,12 @@
         const cnt = p.desserts.filter((i) => i.key === def.key).length;
         pts += Math.floor(cnt / def.per) * def.points;
       }
-      // ゲーム末判定（霊夢・魔理沙）: key ごとに 1 回だけ判定する
-      const gameEndKeys = new Set();
-      for (const inst of p.desserts.concat(p.taken)) {
-        const idef = state.cardMap[inst.key];
-        if (idef && idef.gameEnd) gameEndKeys.add(inst.key);
-      }
-      for (const key of gameEndKeys) {
-        const def = state.cardMap[key];
-        const cnt = p.taken.filter((i) => i.key === key && !i.flipped).length;
+      // ゲーム末判定（霊夢・魔理沙）: ゲーム通算の取得枚数で判定する
+      // （taken はラウンド末に山札へ戻るため、手元を見ても最終ラウンド分しか残らない）
+      for (const def of Object.values(state.cardMap)) {
+        if (!def.gameEnd) continue;
+        const cnt = p.gameEndCounts[def.key] || 0;
+        if (cnt === 0) continue;
         if (def.kind === 'collectByTwo') {
           pts += Math.floor(cnt / 2) * def.per2 + (cnt >= 4 ? def.bonusAt4 : 0);
         }
