@@ -776,7 +776,7 @@ test('永夜: 魔理沙=通算の枚数が最多で +9（同点は全員・0枚�
   assert.strictEqual(Engine.charmBonus(s, 2), 0);
 });
 
-test('永夜: 妹紅=ラウンド末に取った1枚ごと−1・ゲーム末に最多+10/最少−6', () => {
+test('永夜: 妹紅=ラウンド末に取った1枚ごと−1・ゲーム末に最多の枚数×2点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
   for (let r = 0; r < 3; r++) {
@@ -787,9 +787,9 @@ test('永夜: 妹紅=ラウンド末に取った1枚ごと−1・ゲーム末に
   // ラウンド点: 席0 = 鈴仙1点 − 妹紅1枚 = 0 / 席1 = 鈴仙2点 = 2
   assert.deepStrictEqual(s.players[0].roundScores, [0, 0, 0]);
   assert.deepStrictEqual(s.players[1].roundScores, [2, 2, 2]);
-  // ゲーム末: 席0 最多 +10 / 席1 最少 −6
-  assert.strictEqual(Engine.scorePlayer(s, 0), 10);
-  assert.strictEqual(Engine.scorePlayer(s, 1), 0);
+  // ゲーム末: 席0 最多 3枚 × 2 = +6 / 席1 は最多少なくペナルティなし
+  assert.strictEqual(Engine.scorePlayer(s, 0), 6);
+  assert.strictEqual(Engine.scorePlayer(s, 1), 6);
 });
 
 test('永夜: 妹紅のラウンドペナルティは「そのラウンドに取った分」だけ', () => {
@@ -814,17 +814,17 @@ function eternalOver(dessertsPerPlayer) {
   return s;
 }
 
-test('永夜: 妹紅=ゲーム末の最多同点は全員+10・最少同点は全員−6', () => {
+test('永夜: 妹紅=最多同点は全員に「枚数×2」・最少ペナルティはなし', () => {
   const s = eternalOver([2, 2, 1, 1]);
   assert.deepStrictEqual(
     [0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30),
-    [10, 10, -6, -6]
+    [4, 4, 0, 0]
   );
 });
 
-test('永夜: 妹紅=全員同数ならゲーム末判定なし', () => {
+test('永夜: 妹紅=全員同数でも全員が最多として「枚数×2」', () => {
   const s = eternalOver([2, 2, 2, 2]);
-  assert.deepStrictEqual([0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30), [0, 0, 0, 0]);
+  assert.deepStrictEqual([0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30), [4, 4, 4, 4]);
 });
 
 test('永夜: ミスティア=取得時にカードを任意枚数裏返して2点化', () => {
