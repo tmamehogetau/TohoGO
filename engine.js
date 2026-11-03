@@ -741,7 +741,13 @@
             break;
           }
           case 'roundComboCount': {
-            pts += state.roundStats[pi].dessertTaken * def.per;
+            // そのラウンドに取ったデザート。破棄・裏返し・コピーは判定から外れる
+            // （フランで破棄したチルノを大妖精が数えてしまう不具合の修正）
+            const target = def.targetKey || state.dessert.key;
+            const n = p.taken.filter(
+              (inst) => inst.key === target && !inst.discarded && !inst.flipped && !inst.copied
+            ).length;
+            pts += n * def.per;
             break;
           }
         }

@@ -323,6 +323,21 @@ test('紅霧: 大妖精=今ラウンドのチルノ1枚ごとに1点', () => {
   assert.strictEqual(s.players[0].roundScores[0], 2);
 });
 
+test('紅霧: 大妖精=フランで破棄したチルノは数えない', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  const F = 'k_meirin'; // 無害なダミー（即時1点）
+  cycle(s, [['k_cirno', F, F], [F, F, F]], [0, 0]); // チルノ取得
+  setHands(s, [['k_fran', F], [F, F]]);
+  pickAll(s, [0, 0]); // フラン取得 → 選択フェーズ
+  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { discard: 0 } }); // taken[0]=チルノを破棄
+  assert.ok(r.ok, r.error);
+  cycle(s, [['k_daiyousei', F], [F, F]], [0, 0]); // 大妖精取得
+  cycle(s, [['k_sakuya'], [F]], [0, 0]); // ラウンド終了
+  // フラン2 + 破棄2 + 咲夜3 + 大妖精0（破棄したチルノは数えない）= 7
+  assert.strictEqual(s.players[0].roundScores[0], 7);
+});
+
 test('紅霧: 妖精メイド=多数決 最多4/最少−4', () => {
   const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'scarlet' });
   fixPeek(s);
