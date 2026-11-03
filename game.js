@@ -370,12 +370,13 @@
     return '取得カードの効果を選択中…';
   }
 
-  // select フェーズの UI（取得カードの選択）
-  // スペースは常時確保（visibility 制御・レイアウトずれ防止）
+  // select フェーズの UI（取得カードの選択）:
+  // 選択欄は「あなたの取得行」の上に重ねて表示する（meRow の子として DOM 移動）
   function renderSelectArea() {
-    const areaEl = $('select-area');
+    // table-rows の再構築で要素が detached になるため、参照はモジュール変数で保持する
+    if (!SELECT_AREA) SELECT_AREA = document.getElementById('select-area');
+    const areaEl = SELECT_AREA;
     if (!STATE || STATE.phase !== 'select') {
-      areaEl.innerHTML = '';
       areaEl.classList.remove('active');
       return;
     }
@@ -386,6 +387,9 @@
 
     areaEl.classList.add('active');
     areaEl.innerHTML = '';
+
+    const meRow = document.querySelector('.table-row.me');
+    if (meRow) meRow.appendChild(areaEl);
 
     const title = document.createElement('div');
     title.className = 'select-title';
@@ -581,6 +585,7 @@
 
   let FINAL_CLOSED = false; // 最終結果バナーを一度閉じたら再表示しない
   let FLY_FROMS = []; // FLIP アニメ用: 確定した手札カードの中心座標
+  let SELECT_AREA = null; // 取得時選択欄の要素（table-rows 再構築で detached になるため参照を保持）
 
   // 確定時に選択カードの現在座標を記録（FLIP アニメの移動元）
   function flyFromIdx(idx) {
@@ -702,9 +707,9 @@
     autoSkipIfEmpty();
     renderRound();
     renderHand();
-    renderSelectArea();
     renderPlayerBar();
     renderTableRows();
+    renderSelectArea(); // table-rows 再構築の後に呼び、あなたの行にオーバーレイを重ねる
     renderBanner();
     renderLog();
   }

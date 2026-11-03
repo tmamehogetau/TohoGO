@@ -149,7 +149,23 @@ main {
   /* 取得 0 枚と 1 枚で高さが変わらないよう固定（ミニカード 80px + ラベル + padding） */
   min-height: 140px;
 }
-.table-row.me { border-color: var(--accent); }
+.table-row.me { border-color: var(--accent); position: relative; }
+
+/* select フェーズの選択欄: あなたの取得行の上に重ねて表示するオーバーレイ */
+#select-area { display: none; }
+#select-area.active {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  background: rgba(23, 21, 28, 0.97);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.8);
+}
 .row-main { flex: 1; min-width: 0; }
 .row-label { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 8px; }
 .table-row.me .row-label { color: var(--gold); }
@@ -273,16 +289,6 @@ main {
 #hand-buttons { display: flex; gap: 8px; margin-bottom: 12px; min-height: 40px; align-items: center; }
 #hand-buttons button { font-size: 0.9rem; padding: 8px 16px; }
 
-/* select フェーズのスペースも常時確保（visibility で内容だけ切り替え） */
-#select-area {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px dashed #3a3342;
-  min-height: 185px;
-  visibility: hidden;
-}
-#select-area.active { visibility: visible; }
-
 #hand {
   display: flex;
   flex-wrap: wrap;
@@ -339,7 +345,7 @@ main {
 .select-title { color: var(--gold); margin-bottom: 10px; font-size: 0.9rem; }
 .select-list { display: flex; flex-wrap: wrap; gap: 8px; min-height: 92px; }
 .select-list .card { width: 76px; height: 110px; }
-.select-btn-row { margin-top: 10px; display: flex; gap: 8px; min-height: 40px; align-items: center; }
+.select-btn-row { margin-top: 10px; display: flex; gap: 8px; }
 .select-btn-row button { font-size: 0.9rem; padding: 8px 16px; }
 .select-btn-row button:disabled { opacity: 0.45; cursor: default; }
 /* select フェーズで対象外のカード（効果カード自身・破棄済み） */
