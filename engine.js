@@ -68,7 +68,7 @@
           taken: [],   // インスタンス { key, icons?, flipped?, copied? }
           desserts: [], // デザート蓄積
           gameEndCounts: {}, // ゲーム末判定カード（霊夢・魔理沙）の通算取得数
-          chopsticks: 0,
+          chopsticks: 0, // 早飲み（pick2）用。箸カードは未実装だが将来追加する可能性があるため経路は残す
           roundScores: [0, 0, 0],
         });
       }

@@ -192,6 +192,7 @@
   }
 
   function toggleChopsticks() {
+    // 早飲み（箸）用の UI 経路。箸カードは未実装だが将来追加する可能性があるため残す
     const p = STATE.players[0];
     if (p.chopsticks <= 0) return;
     CHOPSTICKS_MODE = !CHOPSTICKS_MODE;
