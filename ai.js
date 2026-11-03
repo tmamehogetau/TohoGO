@@ -124,8 +124,11 @@
         return stats.springIcons > othersMax ? def.most * 0.45 : def.most * 0.18;
       }
       case 'springSteal': {
-        const stolen = others.reduce((acc, j) => (state.roundStats[j].springIcons > 0 ? acc + def.steal : acc), 0);
-        return 0.5 + stolen * 0.4;
+        // 誰からも春を奪えないと不発なので、そのときはほぼ価値なし
+        const available = others.reduce((acc, j) => acc + Math.max(0, state.roundStats[j].springIcons), 0);
+        if (available === 0) return 0.1;
+        const holders = others.filter((j) => state.roundStats[j].springIcons > 0).length;
+        return 0.5 + holders * 0.4;
       }
       case 'roundComboCount':
         return def.per * 0.7;

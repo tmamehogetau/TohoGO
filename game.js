@@ -91,7 +91,7 @@
       case 'maki': return `このアイコンの合計を競う・最多 ${MAKI.first} 点／2 位 ${MAKI.second} 点`;
       case 'temaki': return `この枚数を競う・最多 +${def.most}／最少 ${def.least} 点`;
       case 'springMost': return `ラウンド末・春の獲得数が全員最多なら、所持 1 枚ごとに +${def.most} 点（このカードの所持が条件）`;
-      case 'springSteal': return `取った瞬間・全員の春を ${def.steal} 個ずつ奪って自分の春にする（春を持っていない相手からは代わりに ${def.stealPoints} 点を奪う）`;
+      case 'springSteal': return `取った瞬間・全員の春を ${def.steal} 個ずつ奪う（春を持っていない相手からは代わりに ${def.stealPoints} 点）。誰からも春を奪えないと不発`;
       case 'pair': return `2 枚で 1 ペア = ${def.points} 点${gameEndBonusText(def)}`;
       case 'set3': return `3 枚で 1 セット = ${def.points} 点${gameEndBonusText(def)}`;
       case 'collect': return `1/2/3/4/5+ 枚で ${def.table.join('/')} 点`;
