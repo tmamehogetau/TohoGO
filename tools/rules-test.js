@@ -75,7 +75,7 @@ function setHands(state, hands) {
 const D = 'k_kozue'; // 紅霧のダミー（効果のみ・即時点数なし・取得時選択は自動解決）
 const DS = 's_yukari'; // 春雪のダミー（即時3点）
 const DY = 'y_reisen'; // 永夜のダミー（即時1点・情報隠蔽フラグのみ）
-const DY4 = 'y_eirin'; // 永夜 4 人テスト用ダミー（即時 2 点）
+const DY4 = 'y_eirin'; // 永夜 4 人テスト用ダミー（即時 3 点）
 
 // 小悪魔の山札確認（peek）は山札の上 4 枚に依存するため、テストでは候補を無害なダミーで固定する
 // （x_dummy は即時 0 点・多数決/収集に影響しないテスト専用カード）
