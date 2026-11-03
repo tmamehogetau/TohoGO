@@ -45,10 +45,30 @@
     return n;
   }
 
+  // ゲーム末ボーナス（霊夢の通算ノルマ・魔理沙の通算最多）を狙う価値。
+  // 閾値に近いほど次に取る 1 枚の価値が上がる（遠いとほぼ 0）
+  function gameEndBonusValue(state, pi, def) {
+    if (!def || !def.gameEnd) return 0;
+    const p = state.players[pi];
+    const total = (p.gameEndCounts && p.gameEndCounts[def.key]) || 0;
+    let value = 0;
+    if (def.gameEndTotalAtLeast) {
+      const need = def.gameEndTotalAtLeast.count - total;
+      if (need > 0 && need <= 3) value += def.gameEndTotalAtLeast.points / need;
+    }
+    if (def.gameEndMost) {
+      const othersMax = Math.max(0, ...state.players
+        .filter((_, i) => i !== pi)
+        .map((q) => (q.gameEndCounts && q.gameEndCounts[def.key]) || 0));
+      if (total + 1 >= othersMax) value += def.gameEndMost.points / 3;
+    }
+    return value;
+  }
+
   // 手札 1 枚を取ったときの「今ラウンドの得点」増分の見積もり。
   // engine.js のラウンド末・ゲーム末判定と同じ式をなぞり、増えるぶんだけを返す近似。
   // 条件系（同席・乱入者・ペナルティ）は「今の自分の場」で満たしているかで価値を変える。
-  function cardValue(state, pi, card) {
+  function baseCardValue(state, pi, card) {
     const key = typeof card === 'string' ? card : card.key;
     const def = state.cardMap[key];
     if (!def) return 1;
@@ -145,6 +165,12 @@
       default:
         return 1.5;
     }
+  }
+
+  // ラウンド点の見積もりにゲーム末ボーナスを足した総合評価
+  function cardValue(state, pi, card) {
+    const key = typeof card === 'string' ? card : card.key;
+    return baseCardValue(state, pi, card) + gameEndBonusValue(state, pi, state.cardMap[key]);
   }
 
   function rankedHand(state, pi) {

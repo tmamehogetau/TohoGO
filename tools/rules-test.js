@@ -701,43 +701,44 @@ test('永夜: 玉兎=兎アイコンマキ準拠多数決（2人配点 1位4点�
   assert.strictEqual(s.players[1].roundScores[0], 1);
 });
 
-test('永夜: 霊夢=ラウンド内3枚ごとに9点（2枚では0点）', () => {
+test('永夜: 霊夢=ラウンド内2枚ごとに4点（1枚では0点）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
   cycle(s, [['y_reimu', 'y_reimu'], [DY, DY]], [0, 0]);
-  cycle(s, [['y_reimu'], [DY]], [0, 0]); // 2枚でラウンド終了 → 0点
-  assert.strictEqual(s.players[0].roundScores[0], 0);
+  cycle(s, [['y_reimu'], [DY]], [0, 0]); // 2枚でラウンド終了 → 4点
+  assert.strictEqual(s.players[0].roundScores[0], 4);
   cycle(s, [['y_reimu', 'y_reimu'], [DY, DY]], [0, 0]);
-  cycle(s, [['y_reimu', 'y_reimu'], [DY, DY]], [0, 0]);
-  cycle(s, [['y_reimu'], [DY]], [0, 0]); // 3枚 → 9点
-  assert.strictEqual(s.players[0].roundScores[1], 9);
+  cycle(s, [['y_mystia'], [DY]], [0, 0]); // 1枚だけ → 0点
+  assert.strictEqual(s.players[0].roundScores[1], 0);
 });
 
-test('永夜: 霊夢=ゲーム通算9枚で +6', () => {
+test('永夜: 霊夢=ゲーム通算7枚で +7', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
-  for (let r = 0; r < 3; r++) {
+  // R1: 3枚 / R2: 3枚 / R3: 1枚 → 通算 7 枚
+  for (let r = 0; r < 2; r++) {
     cycle(s, [['y_reimu', 'y_reimu'], [DY, DY]], [0, 0]);
     cycle(s, [['y_reimu', 'y_reimu'], [DY, DY]], [0, 0]);
-    cycle(s, [['y_reimu'], [DY]], [0, 0]); // 1ラウンド3枚 → 9点
+    cycle(s, [['y_reimu'], [DY]], [0, 0]);
   }
+  cycle(s, [['y_reimu', 'y_reimu'], [DY, DY]], [0, 0]);
+  cycle(s, [['y_mystia'], [DY]], [0, 0]);
   const roundTotal = s.players[0].roundScores.reduce((a, b) => a + b, 0);
-  assert.strictEqual(roundTotal, 27, '3 枚 × 3 ラウンド = 9 点 × 3');
-  assert.strictEqual(Engine.scorePlayer(s, 0) - roundTotal, 6, '通算 9 枚で +6');
+  assert.strictEqual(roundTotal, 8, '3 枚 ×2 ラウンド = 4 点 ×2');
+  assert.strictEqual(Engine.scorePlayer(s, 0) - roundTotal, 7, '通算 7 枚で +7');
 });
 
-test('永夜: 魔理沙=ラウンド内2枚ごとに4点', () => {
+test('永夜: 魔理沙=ラウンド内3枚ごとに9点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_marisa' });
   fixPeek(s);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
-  cycle(s, [['y_marisa'], [DY]], [0, 0]); // 3枚 → 1ペア = 4点
-  assert.strictEqual(s.players[0].roundScores[0], 4);
+  cycle(s, [['y_marisa'], [DY]], [0, 0]); // 3枚 → 9点
+  assert.strictEqual(s.players[0].roundScores[0], 9);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
-  cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
-  cycle(s, [['y_marisa'], [DY]], [0, 0]); // 4枚 → 2ペア = 8点
-  assert.strictEqual(s.players[0].roundScores[1], 8);
+  cycle(s, [['y_mystia'], [DY]], [0, 0]); // 2枚 → 0点
+  assert.strictEqual(s.players[0].roundScores[1], 0);
 });
 
 test('永夜: 魔理沙=ゲーム通算の枚数が最多なら +9（同点は全員）', () => {
@@ -757,7 +758,7 @@ test('永夜: 魔理沙=ゲーム通算の枚数が最多なら +9（同点は�
 test('永夜: 霊夢/魔理沙のゲーム末ボーナスは条件を満たさなければ入らない', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
-  s.players[0].gameEndCounts['y_reimu'] = 8; // 9 枚未満
+  s.players[0].gameEndCounts['y_reimu'] = 6; // 7 枚未満
   s.phase = 'over';
   assert.strictEqual(Engine.charmBonus(s, 0), 0);
 
