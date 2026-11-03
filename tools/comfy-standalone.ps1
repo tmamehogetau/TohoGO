@@ -25,6 +25,8 @@ param(
     [int]$Seed = 0,
     [int]$TimeoutSec = 300,
     [int]$ComfyPort = 8188,
+    [int]$Width = 0,
+    [int]$Height = 0,
     [switch]$SkipStart
 )
 
@@ -91,6 +93,17 @@ function Invoke-ComfyRun($run, [int]$index) {
     $sampler = @($wf.PSObject.Properties | Where-Object { $_.Value.class_type -match 'IrisSampler|KSampler' }) | Select-Object -First 1
     if ($sampler -and ($sampler.Value.inputs.PSObject.Properties.Name -contains 'seed')) {
         $sampler.Value.inputs.seed = $runSeed
+    }
+
+    # 解像度（指定がある場合のみ）
+    $runW = if ($null -ne $run.width) { [int]$run.width } elseif ($Width -gt 0) { $Width } else { 0 }
+    $runH = if ($null -ne $run.height) { [int]$run.height } elseif ($Height -gt 0) { $Height } else { 0 }
+    if ($runW -gt 0 -and $runH -gt 0) {
+        $latent = @($wf.PSObject.Properties | Where-Object { $_.Value.class_type -match 'EmptyLatentImage|EmptyFlux2LatentImage' }) | Select-Object -First 1
+        if ($latent) {
+            $latent.Value.inputs.width = $runW
+            $latent.Value.inputs.height = $runH
+        }
     }
 
     # prompt / negative
@@ -165,8 +178,13 @@ if ($Manifest) {
     $m = Get-Content $Manifest -Raw | ConvertFrom-Json
     if ($m.outdir) { $OutDir = [string]$m.outdir }
     if ($m.timeout_sec) { $TimeoutSec = [int]$m.timeout_sec }
+    # マニフェスト全体の既定値（各 run で個別指定すればそちらが優先）
+    if ($m.workflow) { $Workflow = [string]$m.workflow }
+    if ($m.negative) { $Negative = [string]$m.negative }
+    if ($m.width) { $Width = [int]$m.width }
+    if ($m.height) { $Height = [int]$m.height }
     foreach ($r in @($m.runs)) {
-        $runs += @{ prompt = [string]$r.prompt; seed = $r.seed; negative = $r.negative; name = $r.name; workflow = $r.workflow; timeout = $r.timeout }
+        $runs += @{ prompt = [string]$r.prompt; seed = $r.seed; negative = $r.negative; name = $r.name; workflow = $r.workflow; timeout = $r.timeout; width = $r.width; height = $r.height }
     }
 } elseif ($PromptList) {
     foreach ($line in Get-Content $PromptList) {

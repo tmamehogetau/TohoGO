@@ -58,7 +58,9 @@ npm run test:ws
 
 全31種のカードに生成イラスト（512×768 WebP）を用意している。
 
-- 生成: ComfyUI + Qwen-Image 2.1 turbo（プロンプトは `tools/card-art/runs.json`）
+- 生成: ComfyUI + **MOSS-Image 4step**（Danbooru タグ・露出控えめ・カメラワーク指定）
+- プロンプト: `tools/card-art/build-candidates.py` がキャラごと3案ぶんを `tools/card-art/runs-cand.json` に出力
+- 採用理由と正史タグの根拠: `tools/card-art/characters.md`（キャラ追従チェック表）
 - 変換: `tools/process-card-art.py` が 2:3 にセンタークロップして `assets/cards/<key>.webp` を出力
 - 画像が無いカードは色＋字のフォールバックで表示される
 
@@ -68,12 +70,18 @@ npm run test:ws
 # 1. ComfyUI を単独起動（バックグラウンドジョブで実行）
 pwsh -File tools/start-comfyui.ps1
 
-# 2. 31枚を生成
-pwsh -File tools/comfy-standalone.ps1 -SkipStart -Manifest tools/card-art/runs.json
+# 2. キャラごと3案を生成（93枚）
+python tools/card-art/build-candidates.py 3
+pwsh -File tools/comfy-standalone.ps1 -SkipStart -Manifest tools/card-art/runs-cand.json
 
-# 3. WebP に変換
-python tools/process-card-art.py .tmp/card-art/raw assets/cards
+# 3. 3案を並べた判定シートを作る
+python tools/card-art-candidates-sheet.py .tmp/card-art-cand/raw .tmp/card-art-cand/sheets 5 210
+
+# 4. 採用案を WebP 化（採用表は assemble-final.py の PICK）
+python tools/card-art/assemble-final.py
 ```
+
+旧セット（Qwen-Image 2.1 turbo / `tools/card-art/runs.json`）も残してある。
 
 ## 開発
 

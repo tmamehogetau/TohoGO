@@ -116,12 +116,20 @@ Windows の PowerShell 5.1 は node の UTF-8 出力を化けさせるので、`
 - 全31種のカードに生成イラスト（512×768 WebP、`assets/cards/<key>.webp`）を配置
 - 生成は **ComfyUI 単独**で行う（Strata は停止しておく）。`comfygen.ps1` の Strata ハンドオフは使わない
   - `tools/start-comfyui.ps1` … ComfyUI を `--disable-all-custom-nodes` で起動（管理バックグラウンドジョブで実行）
-  - `tools/comfy-standalone.ps1` … ワークフロー投入・ポーリング・ダウンロード（Strata チェックなし）
-  - `tools/card-art/runs.json` … 31枚のプロンプトと seed
+  - `tools/comfy-standalone.ps1` … ワークフロー投入・ポーリング・ダウンロード。
+    マニフェスト側で `workflow` / `negative` / `width` / `height` を既定値として指定できる
   - `tools/process-card-art.py` … 2:3 センタークロップ → 512×768 WebP q84
+- **2026-11-03 に MOSS-Image 4step へ移行**（旧: Qwen-Image 2.1 turbo）
+  - ワークフロー: `moss_sft_4step_t2i.api.json`（832×1216 / 4 steps / cfg 1.0 / euler・sgm_uniform）
+  - `tools/card-art/build-candidates.py` … キャラごと複数案のプロンプトを生成（露出控えめ＋カメラワーク指定）
+  - `tools/card-art/characters.md` … 31キャラの正史タグと5点判定基準（髪・瞳・衣装・小道具・露出）
+  - `tools/card-art-candidates-sheet.py` … 候補をキャラごと横並びにした判定シート
+  - `tools/card-art/assemble-final.py` … 採用案を WebP 化（採用表は `PICK`）
+  - 生成時は `-Workflow` かマニフェストの `workflow` を必ず指定する。未指定だと Qwen ワークフローが動く
 - サンドボックス対策で ComfyUI の output/temp/input/user を `.tmp` 配下へ逃がしている
-- モデル: Qwen-Image 2.1 turbo（832×1216 生成 → WebP 化）
 - 画像が無い/読み込み失敗時は色＋字のフォールバック（`.card.no-art`）
+- カスタムノードを無効化すると起動が約3秒（有効時は数分かかった）
+- スクリム（`.card-scrim`）は明るい絵でも文字が読めるよう 22/50/86/96% の4段に強化済み
 - カスタムノードを無効化すると起動が約3秒（有効時は数分かかった）
 - テスト: `tools/ws-test.js`（join / start / setSettings / タイマー / ピック / 秘匿 / 再接続 / 幻覚マスク）
 - 制限: ルームはサーバーのメモリ保持（Render 無料枠はスリープで消える）。観戦・チャット・投了は未実装

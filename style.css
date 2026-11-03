@@ -346,10 +346,13 @@ main {
 .card-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg,
-    rgba(8, 6, 10, 0) 28%,
-    rgba(8, 6, 10, 0.42) 56%,
-    rgba(8, 6, 10, 0.94) 100%);
+  background:
+    linear-gradient(180deg,
+      rgba(8, 6, 10, 0) 22%,
+      rgba(8, 6, 10, 0.50) 46%,
+      rgba(8, 6, 10, 0.86) 68%,
+      rgba(8, 6, 10, 0.96) 100%),
+    radial-gradient(120% 80% at 50% 0%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.28) 100%);
 }
 .card-glyph {
   position: absolute;

@@ -1,0 +1,475 @@
+{
+ "outdir": "C:\\Users\\kou-1\\Projects\\touhou-draft\\.tmp\\card-art-cand\\raw",
+ "workflow": "C:\\Users\\kou-1\\comfyui-amd-rocm-kit\\workflows\\image\\moss_sft_4step_t2i.api.json",
+ "width": 832,
+ "height": 1216,
+ "timeout_sec": 300,
+ "negative": "lowres, bad anatomy, bad hands, extra fingers, missing fingers, fused fingers, watermark, text, signature, worst quality, jpeg artifacts, static pose, stiff, expressionless, blank stare, front view, cleavage, panties, underwear, lingerie, navel, bare legs, thighs, short skirt, upskirt, revealing clothes, suggestive, spread legs, high kick, bare shoulders",
+ "runs": [
+  {
+   "name": "k_remi_1",
+   "seed": 70010,
+   "prompt": "masterpiece, best quality, 1girl, remilia scarlet, touhou, short blue hair, red eyes, bat wings spread, red long dress, white mob cap, red ribbon, frilled dress, ascot, modest clothes, fully clothed, long skirt, covered legs, reaching hand toward viewer, cape flowing, smug grin, from below, low angle, cowboy shot, red mist, swarm of bats, full moon, dramatic lighting"
+  },
+  {
+   "name": "k_remi_2",
+   "seed": 70011,
+   "prompt": "masterpiece, best quality, 1girl, remilia scarlet, touhou, short blue hair, red eyes, bat wings spread, red long dress, white mob cap, red ribbon, frilled dress, ascot, modest clothes, fully clothed, long skirt, covered legs, reaching hand toward viewer, cape flowing, smug grin, from below, low angle, cowboy shot, red mist, swarm of bats, full moon, dramatic lighting"
+  },
+  {
+   "name": "k_remi_3",
+   "seed": 70012,
+   "prompt": "masterpiece, best quality, 1girl, remilia scarlet, touhou, short blue hair, red eyes, bat wings spread, red long dress, white mob cap, red ribbon, frilled dress, ascot, modest clothes, fully clothed, long skirt, covered legs, reaching hand toward viewer, cape flowing, smug grin, from below, low angle, cowboy shot, red mist, swarm of bats, full moon, dramatic lighting"
+  },
+  {
+   "name": "k_fran_1",
+   "seed": 70020,
+   "prompt": "masterpiece, best quality, 1girl, flandre scarlet, touhou, blonde hair, side ponytail, red eyes, crystal wings, red long dress, white mob cap, red ribbon, frilled dress, modest clothes, fully clothed, long skirt, covered legs, holding a staff overhead, wide grin, open mouth, dutch angle, cowboy shot, dark mansion, shattered crystals, crimson light"
+  },
+  {
+   "name": "k_fran_2",
+   "seed": 70021,
+   "prompt": "masterpiece, best quality, 1girl, flandre scarlet, touhou, blonde hair, side ponytail, red eyes, crystal wings, red long dress, white mob cap, red ribbon, frilled dress, modest clothes, fully clothed, long skirt, covered legs, holding a staff overhead, wide grin, open mouth, dutch angle, cowboy shot, dark mansion, shattered crystals, crimson light"
+  },
+  {
+   "name": "k_fran_3",
+   "seed": 70022,
+   "prompt": "masterpiece, best quality, 1girl, flandre scarlet, touhou, blonde hair, side ponytail, red eyes, crystal wings, red long dress, white mob cap, red ribbon, frilled dress, modest clothes, fully clothed, long skirt, covered legs, holding a staff overhead, wide grin, open mouth, dutch angle, cowboy shot, dark mansion, shattered crystals, crimson light"
+  },
+  {
+   "name": "k_meirin_1",
+   "seed": 70030,
+   "prompt": "masterpiece, best quality, 1girl, hong meiling, touhou, red hair, long braid, blue eyes, green china dress, long skirt, hat, star, modest clothes, fully clothed, long skirt, covered legs, fighting stance, energy aura, wind, from side, cowboy shot, gate, sunset, confident grin"
+  },
+  {
+   "name": "k_meirin_2",
+   "seed": 70031,
+   "prompt": "masterpiece, best quality, 1girl, hong meiling, touhou, red hair, long braid, blue eyes, green china dress, long skirt, hat, star, modest clothes, fully clothed, long skirt, covered legs, fighting stance, energy aura, wind, from side, cowboy shot, gate, sunset, confident grin"
+  },
+  {
+   "name": "k_meirin_3",
+   "seed": 70032,
+   "prompt": "masterpiece, best quality, 1girl, hong meiling, touhou, red hair, long braid, blue eyes, green china dress, long skirt, hat, star, modest clothes, fully clothed, long skirt, covered legs, fighting stance, energy aura, wind, from side, cowboy shot, gate, sunset, confident grin"
+  },
+  {
+   "name": "k_sakuya_1",
+   "seed": 70040,
+   "prompt": "masterpiece, best quality, 1girl, sakuya izayoi, touhou, silver hair, blue eyes, blue maid dress, white apron, maid headdress, modest clothes, fully clothed, long skirt, covered legs, throwing knives, hand in foreground, calm smile, dutch angle, cowboy shot, clock, shattered glass, cold light"
+  },
+  {
+   "name": "k_sakuya_2",
+   "seed": 70041,
+   "prompt": "masterpiece, best quality, 1girl, sakuya izayoi, touhou, silver hair, blue eyes, blue maid dress, white apron, maid headdress, modest clothes, fully clothed, long skirt, covered legs, throwing knives, hand in foreground, calm smile, dutch angle, cowboy shot, clock, shattered glass, cold light"
+  },
+  {
+   "name": "k_sakuya_3",
+   "seed": 70042,
+   "prompt": "masterpiece, best quality, 1girl, sakuya izayoi, touhou, silver hair, blue eyes, blue maid dress, white apron, maid headdress, modest clothes, fully clothed, long skirt, covered legs, throwing knives, hand in foreground, calm smile, dutch angle, cowboy shot, clock, shattered glass, cold light"
+  },
+  {
+   "name": "k_patch_1",
+   "seed": 70050,
+   "prompt": "masterpiece, best quality, 1girl, patchouli knowledge, touhou, purple hair, long hair, purple dress, mob cap, crescent hair ornament, book, modest clothes, fully clothed, long skirt, covered legs, sitting on a floating book, reading, magic circle below, calm smile, from below, cowboy shot, library, glowing runes"
+  },
+  {
+   "name": "k_patch_2",
+   "seed": 70051,
+   "prompt": "masterpiece, best quality, 1girl, patchouli knowledge, touhou, purple hair, long hair, purple dress, mob cap, crescent hair ornament, book, modest clothes, fully clothed, long skirt, covered legs, sitting on a floating book, reading, magic circle below, calm smile, from below, cowboy shot, library, glowing runes"
+  },
+  {
+   "name": "k_patch_3",
+   "seed": 70052,
+   "prompt": "masterpiece, best quality, 1girl, patchouli knowledge, touhou, purple hair, long hair, purple dress, mob cap, crescent hair ornament, book, modest clothes, fully clothed, long skirt, covered legs, sitting on a floating book, reading, magic circle below, calm smile, from below, cowboy shot, library, glowing runes"
+  },
+  {
+   "name": "k_rumia_1",
+   "seed": 70060,
+   "prompt": "masterpiece, best quality, 1girl, rumia, touhou, blonde hair, red eyes, black dress, red ribbon, modest clothes, fully clothed, long skirt, covered legs, sphere of darkness in outstretched hand, hair floating up, grin, from below, cowboy shot, night road, forest, moonlight"
+  },
+  {
+   "name": "k_rumia_2",
+   "seed": 70061,
+   "prompt": "masterpiece, best quality, 1girl, rumia, touhou, blonde hair, red eyes, black dress, red ribbon, modest clothes, fully clothed, long skirt, covered legs, sphere of darkness in outstretched hand, hair floating up, grin, from below, cowboy shot, night road, forest, moonlight"
+  },
+  {
+   "name": "k_rumia_3",
+   "seed": 70062,
+   "prompt": "masterpiece, best quality, 1girl, rumia, touhou, blonde hair, red eyes, black dress, red ribbon, modest clothes, fully clothed, long skirt, covered legs, sphere of darkness in outstretched hand, hair floating up, grin, from below, cowboy shot, night road, forest, moonlight"
+  },
+  {
+   "name": "k_daiyousei_1",
+   "seed": 70070,
+   "prompt": "masterpiece, best quality, 2girls, daiyousei, cirno, touhou, green hair, blue dress, white sleeves, fairy wings, blue hair, ice wings, modest clothes, fully clothed, long skirt, covered legs, flying side by side toward viewer, holding hands, laughing, cowboy shot, lake, sunlight, sparkles"
+  },
+  {
+   "name": "k_daiyousei_2",
+   "seed": 70071,
+   "prompt": "masterpiece, best quality, 2girls, daiyousei, cirno, touhou, green hair, blue dress, white sleeves, fairy wings, blue hair, ice wings, modest clothes, fully clothed, long skirt, covered legs, flying side by side toward viewer, holding hands, laughing, cowboy shot, lake, sunlight, sparkles"
+  },
+  {
+   "name": "k_daiyousei_3",
+   "seed": 70072,
+   "prompt": "masterpiece, best quality, 2girls, daiyousei, cirno, touhou, green hair, blue dress, white sleeves, fairy wings, blue hair, ice wings, modest clothes, fully clothed, long skirt, covered legs, flying side by side toward viewer, holding hands, laughing, cowboy shot, lake, sunlight, sparkles"
+  },
+  {
+   "name": "k_maid_1",
+   "seed": 70080,
+   "prompt": "masterpiece, best quality, 1girl, fairy (touhou), touhou, green hair, blue eyes, maid outfit, white apron, maid headdress, modest clothes, fully clothed, long skirt, covered legs, carrying a tray, walking fast, motion, cheerful smile, from side, cowboy shot, banquet hall, candles"
+  },
+  {
+   "name": "k_maid_2",
+   "seed": 70081,
+   "prompt": "masterpiece, best quality, 1girl, fairy (touhou), touhou, green hair, blue eyes, maid outfit, white apron, maid headdress, modest clothes, fully clothed, long skirt, covered legs, carrying a tray, walking fast, motion, cheerful smile, from side, cowboy shot, banquet hall, candles"
+  },
+  {
+   "name": "k_maid_3",
+   "seed": 70082,
+   "prompt": "masterpiece, best quality, 1girl, fairy (touhou), touhou, green hair, blue eyes, maid outfit, white apron, maid headdress, modest clothes, fully clothed, long skirt, covered legs, carrying a tray, walking fast, motion, cheerful smile, from side, cowboy shot, banquet hall, candles"
+  },
+  {
+   "name": "k_kozue_1",
+   "seed": 70090,
+   "prompt": "masterpiece, best quality, 1girl, koakuma, touhou, red hair, short hair, red eyes, black dress, bat wings, white collar, modest clothes, fully clothed, long skirt, covered legs, leaning forward over a bookshelf, peeking, books floating around, sly smile, from below, cowboy shot, library, candlelight"
+  },
+  {
+   "name": "k_kozue_2",
+   "seed": 70091,
+   "prompt": "masterpiece, best quality, 1girl, koakuma, touhou, red hair, short hair, red eyes, black dress, bat wings, white collar, modest clothes, fully clothed, long skirt, covered legs, leaning forward over a bookshelf, peeking, books floating around, sly smile, from below, cowboy shot, library, candlelight"
+  },
+  {
+   "name": "k_kozue_3",
+   "seed": 70092,
+   "prompt": "masterpiece, best quality, 1girl, koakuma, touhou, red hair, short hair, red eyes, black dress, bat wings, white collar, modest clothes, fully clothed, long skirt, covered legs, leaning forward over a bookshelf, peeking, books floating around, sly smile, from below, cowboy shot, library, candlelight"
+  },
+  {
+   "name": "k_cirno_1",
+   "seed": 70100,
+   "prompt": "masterpiece, best quality, 1girl, cirno, touhou, blue hair, blue ribbon, blue eyes, blue dress, white shirt, ice wings, modest clothes, fully clothed, long skirt, covered legs, dashing toward viewer, arm outstretched, ice shards flying, big grin, low angle, cowboy shot, frozen lake, snowstorm, cold blue light"
+  },
+  {
+   "name": "k_cirno_2",
+   "seed": 70101,
+   "prompt": "masterpiece, best quality, 1girl, cirno, touhou, blue hair, blue ribbon, blue eyes, blue dress, white shirt, ice wings, modest clothes, fully clothed, long skirt, covered legs, dashing toward viewer, arm outstretched, ice shards flying, big grin, low angle, cowboy shot, frozen lake, snowstorm, cold blue light"
+  },
+  {
+   "name": "k_cirno_3",
+   "seed": 70102,
+   "prompt": "masterpiece, best quality, 1girl, cirno, touhou, blue hair, blue ribbon, blue eyes, blue dress, white shirt, ice wings, modest clothes, fully clothed, long skirt, covered legs, dashing toward viewer, arm outstretched, ice shards flying, big grin, low angle, cowboy shot, frozen lake, snowstorm, cold blue light"
+  },
+  {
+   "name": "s_yukari_1",
+   "seed": 70110,
+   "prompt": "masterpiece, best quality, 1girl, yukari yakumo, touhou, blonde hair, long hair, purple eyes, purple dress, mob cap, red ribbon, parasol, modest clothes, fully clothed, long skirt, covered legs, half body coming out of a gap, arm extended, elegant smile, from side, cowboy shot, gap with eyes and ribbons, butterflies, twilight"
+  },
+  {
+   "name": "s_yukari_2",
+   "seed": 70111,
+   "prompt": "masterpiece, best quality, 1girl, yukari yakumo, touhou, blonde hair, long hair, purple eyes, purple dress, mob cap, red ribbon, parasol, modest clothes, fully clothed, long skirt, covered legs, half body coming out of a gap, arm extended, elegant smile, from side, cowboy shot, gap with eyes and ribbons, butterflies, twilight"
+  },
+  {
+   "name": "s_yukari_3",
+   "seed": 70112,
+   "prompt": "masterpiece, best quality, 1girl, yukari yakumo, touhou, blonde hair, long hair, purple eyes, purple dress, mob cap, red ribbon, parasol, modest clothes, fully clothed, long skirt, covered legs, half body coming out of a gap, arm extended, elegant smile, from side, cowboy shot, gap with eyes and ribbons, butterflies, twilight"
+  },
+  {
+   "name": "s_ran_1",
+   "seed": 70120,
+   "prompt": "masterpiece, best quality, 1girl, ran yakumo, touhou, blonde hair, fox ears, nine tails, blue and white dress, tabard, mob cap, modest clothes, fully clothed, long skirt, covered legs, running with ofuda, wind, from side, cowboy shot, shrine, autumn leaves, confident smile"
+  },
+  {
+   "name": "s_ran_2",
+   "seed": 70121,
+   "prompt": "masterpiece, best quality, 1girl, ran yakumo, touhou, blonde hair, fox ears, nine tails, blue and white dress, tabard, mob cap, modest clothes, fully clothed, long skirt, covered legs, running with ofuda, wind, from side, cowboy shot, shrine, autumn leaves, confident smile"
+  },
+  {
+   "name": "s_ran_3",
+   "seed": 70122,
+   "prompt": "masterpiece, best quality, 1girl, ran yakumo, touhou, blonde hair, fox ears, nine tails, blue and white dress, tabard, mob cap, modest clothes, fully clothed, long skirt, covered legs, running with ofuda, wind, from side, cowboy shot, shrine, autumn leaves, confident smile"
+  },
+  {
+   "name": "s_chen_1",
+   "seed": 70130,
+   "prompt": "masterpiece, best quality, 1girl, chen, touhou, brown hair, short hair, cat ears, two tails, green dress, green hat, red ribbon, modest clothes, fully clothed, long skirt, covered legs, pouncing with claws, playful grin, low angle, cowboy shot, bamboo, sunlight, motion"
+  },
+  {
+   "name": "s_chen_2",
+   "seed": 70131,
+   "prompt": "masterpiece, best quality, 1girl, chen, touhou, brown hair, short hair, cat ears, two tails, green dress, green hat, red ribbon, modest clothes, fully clothed, long skirt, covered legs, pouncing with claws, playful grin, low angle, cowboy shot, bamboo, sunlight, motion"
+  },
+  {
+   "name": "s_chen_3",
+   "seed": 70132,
+   "prompt": "masterpiece, best quality, 1girl, chen, touhou, brown hair, short hair, cat ears, two tails, green dress, green hat, red ribbon, modest clothes, fully clothed, long skirt, covered legs, pouncing with claws, playful grin, low angle, cowboy shot, bamboo, sunlight, motion"
+  },
+  {
+   "name": "s_spring_1",
+   "seed": 70140,
+   "prompt": "masterpiece, best quality, no humans, scenery, cherry blossom tunnel, petals falling, stone stairs, shrine, sunlight, spring, wide shot, depth of field"
+  },
+  {
+   "name": "s_spring_2",
+   "seed": 70141,
+   "prompt": "masterpiece, best quality, no humans, scenery, cherry blossom tunnel, petals falling, stone stairs, shrine, sunlight, spring, wide shot, depth of field"
+  },
+  {
+   "name": "s_spring_3",
+   "seed": 70142,
+   "prompt": "masterpiece, best quality, no humans, scenery, cherry blossom tunnel, petals falling, stone stairs, shrine, sunlight, spring, wide shot, depth of field"
+  },
+  {
+   "name": "s_yuyuko_1",
+   "seed": 70150,
+   "prompt": "masterpiece, best quality, 1girl, yuyuko saigyouji, touhou, pink hair, short hair, red eyes, blue kimono, triangle pattern, wide sleeves, modest clothes, fully clothed, long skirt, covered legs, looking back over shoulder, folding fan, gentle smile, from behind, cowboy shot, cherry blossoms, petals swirling, soft light"
+  },
+  {
+   "name": "s_yuyuko_2",
+   "seed": 70151,
+   "prompt": "masterpiece, best quality, 1girl, yuyuko saigyouji, touhou, pink hair, short hair, red eyes, blue kimono, triangle pattern, wide sleeves, modest clothes, fully clothed, long skirt, covered legs, looking back over shoulder, folding fan, gentle smile, from behind, cowboy shot, cherry blossoms, petals swirling, soft light"
+  },
+  {
+   "name": "s_yuyuko_3",
+   "seed": 70152,
+   "prompt": "masterpiece, best quality, 1girl, yuyuko saigyouji, touhou, pink hair, short hair, red eyes, blue kimono, triangle pattern, wide sleeves, modest clothes, fully clothed, long skirt, covered legs, looking back over shoulder, folding fan, gentle smile, from behind, cowboy shot, cherry blossoms, petals swirling, soft light"
+  },
+  {
+   "name": "s_youmu_1",
+   "seed": 70160,
+   "prompt": "masterpiece, best quality, 1girl, youmu konpaku, touhou, silver hair, short hair, blue eyes, green dress, white shirt, modest clothes, fully clothed, long skirt, covered legs, katana slash across the frame, motion lines, determined expression, from side, cowboy shot, cherry blossoms cut, petals, sharp light"
+  },
+  {
+   "name": "s_youmu_2",
+   "seed": 70161,
+   "prompt": "masterpiece, best quality, 1girl, youmu konpaku, touhou, silver hair, short hair, blue eyes, green dress, white shirt, modest clothes, fully clothed, long skirt, covered legs, katana slash across the frame, motion lines, determined expression, from side, cowboy shot, cherry blossoms cut, petals, sharp light"
+  },
+  {
+   "name": "s_youmu_3",
+   "seed": 70162,
+   "prompt": "masterpiece, best quality, 1girl, youmu konpaku, touhou, silver hair, short hair, blue eyes, green dress, white shirt, modest clothes, fully clothed, long skirt, covered legs, katana slash across the frame, motion lines, determined expression, from side, cowboy shot, cherry blossoms cut, petals, sharp light"
+  },
+  {
+   "name": "s_alice_1",
+   "seed": 70170,
+   "prompt": "masterpiece, best quality, 1girl, alice margatroid, touhou, blonde hair, short hair, blue eyes, blue dress, white pinafore, red hairband, modest clothes, fully clothed, long skirt, covered legs, holding puppet strings, dolls flying around, magic threads, calm smile, from below, cowboy shot, workshop, window light"
+  },
+  {
+   "name": "s_alice_2",
+   "seed": 70171,
+   "prompt": "masterpiece, best quality, 1girl, alice margatroid, touhou, blonde hair, short hair, blue eyes, blue dress, white pinafore, red hairband, modest clothes, fully clothed, long skirt, covered legs, holding puppet strings, dolls flying around, magic threads, calm smile, from below, cowboy shot, workshop, window light"
+  },
+  {
+   "name": "s_alice_3",
+   "seed": 70172,
+   "prompt": "masterpiece, best quality, 1girl, alice margatroid, touhou, blonde hair, short hair, blue eyes, blue dress, white pinafore, red hairband, modest clothes, fully clothed, long skirt, covered legs, holding puppet strings, dolls flying around, magic threads, calm smile, from below, cowboy shot, workshop, window light"
+  },
+  {
+   "name": "s_prism_1",
+   "seed": 70180,
+   "prompt": "masterpiece, best quality, 3girls, lunasa prismriver, merlin prismriver, lyrica prismriver, touhou, blonde hair, polka dot dress, long skirt, violin, trumpet, keyboard, modest clothes, fully clothed, long skirt, covered legs, performing on stage, from below, cowboy shot, spotlights, colorful lights, sound waves"
+  },
+  {
+   "name": "s_prism_2",
+   "seed": 70181,
+   "prompt": "masterpiece, best quality, 3girls, lunasa prismriver, merlin prismriver, lyrica prismriver, touhou, blonde hair, polka dot dress, long skirt, violin, trumpet, keyboard, modest clothes, fully clothed, long skirt, covered legs, performing on stage, from below, cowboy shot, spotlights, colorful lights, sound waves"
+  },
+  {
+   "name": "s_prism_3",
+   "seed": 70182,
+   "prompt": "masterpiece, best quality, 3girls, lunasa prismriver, merlin prismriver, lyrica prismriver, touhou, blonde hair, polka dot dress, long skirt, violin, trumpet, keyboard, modest clothes, fully clothed, long skirt, covered legs, performing on stage, from below, cowboy shot, spotlights, colorful lights, sound waves"
+  },
+  {
+   "name": "s_letty_1",
+   "seed": 70190,
+   "prompt": "masterpiece, best quality, 1girl, letty whiterock, touhou, blue hair, long hair, blue eyes, blue dress, white cape, white hat, modest clothes, fully clothed, long skirt, covered legs, blizzard sweeping, hair and cape flowing, calm smile, from side, cowboy shot, ice crystals, winter night, cold wind"
+  },
+  {
+   "name": "s_letty_2",
+   "seed": 70191,
+   "prompt": "masterpiece, best quality, 1girl, letty whiterock, touhou, blue hair, long hair, blue eyes, blue dress, white cape, white hat, modest clothes, fully clothed, long skirt, covered legs, blizzard sweeping, hair and cape flowing, calm smile, from side, cowboy shot, ice crystals, winter night, cold wind"
+  },
+  {
+   "name": "s_letty_3",
+   "seed": 70192,
+   "prompt": "masterpiece, best quality, 1girl, letty whiterock, touhou, blue hair, long hair, blue eyes, blue dress, white cape, white hat, modest clothes, fully clothed, long skirt, covered legs, blizzard sweeping, hair and cape flowing, calm smile, from side, cowboy shot, ice crystals, winter night, cold wind"
+  },
+  {
+   "name": "s_lily_1",
+   "seed": 70200,
+   "prompt": "masterpiece, best quality, 1girl, lily white, touhou, blonde hair, short hair, white dress, wings, modest clothes, fully clothed, long skirt, covered legs, flying toward viewer, scattering flower petals, big smile, low angle, cowboy shot, flower field, spring, bright light"
+  },
+  {
+   "name": "s_lily_2",
+   "seed": 70201,
+   "prompt": "masterpiece, best quality, 1girl, lily white, touhou, blonde hair, short hair, white dress, wings, modest clothes, fully clothed, long skirt, covered legs, flying toward viewer, scattering flower petals, big smile, low angle, cowboy shot, flower field, spring, bright light"
+  },
+  {
+   "name": "s_lily_3",
+   "seed": 70202,
+   "prompt": "masterpiece, best quality, 1girl, lily white, touhou, blonde hair, short hair, white dress, wings, modest clothes, fully clothed, long skirt, covered legs, flying toward viewer, scattering flower petals, big smile, low angle, cowboy shot, flower field, spring, bright light"
+  },
+  {
+   "name": "y_kaguya_1",
+   "seed": 70210,
+   "prompt": "masterpiece, best quality, 1girl, houraisan kaguya, touhou, black hair, very long hair, hime cut, red eyes, pink kimono, red skirt, red sash, wide sleeves, frills, japanese clothes, modest clothes, fully clothed, long skirt, covered legs, sitting on a veranda, folding fan, elegant smile, from side, cowboy shot, full moon, night, moon palace, bamboo"
+  },
+  {
+   "name": "y_kaguya_2",
+   "seed": 70211,
+   "prompt": "masterpiece, best quality, 1girl, houraisan kaguya, touhou, black hair, very long hair, hime cut, red eyes, pink kimono, red skirt, red sash, wide sleeves, frills, japanese clothes, modest clothes, fully clothed, long skirt, covered legs, sitting on a veranda, folding fan, elegant smile, from side, cowboy shot, full moon, night, moon palace, bamboo"
+  },
+  {
+   "name": "y_kaguya_3",
+   "seed": 70212,
+   "prompt": "masterpiece, best quality, 1girl, houraisan kaguya, touhou, black hair, very long hair, hime cut, red eyes, pink kimono, red skirt, red sash, wide sleeves, frills, japanese clothes, modest clothes, fully clothed, long skirt, covered legs, sitting on a veranda, folding fan, elegant smile, from side, cowboy shot, full moon, night, moon palace, bamboo"
+  },
+  {
+   "name": "y_eirin_1",
+   "seed": 70220,
+   "prompt": "masterpiece, best quality, 1girl, yagokoro eirin, touhou, silver hair, very long hair, red eyes, red and blue dress, nurse cap, detached sleeves, modest clothes, fully clothed, long skirt, covered legs, drawing a bow, arrow of light, calm smile, from side, cowboy shot, full moon, night, medicine bottles floating"
+  },
+  {
+   "name": "y_eirin_2",
+   "seed": 70221,
+   "prompt": "masterpiece, best quality, 1girl, yagokoro eirin, touhou, silver hair, very long hair, red eyes, red and blue dress, nurse cap, detached sleeves, modest clothes, fully clothed, long skirt, covered legs, drawing a bow, arrow of light, calm smile, from side, cowboy shot, full moon, night, medicine bottles floating"
+  },
+  {
+   "name": "y_eirin_3",
+   "seed": 70222,
+   "prompt": "masterpiece, best quality, 1girl, yagokoro eirin, touhou, silver hair, very long hair, red eyes, red and blue dress, nurse cap, detached sleeves, modest clothes, fully clothed, long skirt, covered legs, drawing a bow, arrow of light, calm smile, from side, cowboy shot, full moon, night, medicine bottles floating"
+  },
+  {
+   "name": "y_reisen_1",
+   "seed": 70230,
+   "prompt": "masterpiece, best quality, 1girl, reisen udongein inaba, touhou, purple hair, long hair, rabbit ears, red eyes, white shirt, red necktie, blue skirt, modest clothes, fully clothed, long skirt, covered legs, finger to temple, waves of illusion, glowing eyes, from below, cowboy shot, full moon, bamboo forest, night"
+  },
+  {
+   "name": "y_reisen_2",
+   "seed": 70231,
+   "prompt": "masterpiece, best quality, 1girl, reisen udongein inaba, touhou, purple hair, long hair, rabbit ears, red eyes, white shirt, red necktie, blue skirt, modest clothes, fully clothed, long skirt, covered legs, finger to temple, waves of illusion, glowing eyes, from below, cowboy shot, full moon, bamboo forest, night"
+  },
+  {
+   "name": "y_reisen_3",
+   "seed": 70232,
+   "prompt": "masterpiece, best quality, 1girl, reisen udongein inaba, touhou, purple hair, long hair, rabbit ears, red eyes, white shirt, red necktie, blue skirt, modest clothes, fully clothed, long skirt, covered legs, finger to temple, waves of illusion, glowing eyes, from below, cowboy shot, full moon, bamboo forest, night"
+  },
+  {
+   "name": "y_tewi_1",
+   "seed": 70240,
+   "prompt": "masterpiece, best quality, 1girl, inaba tewi, touhou, brown hair, short hair, red eyes, rabbit ears, pink dress, white collar, modest clothes, fully clothed, long skirt, covered legs, sitting on a rock, eating dango, grin, cowboy shot, bamboo forest, fireflies, night, warm light"
+  },
+  {
+   "name": "y_tewi_2",
+   "seed": 70241,
+   "prompt": "masterpiece, best quality, 1girl, inaba tewi, touhou, brown hair, short hair, red eyes, rabbit ears, pink dress, white collar, modest clothes, fully clothed, long skirt, covered legs, sitting on a rock, eating dango, grin, cowboy shot, bamboo forest, fireflies, night, warm light"
+  },
+  {
+   "name": "y_tewi_3",
+   "seed": 70242,
+   "prompt": "masterpiece, best quality, 1girl, inaba tewi, touhou, brown hair, short hair, red eyes, rabbit ears, pink dress, white collar, modest clothes, fully clothed, long skirt, covered legs, sitting on a rock, eating dango, grin, cowboy shot, bamboo forest, fireflies, night, warm light"
+  },
+  {
+   "name": "y_mystia_1",
+   "seed": 70250,
+   "prompt": "masterpiece, best quality, 1girl, mystia lorelei, touhou, pink hair, short hair, bird wings, brown hat, blue dress, white apron, modest clothes, fully clothed, long skirt, covered legs, singing, open mouth, sound waves, from below, cowboy shot, night, lantern, food stall, festival, warm light"
+  },
+  {
+   "name": "y_mystia_2",
+   "seed": 70251,
+   "prompt": "masterpiece, best quality, 1girl, mystia lorelei, touhou, pink hair, short hair, bird wings, brown hat, blue dress, white apron, modest clothes, fully clothed, long skirt, covered legs, singing, open mouth, sound waves, from below, cowboy shot, night, lantern, food stall, festival, warm light"
+  },
+  {
+   "name": "y_mystia_3",
+   "seed": 70252,
+   "prompt": "masterpiece, best quality, 1girl, mystia lorelei, touhou, pink hair, short hair, bird wings, brown hat, blue dress, white apron, modest clothes, fully clothed, long skirt, covered legs, singing, open mouth, sound waves, from below, cowboy shot, night, lantern, food stall, festival, warm light"
+  },
+  {
+   "name": "y_keine_1",
+   "seed": 70260,
+   "prompt": "masterpiece, best quality, 1girl, kamishirasawa keine, touhou, blue hair, long hair, red eyes, horn, tokin hat, blue dress, white apron, modest clothes, fully clothed, long skirt, covered legs, running with scrolls, motion, from side, cowboy shot, school hallway, sunlight, determined smile"
+  },
+  {
+   "name": "y_keine_2",
+   "seed": 70261,
+   "prompt": "masterpiece, best quality, 1girl, kamishirasawa keine, touhou, blue hair, long hair, red eyes, horn, tokin hat, blue dress, white apron, modest clothes, fully clothed, long skirt, covered legs, running with scrolls, motion, from side, cowboy shot, school hallway, sunlight, determined smile"
+  },
+  {
+   "name": "y_keine_3",
+   "seed": 70262,
+   "prompt": "masterpiece, best quality, 1girl, kamishirasawa keine, touhou, blue hair, long hair, red eyes, horn, tokin hat, blue dress, white apron, modest clothes, fully clothed, long skirt, covered legs, running with scrolls, motion, from side, cowboy shot, school hallway, sunlight, determined smile"
+  },
+  {
+   "name": "y_riggle_1",
+   "seed": 70270,
+   "prompt": "masterpiece, best quality, 1girl, wriggle nightbug, touhou, green hair, short hair, antennae, insect wings, green dress, white cape, modest clothes, fully clothed, long skirt, covered legs, arms spread wide, surrounded by fireflies, confident smile, from below, cowboy shot, night, meadow, glowing bugs"
+  },
+  {
+   "name": "y_riggle_2",
+   "seed": 70271,
+   "prompt": "masterpiece, best quality, 1girl, wriggle nightbug, touhou, green hair, short hair, antennae, insect wings, green dress, white cape, modest clothes, fully clothed, long skirt, covered legs, arms spread wide, surrounded by fireflies, confident smile, from below, cowboy shot, night, meadow, glowing bugs"
+  },
+  {
+   "name": "y_riggle_3",
+   "seed": 70272,
+   "prompt": "masterpiece, best quality, 1girl, wriggle nightbug, touhou, green hair, short hair, antennae, insect wings, green dress, white cape, modest clothes, fully clothed, long skirt, covered legs, arms spread wide, surrounded by fireflies, confident smile, from below, cowboy shot, night, meadow, glowing bugs"
+  },
+  {
+   "name": "y_rabbit_1",
+   "seed": 70280,
+   "prompt": "masterpiece, best quality, 1girl, moon rabbit, touhou, white hair, long hair, rabbit ears, red eyes, white kimono, modest clothes, fully clothed, long skirt, covered legs, swinging a mallet down, pounding mochi, mortar, from side, cowboy shot, full moon, moon palace, night, motion"
+  },
+  {
+   "name": "y_rabbit_2",
+   "seed": 70281,
+   "prompt": "masterpiece, best quality, 1girl, moon rabbit, touhou, white hair, long hair, rabbit ears, red eyes, white kimono, modest clothes, fully clothed, long skirt, covered legs, swinging a mallet down, pounding mochi, mortar, from side, cowboy shot, full moon, moon palace, night, motion"
+  },
+  {
+   "name": "y_rabbit_3",
+   "seed": 70282,
+   "prompt": "masterpiece, best quality, 1girl, moon rabbit, touhou, white hair, long hair, rabbit ears, red eyes, white kimono, modest clothes, fully clothed, long skirt, covered legs, swinging a mallet down, pounding mochi, mortar, from side, cowboy shot, full moon, moon palace, night, motion"
+  },
+  {
+   "name": "y_reimu_1",
+   "seed": 70290,
+   "prompt": "masterpiece, best quality, 1girl, hakurei reimu, touhou, brown hair, long hair, red eyes, red and white shrine maiden outfit, detached sleeves, hair tubes, red ribbon, modest clothes, fully clothed, long skirt, covered legs, ofuda flying toward viewer, gohei, serious expression, low angle, cowboy shot, shrine gate, night, full moon"
+  },
+  {
+   "name": "y_reimu_2",
+   "seed": 70291,
+   "prompt": "masterpiece, best quality, 1girl, hakurei reimu, touhou, brown hair, long hair, red eyes, red and white shrine maiden outfit, detached sleeves, hair tubes, red ribbon, modest clothes, fully clothed, long skirt, covered legs, ofuda flying toward viewer, gohei, serious expression, low angle, cowboy shot, shrine gate, night, full moon"
+  },
+  {
+   "name": "y_reimu_3",
+   "seed": 70292,
+   "prompt": "masterpiece, best quality, 1girl, hakurei reimu, touhou, brown hair, long hair, red eyes, red and white shrine maiden outfit, detached sleeves, hair tubes, red ribbon, modest clothes, fully clothed, long skirt, covered legs, ofuda flying toward viewer, gohei, serious expression, low angle, cowboy shot, shrine gate, night, full moon"
+  },
+  {
+   "name": "y_marisa_1",
+   "seed": 70300,
+   "prompt": "masterpiece, best quality, 1girl, kirisame marisa, touhou, blonde hair, long hair, yellow eyes, black witch dress, white apron, black hat, white ribbon, modest clothes, fully clothed, long skirt, covered legs, riding broom, leaning forward, grin, from side, cowboy shot, night sky, stars, sparkles, motion blur"
+  },
+  {
+   "name": "y_marisa_2",
+   "seed": 70301,
+   "prompt": "masterpiece, best quality, 1girl, kirisame marisa, touhou, blonde hair, long hair, yellow eyes, black witch dress, white apron, black hat, white ribbon, modest clothes, fully clothed, long skirt, covered legs, riding broom, leaning forward, grin, from side, cowboy shot, night sky, stars, sparkles, motion blur"
+  },
+  {
+   "name": "y_marisa_3",
+   "seed": 70302,
+   "prompt": "masterpiece, best quality, 1girl, kirisame marisa, touhou, blonde hair, long hair, yellow eyes, black witch dress, white apron, black hat, white ribbon, modest clothes, fully clothed, long skirt, covered legs, riding broom, leaning forward, grin, from side, cowboy shot, night sky, stars, sparkles, motion blur"
+  },
+  {
+   "name": "y_moko_1",
+   "seed": 70310,
+   "prompt": "masterpiece, best quality, 1girl, fujiwara no mokou, touhou, white hair, very long hair, red eyes, red pants, white shirt, suspenders, modest clothes, fully clothed, long skirt, covered legs, flaming fist toward viewer, fire, fierce grin, from below, low angle, cowboy shot, burning bamboo forest, embers, dramatic orange light"
+  },
+  {
+   "name": "y_moko_2",
+   "seed": 70311,
+   "prompt": "masterpiece, best quality, 1girl, fujiwara no mokou, touhou, white hair, very long hair, red eyes, red pants, white shirt, suspenders, modest clothes, fully clothed, long skirt, covered legs, flaming fist toward viewer, fire, fierce grin, from below, low angle, cowboy shot, burning bamboo forest, embers, dramatic orange light"
+  },
+  {
+   "name": "y_moko_3",
+   "seed": 70312,
+   "prompt": "masterpiece, best quality, 1girl, fujiwara no mokou, touhou, white hair, very long hair, red eyes, red pants, white shirt, suspenders, modest clothes, fully clothed, long skirt, covered legs, flaming fist toward viewer, fire, fierce grin, from below, low angle, cowboy shot, burning bamboo forest, embers, dramatic orange light"
+  }
+ ]
+}
