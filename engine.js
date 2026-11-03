@@ -640,8 +640,9 @@
       const springMax = Math.max(...state.roundStats.map((s) => s.springIcons));
       if (springMax > 0) {
         state.roundStats.forEach((s, i) => {
-          const hasYuyuko = state.players[i].taken.some((inst) => inst.key === 's_yuyuko' && !inst.flipped);
-          if (hasYuyuko && s.springIcons === springMax) scores[i] += 4;
+          // 幽々子は所持 1 枚ごとに加点（春が最多のラウンドのみ）
+          const yuyukoCount = state.players[i].taken.filter((inst) => inst.key === 's_yuyuko' && !inst.flipped).length;
+          if (yuyukoCount > 0 && s.springIcons === springMax) scores[i] += 4 * yuyukoCount;
         });
       }
       return scores;

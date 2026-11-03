@@ -386,14 +386,14 @@ test('春雪: 春=2人同点は各2点', () => {
   assert.strictEqual(s.players[1].roundScores[0], 2 + 3);
 });
 
-test('春雪: 幽々子=ラウンド内の春最多なら4点（幽々子取得が必須・春多数決も併走）', () => {
+test('春雪: 幽々子=所持1枚ごとに4点（春が最多のラウンドのみ）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
   fixPeek(s);
-  cycle(s, [['s_yuyuko', inst('s_spring', 3)], [inst('s_spring', 1), DS]], [0, 0]); // p0 幽々子・p1 春1
+  cycle(s, [['s_yuyuko', inst('s_spring', 3)], [inst('s_spring', 1), DS]], [0, 0]);
+  cycle(s, [['s_yuyuko', 's_yuyuko'], [DS, DS]], [0, 0]); // 幽々子2枚目
   cycle(s, [[inst('s_spring', 3)], [DS]], [0, 0]); // p0 春3取得・ラウンド終了
-  // 2人配点: p0 春3（1位4点）→ 幽々子4 + 春4 = 8点。p1: 春2位ボーナスなし・ダミー紫3点
-  assert.strictEqual(s.players[0].roundScores[0], 8);
-  assert.strictEqual(s.players[1].roundScores[0], 3); // 幽々子なしは春最多でも0点（紫の即時3点のみ）
+  // p0: 幽々子2枚 × 4 = 8 + 春1位4 = 12点
+  assert.strictEqual(s.players[0].roundScores[0], 12);
 });
 
 test('春雪: 妖夢=他プレイヤー全員の春を1個ずつ引き自分に足す', () => {
