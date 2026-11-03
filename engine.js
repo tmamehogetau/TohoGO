@@ -761,17 +761,18 @@
         const cnt = p.desserts.filter((i) => i.key === def.key).length;
         pts += Math.floor(cnt / def.per) * def.points;
       }
-      // ゲーム末判定（霊夢・魔理沙）: ゲーム通算の取得枚数で判定する
-      // （taken はラウンド末に山札へ戻るため、手元を見ても最終ラウンド分しか残らない）
+      // ゲーム末判定（霊夢・魔理沙）: ゲーム通算の取得枚数で決まる追加点。
+      // ラウンド点はラウンド内の枚数で別途計算される（霊夢=3枚ごと・魔理沙=2枚ごと）
       for (const def of Object.values(state.cardMap)) {
         if (!def.gameEnd) continue;
         const cnt = p.gameEndCounts[def.key] || 0;
-        if (cnt === 0) continue;
-        if (def.kind === 'collectByTwo') {
-          pts += Math.floor(cnt / 2) * def.per2 + (cnt >= 4 ? def.bonusAt4 : 0);
+        if (def.gameEndTotalAtLeast && cnt >= def.gameEndTotalAtLeast.count) {
+          pts += def.gameEndTotalAtLeast.points;
         }
-        if (def.kind === 'parity') {
-          pts += Math.floor(cnt / 2) * (cnt % 2 === 0 ? def.per2Even : def.per2Odd);
+        if (def.gameEndMost) {
+          const counts = state.players.map((q) => q.gameEndCounts[def.key] || 0);
+          const max = Math.max(...counts);
+          if (max > 0 && cnt === max) pts += def.gameEndMost.points;
         }
       }
       return pts;

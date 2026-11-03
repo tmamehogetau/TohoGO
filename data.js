@@ -58,8 +58,8 @@
     { key: 'y_rabbit', kind: 'maki', iconCounts: { 1: 4, 2: 5, 3: 3 }, name: '玉兎', icon: '兎', color: '#e8e6e3', count: 12 },
   ];
   const ETERNAL_INTRUDERS = [
-    { key: 'y_reimu', kind: 'collectByTwo', per2: 4, bonusAt4: 2, gameEnd: true, name: '博麗霊夢', icon: '夢', color: '#c22a4e', count: 8 },
-    { key: 'y_marisa', kind: 'parity', per2Even: 6, per2Odd: 3, gameEnd: true, name: '霧雨魔理沙', icon: '星', color: '#4a4a52', count: 8 },
+    { key: 'y_reimu', kind: 'set3', points: 9, gameEnd: true, gameEndTotalAtLeast: { count: 9, points: 6 }, name: '博麗霊夢', icon: '夢', color: '#c22a4e', count: 8 },
+    { key: 'y_marisa', kind: 'pair', points: 4, gameEnd: true, gameEndMost: { points: 9 }, name: '霧雨魔理沙', icon: '星', color: '#4a4a52', count: 8 },
   ];
   const ETERNAL_DESSERT = { key: 'y_moko', kind: 'dessertRound', roundMost: 3, finalLeast: -6, name: '藤原妹紅', icon: '火', color: '#d15a32', pool: 15 };
 

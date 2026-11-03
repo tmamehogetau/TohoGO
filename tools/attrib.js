@@ -89,8 +89,8 @@ const TARGETS = {
     ['y_tewi', 'てゐ 2枚6点', (d) => { d.table = [0, 0, 0]; }],
     ['y_moko', '妹紅 ラウンド+3/最終-6', (d) => { d.roundMost = 0; d.finalLeast = 0; }],
     ['y_riggle', 'リグル 同時取得', (d) => { d.points = 0; }],
-    ['y_reimu', '霊夢 ゲーム末2枚ごと', (d) => { d.per2 = 0; d.bonusAt4 = 0; }],
-    ['y_marisa', '魔理沙 ゲーム末偶奇', (d) => { d.per2Even = 0; d.per2Odd = 0; }],
+    ['y_reimu', '霊夢 3枚ごと9点+通算9枚', (d) => { d.points = 0; d.gameEndTotalAtLeast = null; }],
+    ['y_marisa', '魔理沙 2枚ごと4点+通算最多', (d) => { d.points = 0; d.gameEndMost = null; }],
     ['__maki', '玉兎 マキ配点', null],
   ],
 };

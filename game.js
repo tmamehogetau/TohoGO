@@ -59,10 +59,21 @@
   function defOf(key) {
     return STATE.cardMap[key];
   }
-
   function nameOf(key) {
     const d = STATE.cardMap[key];
     return d ? d.name : key;
+  }
+
+  // ゲーム末ボーナス（霊夢の通算ノルマ・魔理沙の通算最多）の説明文
+  function gameEndBonusText(def) {
+    const parts = [];
+    if (def.gameEndTotalAtLeast) {
+      parts.push(`／ゲーム通算 ${def.gameEndTotalAtLeast.count} 枚以上で +${def.gameEndTotalAtLeast.points} 点`);
+    }
+    if (def.gameEndMost) {
+      parts.push(`／ゲーム通算の枚数が最多なら +${def.gameEndMost.points} 点`);
+    }
+    return parts.join('');
   }
 
   // kind から説明テキストを生成（実パラメータを数字で見せる・全文はツールチップと一覧で使う）
@@ -81,8 +92,8 @@
       case 'temaki': return `この枚数を競う・最多 +${def.most}／最少 ${def.least} 点`;
       case 'springMost': return `ラウンド末・春の獲得数が全員最多なら +${def.most} 点（このカードの所持が条件）`;
       case 'springSteal': return `取った瞬間・全員の春を ${def.steal} 個ずつ奪って自分の春にする`;
-      case 'pair': return `2 枚で 1 ペア = ${def.points} 点`;
-      case 'set3': return `3 枚で 1 セット = ${def.points} 点`;
+      case 'pair': return `2 枚で 1 ペア = ${def.points} 点${gameEndBonusText(def)}`;
+      case 'set3': return `3 枚で 1 セット = ${def.points} 点${gameEndBonusText(def)}`;
       case 'collect': return `1/2/3/4/5+ 枚で ${def.table.join('/')} 点`;
       case 'roundComboCount': return `このラウンドに自分がデザートを取るたび +${def.per} 点`;
       case 'tofu': return `1 枚 ${def.table[0]} 点・2 枚 ${def.table[1]} 点・3 枚以上 ${def.table[def.table.length - 1]} 点`;
