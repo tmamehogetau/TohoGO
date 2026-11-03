@@ -183,7 +183,7 @@
       const wasHidden = state.hidden; // このピックの前に幻覚がかかっていたか
       state.lastPicks = [];
       let hiddenActivated = null; // このピックでうどんげを出したプレイヤー
-      const coopThisTurn = []; // この手番で同時に取得されたリグル
+      const coopThisTurn = []; // この手番で同時に取得されたリグル（{ pi, inst }）
       for (let i = 0; i < state.playerCount; i++) {
         const idxs = [...state.picks[i]].sort((a, b) => b - a);
         const insts = idxs.map((idx) => state.players[i].hand.splice(idx, 1)[0]);
@@ -191,18 +191,17 @@
         for (const inst of insts) {
           applyTake(state, i, inst);
           const def = state.cardMap[inst.key];
-          if (def && def.kind === 'coop') coopThisTurn.push(inst);
+          if (def && def.kind === 'coop') coopThisTurn.push({ pi: i, inst });
         }
         state.lastPicks.push({ pi: i, keys: insts.map(instKey) });
         // うどんげは「出した番」に発動する（小悪魔の山札確認で獲得した場合は発動しない）
         if (insts.some((inst) => inst.key === 'y_reisen')) hiddenActivated = i;
       }
-      // リグル: 同じ手番に取得されたリグル 1 枚につき points 点。
-      // 1 人で取れば 1 点、2 人同時なら各 2 点という「同時取得の賭け」になる
-      const coopN = coopThisTurn.length;
-      for (const inst of coopThisTurn) {
-        const def = state.cardMap[inst.key];
-        inst.coopPoints = coopN * coopPointValue(def);
+      // リグル: 同じ手番に「自分以外」が取得したリグル 1 枚につき points 点。
+      // 1 人だけでは 0 点、2 人同時なら互いに 1 点ずつという譲り合いの賭けになる
+      for (const { pi, inst } of coopThisTurn) {
+        const others = coopThisTurn.filter((x) => x.pi !== pi).length;
+        inst.coopPoints = others * coopPointValue(state.cardMap[inst.key]);
       }
       state.picks = new Array(state.playerCount).fill(null);
 
@@ -478,9 +477,9 @@
           const chosen = Number.isInteger(c.pick) ? candidates[c.pick] : null;
           if (chosen) {
             applyTake(state, i, chosen);
-            // リグルを山札確認で得た場合は手番ではないので、単独取得（1 枚ぶん）として扱う
+            // リグルを山札確認で得た場合は手番ではないので、同時取得はいない = 0 点
             const cdef = map[chosen.key];
-            if (cdef && cdef.kind === 'coop') chosen.coopPoints = coopPointValue(cdef);
+            if (cdef && cdef.kind === 'coop') chosen.coopPoints = 0;
           }
           // 選ばなかったカード（スキップ時は全部）は失われないよう山札の下へ戻す
           for (const inst of candidates) {

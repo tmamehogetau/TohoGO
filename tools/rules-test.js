@@ -619,46 +619,48 @@ test('永夜: てゐ=3枚以上0点（ジレンマ）', () => {
   assert.strictEqual(s.players[0].roundScores[0], 0);
 });
 
-test('永夜: リグル=1人だけなら1点', () => {
+test('永夜: リグル=1人だけなら0点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
   cycle(s, [['y_riggle', DY], [DY, DY]], [0, 0]); // p0 だけリグル
   cycle(s, [['y_mystia'], [DY]], [0, 0]); // ラウンド終了（ミスティアは 0 点）
-  assert.strictEqual(s.players[0].roundScores[0], 1);
+  assert.strictEqual(s.players[0].roundScores[0], 0);
 });
 
-test('永夜: リグル=同時取得2人なら各2点', () => {
+test('永夜: リグル=同時取得2人なら互いに1点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
   cycle(s, [['y_riggle', DY], ['y_riggle', DY]], [0, 0]); // 2人同時
   cycle(s, [['y_mystia'], ['y_mystia']], [0, 0]); // ラウンド終了（どちらも 0 点）
-  assert.strictEqual(s.players[0].roundScores[0], 2);
-  assert.strictEqual(s.players[1].roundScores[0], 2);
+  assert.strictEqual(s.players[0].roundScores[0], 1);
+  assert.strictEqual(s.players[1].roundScores[0], 1);
 });
 
-test('永夜: リグル=3人同時なら各3点（早飲みで2枚なら2枚ぶん）', () => {
+test('永夜: リグル=3人同時なら互いに2点（自分の枚数は勘定に入れない）', () => {
   const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
   s.players[0].chopsticks = 1;
   setHands(s, [['y_riggle', 'y_riggle', DY], ['y_riggle', DY], [DY, DY]]);
-  pickAll(s, [[0, 1], 0, 0]); // p0 は早飲みで 2 枚、p1 は 1 枚 → 同時取得 3 枚
+  pickAll(s, [[0, 1], 0, 0]); // p0 は早飲みで 2 枚、p1 は 1 枚
   settleSelection(s);
   cycle(s, [['y_mystia'], ['y_mystia'], ['y_mystia']], [0, 0, 0]); // ラウンド終了
-  assert.strictEqual(s.players[0].roundScores[0], 6, '2 枚 × 3 点');
-  assert.strictEqual(s.players[1].roundScores[0], 3, '1 枚 × 3 点');
+  // p0 から見た他人のリグル = p1 の 1 枚 → 自分の 2 枚は各 1 点で合計 2 点
+  assert.strictEqual(s.players[0].roundScores[0], 2, '自分の 2 枚 × 他人 1 枚');
+  // p1 から見た他人のリグル = p0 の 2 枚 → 2 点
+  assert.strictEqual(s.players[1].roundScores[0], 2, '他人の 2 枚');
 });
 
 test('永夜: リグル=裏返すと取得点が消えて2点になる', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
-  cycle(s, [['y_riggle', DY], [DY, DY]], [0, 0]); // リグル1枚（1点）
+  cycle(s, [['y_riggle', DY], [DY, DY]], [0, 0]); // リグル1枚（1人なので0点）
   setHands(s, [['y_mystia'], [DY]]);
   pickAll(s, [0, 0]);
   const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [0] } }); // 自分のリグルを裏返す
   assert.ok(r.ok, r.error);
   settleSelection(s);
   cycle(s, [[DY], [DY]], [0, 0]); // ラウンド終了
-  assert.strictEqual(s.players[0].roundScores[0], 2, '裏返した 1 枚は 2 点・取得点 1 点は消える');
+  assert.strictEqual(s.players[0].roundScores[0], 2, '裏返した 1 枚は 2 点');
 });
 
 test('永夜: 玉兎=兎アイコンマキ準拠多数決（2人配点 1位4点）', () => {

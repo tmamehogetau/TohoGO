@@ -88,7 +88,7 @@
       case 'tofu': return `1 枚 ${def.table[0]} 点・2 枚 ${def.table[1]} 点・3 枚以上 ${def.table[def.table.length - 1]} 点`;
       case 'kindCount': return `ラウンド末・「取ったカードの種類数 ${def.offset >= 0 ? '+' : ''}${def.offset}」点`;
       case 'letty': return `ラウンド末・(自分の冬の枚数 − 自分の春の個数) × ${def.mult} 点`;
-      case 'coop': return `取得した手番に、同じ手番で取得されたリグル 1 枚につき +${def.points} 点（1 人だけなら ${def.points} 点）`;
+      case 'coop': return `取得した手番に、自分以外が同じ手番で取得したリグル 1 枚につき +${def.points} 点（1 人だけなら 0 点）`;
       case 'flip': return `取得時・手元のカードを任意枚数裏返せる（判定から外れ 1 枚 ${def.flipPoints} 点・ミスティア自身は対象外）`;
       case 'copy': return `取得時・手元の他のカード 1 枚の効果をコピー`;
       case 'deckPeek': return `取得時・山札の上 ${def.peek} 枚を見て 1 枚獲得（残りは山札の下へ・使わなくてもよい）`;

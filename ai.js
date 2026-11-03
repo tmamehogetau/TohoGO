@@ -115,11 +115,11 @@
         return own > stats.springIcons ? def.mult : 0.4;
       }
       case 'coop': {
-        // 同じ手番に何人も取るほど得なので、他人が同時に取る期待値を足す。
-        // 他人の手札は見えないため、パック内のリグルの密度で近似する
+        // 自分以外が同じ手番に取った枚数ぶんの点。他人の選択は読めないので、
+        // パック内のリグルの密度から「他の人が同時に取る枚数」を期待値で近似する
         const others = state.playerCount - 1;
-        const expectedN = 1 + others * ((def.count || 1) / Math.max(1, packCardCount(state)));
-        return (typeof def.points === 'number' ? def.points : 1) * expectedN;
+        const expectedOthers = others * ((def.count || 1) / Math.max(1, packCardCount(state)));
+        return (typeof def.points === 'number' ? def.points : 1) * expectedOthers;
       }
       case 'flip':
         return 2.6; // 腐ったカードを 2 点に変換できる
