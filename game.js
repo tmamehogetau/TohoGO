@@ -85,7 +85,7 @@
       case 'set3': return `3 枚で 1 セット = ${def.points} 点`;
       case 'collect': return `1/2/3/4/5+ 枚で ${def.table.join('/')} 点`;
       case 'roundComboCount': return `このラウンドに自分がデザートを取るたび +${def.per} 点`;
-      case 'tofu': return `1 枚 ${def.table[0]} 点・2 枚 ${def.table[1]} 点・3 枚以上 0 点`;
+      case 'tofu': return `1 枚 ${def.table[0]} 点・2 枚 ${def.table[1]} 点・3 枚以上 ${def.table[def.table.length - 1]} 点`;
       case 'kindCount': return `ラウンド末・「取ったカードの種類数 ${def.offset >= 0 ? '+' : ''}${def.offset}」点`;
       case 'letty': return `ラウンド末・(自分の冬の枚数 − 自分の春の個数) × ${def.mult} 点`;
       case 'coop': return `ラウンド末・自分以外が出したリグル 1 枚につき +1 点`;

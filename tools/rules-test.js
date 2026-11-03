@@ -569,6 +569,39 @@ test('永夜: 輝夜=即時4点・乱入者を取得したラウンドは−2', 
   assert.strictEqual(Engine.scorePlayer(s, 0), 12); // 霊夢1枚は0点
 });
 
+test('永夜: てゐ=1枚2点', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  cycle(s, [['y_tewi', 'y_tewi'], [DY, DY]], [0, 0]); // てゐ1枚
+  cycle(s, [['y_mystia'], [DY]], [0, 0]); // ラウンド終了（ミスティアは0点）
+  assert.strictEqual(s.players[0].roundScores[0], 2);
+});
+
+test('永夜: てゐ=4枚でも0点（2枚の6点には戻らない）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  for (let i = 0; i < 4; i++) cycle(s, [['y_tewi', 'y_tewi'], [DY, DY]], [0, 0]); // てゐ4枚
+  cycle(s, [['y_mystia'], [DY]], [0, 0]); // ラウンド終了
+  assert.strictEqual(s.players[0].roundScores[0], 0, '4枚は0点（3枚以上はすべて0）');
+});
+
+test('永夜: てゐ=2枚を裏返すと1枚扱いの2点＋裏返し2点', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  cycle(s, [['y_tewi', 'y_tewi'], [DY, DY]], [0, 0]); // てゐ1枚
+  setHands(s, [['y_tewi', 'y_tewi'], [DY, DY]]);
+  pickAll(s, [0, 0]); // てゐ2枚目（この時点なら 6 点）
+  setHands(s, [['y_mystia', 'y_reimu'], [DY, DY]]);
+  pickAll(s, [0, 0]); // ミスティア取得 → 選択フェーズ
+  assert.strictEqual(s.phase, 'select');
+  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [0] } }); // てゐ1枚を裏返す
+  assert.ok(r.ok, r.error);
+  settleSelection(s);
+  cycle(s, [['y_reimu'], [DY]], [0, 0]); // ラウンド終了
+  // 裏返したてゐは収集判定から外れる → 残り1枚 = 2点。裏返したカードは 2 点
+  assert.strictEqual(s.players[0].roundScores[0], 4);
+});
+
 test('永夜: てゐ=2枚6点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
