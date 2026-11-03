@@ -183,14 +183,15 @@ main {
 }
 .dessert-box .box-cards {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  flex-wrap: nowrap;
   justify-content: center;
-  align-content: flex-start;
+  align-items: flex-start;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
+/* デザートは重ねて表示（同種カードなので 12px 幅だけ露出）・ボックスが拡大しない */
+.dessert-box .box-cards .card.mini:not(:first-child) { margin-left: -44px; }
 
 /* ミニカード（取得行・デザート用） */
 .card.mini {
