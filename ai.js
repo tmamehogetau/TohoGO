@@ -171,27 +171,40 @@
     }
   }
 
-  // ラウンド点の見積もりにゲーム末ボーナスを足した総合評価
-  function cardValue(state, pi, card) {
+  // 好みプロファイル（style）。標準は重みなし。
+  // 「春プラン」= 春・幽々子・妖夢を優先し、春と逆向きのレティは避ける
+  const STYLES = {
+    standard: {},
+    spring: { maki: 3, springMost: 3, springSteal: 3, letty: 0.2 },
+    set: { pair: 2.5, set3: 2.5 },
+    instant: { instant: 1.6 },
+  };
+
+  // ラウンド点の見積もりにゲーム末ボーナスを足した総合評価（style で重み付け）
+  function cardValue(state, pi, card, style) {
     const key = typeof card === 'string' ? card : card.key;
-    return baseCardValue(state, pi, card) + gameEndBonusValue(state, pi, state.cardMap[key]);
+    const def = state.cardMap[key];
+    const base = baseCardValue(state, pi, card) + gameEndBonusValue(state, pi, def);
+    const weights = STYLES[style] || STYLES.standard;
+    const mult = def ? weights[def.kind] : undefined;
+    return mult === undefined ? base : base * mult;
   }
 
-  function rankedHand(state, pi) {
+  function rankedHand(state, pi, style) {
     const hand = state.players[pi].hand;
     return hand
-      .map((card, idx) => ({ idx, value: cardValue(state, pi, card) + Math.random() * 0.5 }))
+      .map((card, idx) => ({ idx, value: cardValue(state, pi, card, style) + Math.random() * 0.5 }))
       .sort((a, b) => b.value - a.value);
   }
 
-  function pick(state, pi) {
-    const ranked = rankedHand(state, pi);
+  function pick(state, pi, style) {
+    const ranked = rankedHand(state, pi, style);
     if (ranked.length === 0) return []; // 手札なし → engine の skip アクションで待機
     return [ranked[0].idx];
   }
 
-  function pick2(state, pi) {
-    const ranked = rankedHand(state, pi);
+  function pick2(state, pi, style) {
+    const ranked = rankedHand(state, pi, style);
     if (ranked.length < 2) return ranked.map((r) => r.idx); // 手札不足なら通常ピックにフォールバック
     return [ranked[0].idx, ranked[1].idx].sort((a, b) => a - b);
   }
@@ -221,7 +234,7 @@
 
   // 取得時選択の AI 解答。山札確認（小悪魔）・コピー（慧音）・裏返し（ミスティア）・破棄（フラン）
   // はいずれも「使わない」が既定なので、使ったほうが得なときだけ選ぶ
-  function selectChoice(state, pi) {
+  function selectChoice(state, pi, style) {
     const need = engineOf().selectionNeeded(state, pi);
     const p = state.players[pi];
     const choice = {};
@@ -230,7 +243,7 @@
       let best = -1;
       let bestValue = -Infinity;
       state.peekCards[pi].forEach((inst, idx) => {
-        const value = cardValue(state, pi, inst);
+        const value = cardValue(state, pi, inst, style);
         if (value > bestValue) { bestValue = value; best = idx; }
       });
       if (best >= 0) choice.pick = best;
@@ -277,7 +290,7 @@
     return choice;
   }
 
-  return { pick, pick2, cardValue, selectChoice };
+  return { pick, pick2, cardValue, selectChoice, STYLES };
   })();
 
   if (typeof module !== 'undefined' && module.exports) module.exports = AI;
