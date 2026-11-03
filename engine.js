@@ -328,14 +328,12 @@
       const p = state.players[pi];
       const need = selectionNeeded(state, pi);
       const map = state.cardMap;
-      // デザートは判定対象が固有のため取得時選択（破棄/裏返し/コピー）の対象外
-      const isDessert = (idx) => p.taken[idx] && p.taken[idx].key === state.dessert.key;
+      // デザートも破棄/裏返し/コピーの対象に含める（デザートリスクの回避手段になる）
 
       if (need.discard && c.discard !== null && c.discard !== undefined) {
         const idx = c.discard;
         if (!Number.isInteger(idx) || idx < 0 || idx >= p.taken.length) return err('無効な破棄対象');
         if (p.taken[idx].discarded) return err('すでに破棄されたカードは選べない');
-        if (isDessert(idx)) return err('デザートは破棄できない');
         // 効果カード自身は対象外（フラン自身を破棄して自己完結することを防ぐ）
         if (map[p.taken[idx].key] && map[p.taken[idx].key].discardBonus) return err('フラン自身は破棄できない');
       }
@@ -345,7 +343,6 @@
         for (const idx of c.flip) {
           if (!Number.isInteger(idx) || idx < 0 || idx >= p.taken.length) return err('無効な裏返し対象');
           if (p.taken[idx].discarded) return err('破棄されたカードは裏返せない');
-          if (isDessert(idx)) return err('デザートは裏返せない');
           // 効果カード自身は対象外（ミスティアを歌で裏返すのは変なので）
           if (map[p.taken[idx].key] && map[p.taken[idx].key].kind === 'flip') return err('ミスティア自身は裏返せない');
         }
@@ -354,7 +351,6 @@
         const idx = c.copy;
         if (!Number.isInteger(idx) || idx < 0 || idx >= p.taken.length) return err('無効なコピー対象');
         if (p.taken[idx].discarded) return err('破棄されたカードはコピーできない');
-        if (isDessert(idx)) return err('デザートはコピーできない');
         // 効果カード自身は対象外（慧音が慧音をコピーする循環を防ぐ）
         if (map[p.taken[idx].key] && map[p.taken[idx].key].kind === 'copy') return err('慧音自身はコピーできない');
       }
@@ -487,13 +483,13 @@
       applyDessertRound(state, results);
 
       // デザート置き場への移動と山札リサイクル:
-      // 手元に置かれたデザートはデザート置き場へ、それ以外は山札に戻してシャッフル
-      // 戻す際に取得時フラグをクリアする（次ラウンドで誤動作しないように）
+      // 手元のデザートはデザート置き場へ、それ以外は山札に戻してシャッフル
+      // 破棄/裏返し/コピーされたデザートは判定から外れているため山札へ戻る（置き場には行かない）
       for (let i = 0; i < n; i++) {
         const p = state.players[i];
-        const kept = p.taken.filter((inst) => inst.key === state.dessert.key);
+        const kept = p.taken.filter((inst) => inst.key === state.dessert.key && !inst.discarded && !inst.flipped && !inst.copied);
         if (kept.length) p.desserts.push(...kept);
-        const recycled = p.taken.filter((inst) => inst.key !== state.dessert.key);
+        const recycled = p.taken.filter((inst) => inst.key !== state.dessert.key || inst.discarded || inst.flipped || inst.copied);
         for (const inst of recycled) {
           delete inst.flipped;
           delete inst.discarded;
@@ -647,12 +643,14 @@
 
     // 妹紅（dessertRound）: 各ラウンド終了時に手元の枚数最多なら加点/減点
     // 手元 = 取得行（ラウンド中に取ったデザート）+ デザート置き場（前ラウンドまでの蓄積）
+    // 破棄/裏返し/コピーされたデザートは判定から外れる
     function applyDessertRound(state, results) {
       const def = state.dessert;
       if (def.kind !== 'dessertRound') return;
-      const counts = state.players.map((p) =>
-        p.taken.filter((i) => i.key === def.key).length + p.desserts.filter((i) => i.key === def.key).length
-      );
+      const count = (p) =>
+        p.taken.filter((i) => i.key === def.key && !i.discarded && !i.flipped && !i.copied).length +
+        p.desserts.filter((i) => i.key === def.key).length;
+      const counts = state.players.map(count);
       const max = Math.max(...counts);
       if (max === 0) return;
       const topIdx = counts.map((c, i) => (c === max ? i : -1)).filter((i) => i >= 0);
