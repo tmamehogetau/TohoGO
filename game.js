@@ -74,7 +74,7 @@
         if (def.absentKeys) parts.push(`誰かが同時に${def.absentKeys.map(nameOf).join('か')}を取ると 0 点`);
         if (def.comboKeys) parts.push(`取った瞬間に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`);
         if (def.discardBonus) parts.push(`取得時・手元 1 枚を山札へ戻し +${def.discardBonus} 点`);
-        if (def.intruderPenalty) parts.push(`乱入者が誰かに取られると -${def.intruderPenalty} 点`);
+        if (def.intruderPenalty) parts.push(`自分が乱入者を取ったラウンドは所持 1 枚ごとに -${def.intruderPenalty} 点`);
         return parts.join('／');
       }
       case 'maki': return `このアイコンの合計を競う・最多 ${MAKI.first} 点／2 位 ${MAKI.second} 点`;
@@ -91,7 +91,7 @@
       case 'coop': return `ラウンド末・自分以外が出したリグル 1 枚につき +1 点`;
       case 'flip': return `取得時・手元のカードを任意枚数裏返せる（判定から外れ 1 枚 ${def.flipPoints} 点・ミスティア自身は対象外）`;
       case 'copy': return `取得時・手元の他のカード 1 枚の効果をコピー`;
-      case 'deckPeek': return `ラウンド末・山札の上 ${def.peek} 枚から 1 枚獲得`;
+      case 'deckPeek': return `取得時・山札の上 ${def.peek} 枚を見て 1 枚獲得（残りは山札の下へ・使わなくてもよい）`;
       case 'collectByTwo': return `ゲーム末・2 枚ごとに ${def.per2} 点・4 枚以上で +${def.bonusAt4}`;
       case 'parity': return `ゲーム末・偶数枚なら 2 枚ごとに ${def.per2Even} 点／奇数なら ${def.per2Odd} 点`;
       case 'dessertLeast': return `ゲーム末・このデザートの枚数が最少なら ${def.least} 点`;
