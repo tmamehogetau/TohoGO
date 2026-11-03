@@ -906,6 +906,7 @@
     renderSelectArea(); // table-rows 再構築の後に呼び、あなたの行にオーバーレイを重ねる
     renderBanner();
     renderLog();
+    updateTimerIndicator();
   }
 
   // ---- 対戦（サーバー権威） ----
@@ -934,15 +935,63 @@
     $('online-lobby').classList.remove('hidden');
     $('mp-entry').classList.add('hidden');
     $('btn-start').classList.add('hidden'); // 対戦中はホットシート開始ボタンを隠す
+    $('incident-picker').classList.add('hidden'); // ホットシート用の異変選択は隠す（設定は下のルーム設定）
+    $('hotseat-note').classList.add('hidden');
     $('online-code').textContent = lobby.roomCode;
     $('online-players').innerHTML = lobby.players
       .map((p) => `<div class="online-player${p.seat === MY_SEAT ? ' me' : ''}">${p.isHost ? '★' : ''}${p.name}${p.connected ? '' : ' <span class="off">（切断）</span>'}</div>`)
       .join('');
     const me = lobby.players.find((p) => p.seat === MY_SEAT);
-    $('btn-online-start').classList.toggle('hidden', !(me && me.isHost));
+    const isHostMe = !!(me && me.isHost);
+    $('btn-online-start').classList.toggle('hidden', !isHostMe);
+    // ルーム設定（ホストのみ変更可）
+    const settings = lobby.settings || {};
+    $('setting-incident').value = settings.incident || '';
+    $('setting-timer').value = String(settings.timerSeconds !== undefined ? settings.timerSeconds : 60);
+    $('setting-incident').disabled = !isHostMe || lobby.started;
+    $('setting-timer').disabled = !isHostMe || lobby.started;
+    $('setting-hint').textContent = isHostMe
+      ? 'ルームマスターとして変更できます'
+      : 'ルームマスターのみ変更できます';
     $('online-hint').textContent = lobby.started
       ? 'ゲーム開始…'
       : `${lobby.players.length}/${lobby.maxPlayers}人（${lobby.minPlayers}人以上で開始）`;
+  }
+
+  function buildSettingOptions() {
+    const sel = $('setting-incident');
+    sel.innerHTML = '';
+    const auto = document.createElement('option');
+    auto.value = '';
+    auto.textContent = 'おまかせ';
+    sel.appendChild(auto);
+    for (const id of Data.INCIDENT_IDS) {
+      const inc = Data.incidentById(id);
+      const o = document.createElement('option');
+      o.value = id;
+      o.textContent = inc.name;
+      sel.appendChild(o);
+    }
+  }
+
+  function sendSettings() {
+    Net.setSettings({
+      timerSeconds: Number($('setting-timer').value),
+      incident: $('setting-incident').value,
+    });
+  }
+
+  function updateTimerIndicator() {
+    const el = $('timer-indicator');
+    if (!el) return;
+    if (!ONLINE || !STATE || !STATE.deadline) {
+      el.classList.add('hidden');
+      el.textContent = '';
+      return;
+    }
+    const left = Math.max(0, Math.ceil((STATE.deadline - Date.now()) / 1000));
+    el.classList.remove('hidden');
+    el.textContent = `残り ${left}秒`;
   }
 
   function init() {
@@ -954,8 +1003,12 @@
     $('btn-create').addEventListener('click', createRoom);
     $('btn-join').addEventListener('click', joinRoom);
     $('input-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinRoom(); });
-    $('btn-online-start').addEventListener('click', () => Net.start(SEL_INCIDENT || undefined));
+    $('btn-online-start').addEventListener('click', () => Net.start());
+    $('setting-incident').addEventListener('change', sendSettings);
+    $('setting-timer').addEventListener('change', sendSettings);
     buildIncidentPicker();
+    buildSettingOptions();
+    setInterval(updateTimerIndicator, 500);
   }
 
   // サーバーからの通知（net.js 経由）

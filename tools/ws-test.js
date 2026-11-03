@@ -6,7 +6,7 @@
 
 process.env.PORT = process.env.PORT || '3115';
 const { WebSocket } = require('ws');
-require('../server.js');
+const srv = require('../server.js');
 
 const PORT = Number(process.env.PORT);
 
@@ -108,7 +108,41 @@ const isState = (m) => m.type === 'state';
   const sb2 = (await b2.next(isState)).view;
   assert(sb2.players[1].handCount === 9, 'reconnected client gets current state');
 
-  // ロビーで切断した席があっても開始でき、その席は AI が代行する
+  // ルーム設定（異変・取得時間）と手番タイマー
+  const s1 = connect();
+  await s1.open();
+  s1.send({ type: 'join', code: 'SET1', name: 'H' });
+  await s1.next((m) => m.type === 'joined');
+  const s2 = connect();
+  await s2.open();
+  s2.send({ type: 'join', code: 'SET1', name: 'G' });
+  await s2.next((m) => m.type === 'joined');
+
+  s1.send({ type: 'setSettings', settings: { timerSeconds: 30, incident: 'scarlet' } });
+  const lb = await s1.next((m) => m.type === 'lobby' && m.settings && m.settings.timerSeconds === 30);
+  assert(lb && lb.settings.incident === 'scarlet', 'host can set timer + incident');
+
+  s1.send({ type: 'setSettings', settings: { timerSeconds: 45 } });
+  const eTimer = await s1.next((m) => m.type === 'error');
+  assert(/30秒/.test(eTimer.message), 'invalid timer rejected: ' + eTimer.message);
+
+  s2.send({ type: 'setSettings', settings: { timerSeconds: 0 } });
+  const eGuest = await s2.next((m) => m.type === 'error');
+  assert(/マスター/.test(eGuest.message), 'guest cannot change settings');
+
+  s1.drain(); s2.drain();
+  s1.send({ type: 'start' });
+  const st = (await s1.next(isState)).view;
+  assert(st.incidentId === 'scarlet', 'start uses room incident setting');
+
+  const room = srv.rooms.get('SET1');
+  room.clearTimer();
+  room.settings.timerSeconds = 1;
+  room.armTimer();
+  const auto = await s1.next((m) => isState(m) && m.view.pickSeq >= 1);
+  assert(!!auto, 'pick timer auto-plays when expired');
+
+
   const delay = (ms) => new Promise((r) => setTimeout(r, ms));
   const h = connect();
   await h.open();

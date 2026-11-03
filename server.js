@@ -58,6 +58,7 @@ wss.on('connection', (ws) => {
     switch (msg.type) {
       case 'join': return onJoin(ws, msg);
       case 'start': return onStart(ws, msg);
+      case 'setSettings': return onSetSettings(ws, msg);
       case 'action': return onAction(ws, msg);
       case 'continue': return onContinue(ws);
       case 'leave': return onLeave(ws);
@@ -75,6 +76,7 @@ function onJoin(ws, msg) {
   let room = rooms.get(code);
   if (!room) {
     room = new Room(code);
+    room.onTimeout = () => onRoomTimeout(room);
     rooms.set(room.code, room);
   }
   const result = room.join(msg.name, msg.playerId);
@@ -105,11 +107,32 @@ function onJoin(ws, msg) {
 function onStart(ws, msg) {
   const { room, seat } = ctx(ws);
   if (!room) return send(ws, { type: 'error', message: '先に join してください' });
-  const res = room.start(seat, msg.incident);
+  const res = room.start(seat);
   if (!res.ok) return send(ws, { type: 'error', message: res.error });
+  room.armTimer(); // 配信前にデッドラインを確定させる
   broadcastLobby(room);
   broadcastState(room);
   scheduleAutoPlay(room); // 開始時点で切断している席は AI に任せる
+}
+
+function onSetSettings(ws, msg) {
+  const { room, seat } = ctx(ws);
+  if (!room) return send(ws, { type: 'error', message: '先に join してください' });
+  const res = room.setSettings(seat, msg.settings);
+  if (!res.ok) return send(ws, { type: 'error', message: res.error });
+  broadcastLobby(room);
+}
+
+// 手番タイマー切れ: ラウンド結果バナーなら閉じる、それ以外は全員 AI で代行
+function onRoomTimeout(room) {
+  if (!rooms.has(room.code)) return;
+  if (room.state && room.state.roundBanner) {
+    room.state.roundBanner = null;
+  } else {
+    room.autoPlayAll();
+  }
+  room.armTimer();
+  if (room.state) broadcastState(room);
 }
 
 function onAction(ws, msg) {
@@ -144,6 +167,7 @@ function onDisconnect(ws) {
     room.disconnect(s.seat);
     broadcastLobby(room);
     if (room.state) {
+      room.armTimer();
       broadcastState(room);
       scheduleAutoPlay(room);
     }
@@ -157,6 +181,7 @@ function ctx(ws) {
 }
 
 function afterChange(room) {
+  room.armTimer(); // デッドラインを配信に含める
   broadcastState(room);
   scheduleAutoPlay(room);
 }
@@ -212,3 +237,5 @@ const PORT = process.env.PORT || 3010;
 server.listen(PORT, () => {
   console.log(`幻想宴会ドラフト server: http://localhost:${PORT}`);
 });
+
+module.exports = { server, wss, rooms };

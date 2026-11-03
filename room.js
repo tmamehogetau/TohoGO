@@ -8,6 +8,7 @@
 const crypto = require('crypto');
 const Engine = require('./engine.js');
 const AI = require('./ai.js');
+const Data = require('./data.js');
 
 const MAX_PLAYERS = 5;
 const MIN_PLAYERS = 2;
@@ -100,6 +101,7 @@ function viewFor(room, seat) {
     peekCards: state.peekCards ? [state.peekCards[seat] || null] : null,
     mySeat: 0,
     roomCode: room.code,
+    deadline: room.deadline || null,
   };
   return view;
 }
@@ -112,6 +114,11 @@ class Room {
     this.state = null;
     this.started = false;
     this.continueReady = new Set();
+    this.settings = { timerSeconds: 60, incident: '' }; // 取得時間（0=無制限）/ 異変（''=おまかせ）
+    this.deadline = null; // 現在の手番の制限時刻（epoch ms）
+    this.timerHandle = null;
+    this.turnKey = null; // 手番の識別子（同じ手番ではタイマーを延長しない）
+    this.onTimeout = null; // サーバーが差し込む（時間切れ時の処理）
     this.lastActivity = Date.now();
   }
 
@@ -124,8 +131,31 @@ class Room {
       started: this.started,
       minPlayers: MIN_PLAYERS,
       maxPlayers: MAX_PLAYERS,
+      settings: { ...this.settings },
+      deadline: this.deadline,
       players: this.seats.map((s, i) => ({ seat: i, name: s.name, connected: s.connected, isHost: s.isHost })),
     };
+  }
+
+  // ルーム設定（ホストのみ・ゲーム開始前のみ）
+  setSettings(seat, settings) {
+    this.touch();
+    const s = this.seats[seat];
+    if (!s || !s.isHost) return { ok: false, error: 'ルームマスターのみ変更できます' };
+    if (this.started) return { ok: false, error: 'ゲーム開始後は変更できません' };
+    const next = { ...this.settings };
+    if (settings && settings.timerSeconds !== undefined) {
+      const t = Number(settings.timerSeconds);
+      if (![0, 30, 60].includes(t)) return { ok: false, error: '取得時間は 30秒 / 60秒 / 無制限 から選んでください' };
+      next.timerSeconds = t;
+    }
+    if (settings && settings.incident !== undefined) {
+      const inc = String(settings.incident || '');
+      if (inc !== '' && !Data.INCIDENT_IDS.includes(inc)) return { ok: false, error: '異変の指定が不正です' };
+      next.incident = inc;
+    }
+    this.settings = next;
+    return { ok: true };
   }
 
   // 戻り値: { ok:true, seat, playerId, isHost, reconnected } / { ok:false, error }
@@ -165,7 +195,7 @@ class Room {
     const connected = this.seats.filter((x) => x.connected).length;
     if (connected < MIN_PLAYERS) return { ok: false, error: `${MIN_PLAYERS}人以上で開始できます` };
     const names = this.seats.map((x) => x.name);
-    const opts = incident ? { incident } : {};
+    const opts = this.settings.incident ? { incident: this.settings.incident } : {};
     this.state = Engine.newGame(names.length, names, opts);
     if (!this.state) return { ok: false, error: 'ゲーム作成に失敗しました' };
     this.started = true;
@@ -235,13 +265,13 @@ class Room {
     return false;
   }
 
-  // 切断中の席を AI で埋める（ゲーム停止を防ぐ）
-  autoPlayDisconnected() {
+  // 指定した席のうち行動待ちの人を AI で埋める
+  autoPlaySeats(predicate) {
     if (!this.state) return false;
     let acted = false;
     for (let seat = 0; seat < this.seats.length; seat++) {
-      const s = this.seats[seat];
-      if (s.connected || !this.needsAction(seat)) continue;
+      if (predicate && !predicate(seat)) continue;
+      if (!this.needsAction(seat)) continue;
       if (this.state.phase === 'select') {
         Engine.dispatch(this.state, { kind: 'choose', pi: seat, choice: AI.selectChoice(this.state, seat) });
         acted = true;
@@ -255,6 +285,44 @@ class Room {
       }
     }
     return acted;
+  }
+
+  // 切断中の席を AI で埋める（ゲーム停止を防ぐ）
+  autoPlayDisconnected() {
+    return this.autoPlaySeats((seat) => !this.seats[seat].connected);
+  }
+
+  // 時間切れ: 接続中も含めて全員代行
+  autoPlayAll() {
+    return this.autoPlaySeats(() => true);
+  }
+
+  // 手番タイマー。roundBanner は 10 秒で自動的に閉じる。
+  // 同じ手番の途中で誰かが行動しても延長しない（ターン開始時に1回だけセット）。
+  armTimer() {
+    if (!this.started || !this.state) { this.clearTimer(); this.turnKey = null; return; }
+    if (this.state.phase === 'over') { this.clearTimer(); return; }
+    const key = `${this.state.round}:${this.state.pickSeq || 0}:${this.state.phase}:${this.state.roundBanner ? 'B' : 'P'}`;
+    if (this.turnKey === key && this.deadline) return; // 同じ手番では延長しない
+    this.turnKey = key;
+    if (this.timerHandle) { clearTimeout(this.timerHandle); this.timerHandle = null; }
+    this.deadline = null;
+    const banner = !!this.state.roundBanner;
+    const sec = banner ? 10 : this.settings.timerSeconds;
+    if (!sec) return;
+    this.deadline = Date.now() + sec * 1000;
+    this.timerHandle = setTimeout(() => {
+      this.timerHandle = null;
+      this.deadline = null;
+      if (this.onTimeout) this.onTimeout();
+    }, sec * 1000);
+    if (this.timerHandle.unref) this.timerHandle.unref();
+  }
+
+  clearTimer() {
+    if (this.timerHandle) { clearTimeout(this.timerHandle); this.timerHandle = null; }
+    this.deadline = null;
+    this.turnKey = null;
   }
 }
 

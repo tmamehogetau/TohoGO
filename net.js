@@ -115,7 +115,8 @@
 
   window.Net = {
     join,
-    start(incident) { send({ type: 'start', incident: incident || undefined }); },
+    start() { send({ type: 'start' }); },
+    setSettings(settings) { send({ type: 'setSettings', settings }); },
     action(action) { send({ type: 'action', action }); },
     continueRound() { send({ type: 'continue' }); },
     leave,

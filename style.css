@@ -459,3 +459,32 @@ main {
 .online-player.me { color: var(--accent); font-weight: bold; }
 .online-player .off { color: var(--text-dim); font-size: 0.8rem; }
 #online-hint { min-height: 1em; }
+
+/* ルーム設定 */
+#online-settings {
+  margin: 10px 0 4px;
+  text-align: left;
+}
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+.setting-row select {
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid #3a3342;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+.setting-row select:disabled { opacity: 0.55; }
+#setting-hint { font-size: 0.75rem; text-align: right; }
+#timer-indicator {
+  color: var(--gold);
+  font-weight: bold;
+  font-size: 0.9rem;
+}
