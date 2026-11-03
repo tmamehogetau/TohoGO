@@ -550,10 +550,12 @@
         empty.textContent = '—';
         cards.appendChild(empty);
       } else {
+        // 慧音のコピー（copied インスタンス）は慧音カードに重ねて表示するため独立カードとしては描かない
+        const shown = p.taken.filter((inst) => !inst.copied);
         // 今ピック分だけ .new を付ける: taken 末尾から lastPicks の keys と照合
         const lp = STATE.lastPicks && STATE.lastPicks.find((x) => x.pi === pi);
         const keys = lp ? [...lp.keys] : [];
-        const els = p.taken.map((inst) => {
+        const els = shown.map((inst) => {
           // うどんげの幻覚: 幻覚中の他プレイヤーのピックは「うどんげ」として表示される。
           // ツールチップも本物と完全に同一にする（ホバーで幻覚と判明すると出した人が特定できてしまう）
           if (inst.hiddenTaken && STATE.hiddenOwner !== pi) {
@@ -562,15 +564,15 @@
           return cardEl(inst.key, inst.icons, 'mini', inst);
         });
         for (let i = els.length - 1; i >= 0 && keys.length; i--) {
-          const k = keys.indexOf(p.taken[i].key);
+          const k = keys.indexOf(shown[i].key);
           if (k >= 0) { els[i].classList.add('new'); keys.splice(k, 1); }
         }
-        // 慧音のコピー: copied インスタンスは独立カードにせず慧音カードに重ねる
+        // 慧音カードにコピー元カードを重ねる
         const copiedInst = p.taken.find((inst) => inst.copied);
         if (copiedInst) {
           for (let i = 0; i < els.length; i++) {
-            const def = defOf(p.taken[i].key);
-            if (def && def.kind === 'copy' && !p.taken[i].discarded) {
+            const def = defOf(shown[i].key);
+            if (def && def.kind === 'copy' && !shown[i].discarded) {
               const overlay = cardEl(copiedInst.key, copiedInst.icons, 'mini copy-overlay', null);
               els[i].appendChild(overlay);
               break;
