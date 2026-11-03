@@ -701,13 +701,13 @@ test('永夜: 霊夢=ラウンド内2枚ごとに4点（1枚では0点）', () =
   assert.strictEqual(s.players[0].roundScores[1], 0);
 });
 
-test('永夜: 魔理沙=ラウンド内3枚ごとに9点', () => {
+test('永夜: 魔理沙=ラウンド内3枚ごとに6点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_marisa' });
   fixPeek(s);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
-  cycle(s, [['y_marisa'], [DY]], [0, 0]); // 3枚 → 9点
-  assert.strictEqual(s.players[0].roundScores[0], 9);
+  cycle(s, [['y_marisa'], [DY]], [0, 0]); // 3枚 → 6点
+  assert.strictEqual(s.players[0].roundScores[0], 6);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
   cycle(s, [['y_mystia'], [DY]], [0, 0]); // 2枚 → 0点
