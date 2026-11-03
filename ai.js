@@ -163,11 +163,15 @@
       case 'dessertIce':
         return def.points / def.per;
       case 'dessertRound': {
-        // ラウンド内は 1 枚ごとに -1。ゲーム末は最多なら「枚数 × endMostPer」点
+        // ラウンド内は 1 枚ごとに -1。ゲーム末は最多に「固定 endMost」または「枚数 × endMostPer」
+        const mine = dessertCount(state, pi, key);
+        const others = Math.max(...state.players.map((q, i) => (i === pi ? -1 : dessertCount(state, i, key))));
+        if (def.endMost !== undefined) {
+          // 固定加点: 最多を取る価値が一跳びで大きいので、届く位置なら強く狙う
+          return mine + 1 >= others ? 2.2 : 0.4;
+        }
         if (def.endMostPer) {
-          const mine = dessertCount(state, pi, key);
-          const others = Math.max(...state.players.map((q, i) => (i === pi ? -1 : dessertCount(state, i, key))));
-          // 最多グループに入れば 1 枚あたり +2 - 1 = 純 +1。届かない位置なら -1 の損
+          // 枚数比例: 最多グループに入れば 1 枚あたり +2 - 1 = 純 +1。届かない位置なら -1 の損
           return mine + 1 >= others ? 1.1 : 0.3;
         }
         return 1.5;

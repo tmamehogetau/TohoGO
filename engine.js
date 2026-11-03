@@ -787,16 +787,17 @@
         const cnt = p.desserts.filter((i) => i.key === def.key).length;
         pts += Math.floor(cnt / def.per) * def.points;
       }
-      // dessertRound（妹紅）: ゲーム末に所持枚数が最多なら「枚数 × endMostPer」点（同点は全員）。
-      // 最少ペナルティはなし。枚数 0 は対象外
+      // dessertRound（妹紅）: ゲーム末に所持枚数が最多なら加点（同点は全員）。最少ペナルティはなし。
+      // 加点は固定（endMost）か枚数比例（endMostPer）を定義で選べる
       const roundDessertDefs = Object.values(state.cardMap).filter((d) => d.kind === 'dessertRound');
       for (const def of roundDessertDefs) {
-        if (def.endMostPer === undefined) continue;
+        if (def.endMost === undefined && def.endMostPer === undefined) continue;
         const counts = state.players.map((q) => q.desserts.filter((i) => i.key === def.key).length);
         const max = Math.max(...counts);
         if (max === 0) continue;
         const cnt = counts[pi];
-        if (cnt === max) pts += def.endMostPer * cnt;
+        if (cnt !== max) continue;
+        pts += def.endMost !== undefined ? def.endMost : def.endMostPer * cnt;
       }
       // ゲーム末判定（霊夢・魔理沙）: ゲーム通算の取得枚数で決まる追加点。
       // ラウンド点はラウンド内の枚数で別途計算される（霊夢=3枚ごと・魔理沙=2枚ごと）

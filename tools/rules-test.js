@@ -827,6 +827,12 @@ test('永夜: 妹紅=全員同数でも全員が最多として「枚数×2」',
   assert.deepStrictEqual([0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30), [4, 4, 4, 4]);
 });
 
+test('永夜: 妹紅=固定加点モード（endMost）でも最多に加点される', () => {
+  const s = eternalOver([3, 2, 1, 1]);
+  s.cardMap['y_moko'] = { ...s.cardMap['y_moko'], endMostPer: undefined, endMost: 10 };
+  assert.deepStrictEqual([0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30), [10, 0, 0, 0]);
+});
+
 test('永夜: ミスティア=取得時にカードを任意枚数裏返して2点化', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
