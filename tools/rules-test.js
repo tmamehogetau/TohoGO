@@ -396,20 +396,28 @@ test('春雪: 幽々子=所持1枚ごとに4点（春が最多のラウンドの
   assert.strictEqual(s.players[0].roundScores[0], 12);
 });
 
-test('春雪: 妖夢=他プレイヤー全員の春を1個ずつ引き自分に足す', () => {
+test('春雪: 妖夢=同じ手番に春を取った人数ぶんの春と点', () => {
   const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'spring' });
   fixPeek(s);
+  // 3 人全員が同じ手番で春を取る → 妖夢の持ち主は 3 個ぶん
   cycle(s, [
     [inst('s_spring', 1), DS],
     [inst('s_spring', 2), DS],
     [inst('s_spring', 3), DS],
-  ], [0, 0, 0]); // 春を全員取得（p0 1/p1 2/p2 3）
-  cycle(s, [['s_youmu'], [DS], [DS]], [0, 0, 0]); // 妖夢取得・ラウンド終了
-  // 妖夢取得時: p1 から1・p2 から1 引いて p0 に+2
-  // ※ roundStats は dealRound でリセットされるため、判定時スナップショット lastRoundStats を参照
-  assert.strictEqual(s.lastRoundStats[0].springIcons, 3);
-  assert.strictEqual(s.lastRoundStats[1].springIcons, 1);
-  assert.strictEqual(s.lastRoundStats[2].springIcons, 2);
+  ], [0, 0, 0]);
+  cycle(s, [['s_youmu'], [DS], [DS]], [0, 0, 0]); // 妖夢取得・ラウンド終了（この手番の春取得は 0 人）
+  assert.strictEqual(s.lastRoundStats[0].springIcons, 1, '春を取った手番ではないので加算なし');
+
+  const s2 = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'spring' });
+  fixPeek(s2);
+  cycle(s2, [
+    ['s_youmu', DS],
+    [inst('s_spring', 2), DS],
+    [inst('s_spring', 3), DS],
+  ], [0, 0, 0]); // 妖夢と同時に春を 2 人が取る → +2
+  cycle(s2, [[DS], [DS], [DS]], [0, 0, 0]); // ラウンド終了
+  assert.strictEqual(s2.lastRoundStats[0].springIcons, 2, '春を取った 2 人ぶんの春');
+  assert.strictEqual(s2.players[0].roundScores[0], 2 + 3, '妖夢の 2 点 ＋ 紫の即時 3 点');
 });
 
 test('春雪: レティ=(レティ枚数−春枚数)×2・最低0', () => {

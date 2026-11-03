@@ -124,11 +124,10 @@
         return stats.springIcons > othersMax ? def.most * 0.45 : def.most * 0.18;
       }
       case 'springSteal': {
-        // 誰からも春を奪えないと不発なので、そのときはほぼ価値なし
-        const available = others.reduce((acc, j) => acc + Math.max(0, state.roundStats[j].springIcons), 0);
-        if (available === 0) return 0.1;
-        const holders = others.filter((j) => state.roundStats[j].springIcons > 0).length;
-        return 0.5 + holders * 0.4;
+        // 同じ手番に春を取った人数ぶんの春＋点。他人の選択は読めないので期待値で近似する
+        // （春は 12 枚入っているので、1 人が 1 手番に春を取る確率は 2 割程度）
+        const expectedTakers = (state.playerCount - 1) * 0.2;
+        return 0.2 + expectedTakers * 0.7;
       }
       case 'roundComboCount':
         return def.per * 0.7;
