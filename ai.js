@@ -97,14 +97,14 @@
         return value;
       }
       case 'temaki': {
-        // 最多 +most / 最少 least。既に最多なら維持、そうでなければ取りに行く
+        // 最多 +most / 最少 least。ただし実測では狙うと負けるので、他の札より低く見る
         const othersMax = Math.max(0, ...others.map((j) => countKey(state.players[j], key)));
-        if (mine > othersMax) return 1.2;
-        return mine === 0 && othersMax > 0 ? 4.0 : 3.2;
+        if (mine > othersMax) return 0.4;
+        return mine === 0 && othersMax > 0 ? 1.4 : 1.1;
       }
       case 'maki': {
-        // 最多 6 点 / 2 位 3 点を 4 人で分け合う想定 → 1 アイコンあたり 1.8 点前後
-        return 1.8 * icons;
+        // 最多 6 点 / 2 位 3 点は 1 ラウンドに 1 回だけ。実測では即時 1 枚に負ける
+        return 0.6 * icons;
       }
       case 'collect': {
         const at = (k) => (k <= 0 ? 0 : def.table[Math.min(k, def.table.length) - 1]);
@@ -121,14 +121,14 @@
       }
       case 'springMost': {
         const othersMax = Math.max(0, ...others.map((j) => state.roundStats[j].springIcons));
-        return stats.springIcons > othersMax ? def.most * 0.9 : def.most * 0.35;
+        return stats.springIcons > othersMax ? def.most * 0.45 : def.most * 0.18;
       }
       case 'springSteal': {
         const stolen = others.reduce((acc, j) => (state.roundStats[j].springIcons > 0 ? acc + def.steal : acc), 0);
-        return 0.8 + stolen * 0.7;
+        return 0.5 + stolen * 0.4;
       }
       case 'roundComboCount':
-        return def.per * 1.2;
+        return def.per * 0.7;
       case 'tofu': {
         const at = (k) => (k <= 0 ? 0 : def.table[Math.min(k, def.table.length) - 1]);
         return at(mine + 1) - at(mine); // 3 枚目は負になるので取らなくなる
@@ -139,7 +139,7 @@
       }
       case 'letty': {
         const own = countKey(p, def.ownKey);
-        return own > stats.springIcons ? def.mult : 0.4;
+        return own > stats.springIcons ? def.mult * 0.5 : 0.2;
       }
       case 'coop': {
         // 自分以外が同じ手番に取った枚数ぶんの点。他人の選択は読めないので、
@@ -149,17 +149,11 @@
         return (typeof def.points === 'number' ? def.points : 1) * expectedOthers;
       }
       case 'flip':
-        return 1.2; // 腐ったカードを 2 点に変換できる（変換先より高く評価すると取りすぎる）
+        return 0.7; // 腐ったカードを 2 点に変換できるが、変換に 1 手使うので実際は軽い
       case 'copy':
-        return 2.8; // 一番強いカードの効果を複製
+        return 1.7; // 一番強いカードの効果を複製（実測では取りすぎると負ける）
       case 'deckPeek':
-        return 2.4 + (def.peek || 4) * 0.1;
-      case 'collectByTwo': {
-        const next = mine + 1;
-        return def.per2 / 2 + (next % 2 === 0 && next >= 4 ? def.bonusAt4 * 0.6 : 0);
-      }
-      case 'parity':
-        return (def.per2Even + def.per2Odd) / 4;
+        return 1.7 + (def.peek || 4) * 0.07;
       case 'dessertLeast':
         // 最少になると減点。1 枚持つだけで回避できるので初動の価値が高い
         return dessertCount(state, pi, key) === 0 ? Math.min(4.5, Math.abs(def.least) / 2) : 1.2;
