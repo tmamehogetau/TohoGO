@@ -51,12 +51,28 @@ touhou-draft/
 ├── game.js         UI 描画・入力（ホットシート）
 ├── server.js       静的配信（Node 組み込み http のみ・依存ゼロ）
 └── tools/
-    └── rules-test.js  ルールテスト（node 直実行）
+    ├── rules-test.js  ルールテスト（node 直実行）
+    └── sim.js         AI vs AI バランスシミュレーション
 ```
 
 - エンジンはヘッドレス（DOM 非依存）。ブラウザ・Node・将来の権威サーバーで同一ルール
 - `dispatch(state, action)` が全変更の単一エントリポイント（`{ok}` / `{ok:false, error}`）
 - Cascadia プロジェクト（`../New Game`）の設計方針を踏襲
+
+### バランス確認
+
+```
+npm test                        # ルールテスト
+npm run sim                     # 全異変 × 300 ゲーム（AI 4 人）
+npm run sim -- --games 1000     # 試行回数を増やす
+npm run sim -- --incident spring --top 20
+npm run sim -- --csv > sim.csv  # スプレッドシート用
+npm run sim -- --out .tmp/sim-report.txt  # UTF-8 ファイルにも書き出す（Windows の文字化け対策）
+```
+
+「卓平均差」は、そのカードを取った人が同じラウンドで他プレイヤーより何点上だったかの平均。
++ が大きいカードは条件なしで強い疑い、− が大きいカードは取る理由が薄い疑い
+（枚数の多い穴埋めカードは 0 付近に寄る）。`--seed` で乱数を固定できる。
 
 ## ロードマップ
 

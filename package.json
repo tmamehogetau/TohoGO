@@ -5,6 +5,7 @@
   "description": "東方Project二次創作・スシGO風ドラフトカードゲーム（幻想宴会ドラフト）",
   "scripts": {
     "start": "node server.js",
-    "test": "node tools/rules-test.js"
+    "test": "node tools/rules-test.js",
+    "sim": "node tools/sim.js"
   }
 }
