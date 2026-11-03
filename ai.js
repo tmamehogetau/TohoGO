@@ -108,10 +108,15 @@
         const at = (k) => (k <= 0 ? 0 : def.table[Math.min(k, def.table.length) - 1]);
         return Math.max(0.2, at(mine + 1) - at(mine));
       }
-      case 'pair':
-        return mine % 2 === 1 ? def.points : def.points / 2;
-      case 'set3':
-        return mine % 3 === 2 ? def.points : def.points / 3;
+      case 'pair': {
+        // 揃うまで得点にならない。あと 1 枚なら現実味があるが、2 枚必要なら宝くじに近い
+        const need = mine % 2 === 1 ? 1 : 2;
+        return def.points * (need === 1 ? 0.7 : 0.3);
+      }
+      case 'set3': {
+        const need = 3 - (mine % 3);
+        return def.points * (need === 1 ? 0.8 : need === 2 ? 0.4 : 0.2);
+      }
       case 'springMost': {
         const othersMax = Math.max(0, ...others.map((j) => state.roundStats[j].springIcons));
         return stats.springIcons > othersMax ? def.most * 0.9 : def.most * 0.35;
