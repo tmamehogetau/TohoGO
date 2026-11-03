@@ -64,6 +64,7 @@ function setHands(state, hands) {
 const D = 'k_kozue'; // 紅霧のダミー（効果のみ・即時点数なし・取得時選択は自動解決）
 const DS = 's_yukari'; // 春雪のダミー（即時3点）
 const DY = 'y_reisen'; // 永夜のダミー（即時1点・情報隠蔽フラグのみ）
+const DY4 = 'y_eirin'; // 永夜 4 人テスト用ダミー（即時 3 点）
 
 // ================= デッキ構成 =================
 
@@ -366,6 +367,39 @@ test('春雪: リリーホワイト=デザート蓄積・ゲーム末に4枚ご�
   assert.strictEqual(s.phase, 'over');
   assert.strictEqual(Engine.charmBonus(s, 0), 12); // 5枚 → 4枚ごとに12点
   assert.strictEqual(Engine.charmBonus(s, 1), 0);
+});
+
+test('永夜: うどんげ=幻覚中の他プレイヤーピックが非公開マーク（判定で公開）', () => {
+  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal' });
+  // p0 がうどんげ取得（幻覚開始）・他はダミー
+  cycle(s, [['y_reisen', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
+  assert.strictEqual(s.hidden, true);
+  assert.strictEqual(s.hiddenOwner, 0);
+  const r1 = s.players.map((p) => p.taken.map((i) => Boolean(i.hiddenTaken)));
+  assert.strictEqual(r1[0][0], false, '出した本人の取得は見える');
+  assert.strictEqual(r1[1][0], true, '他プレイヤーの取得は非公開マーク');
+  assert.strictEqual(r1[2][0], true, '他プレイヤーの取得は非公開マーク');
+  assert.strictEqual(r1[3][0], true, '他プレイヤーの取得は非公開マーク');
+  // 幻覚中の次のピックも非公開マークが付く
+  cycle(s, [['y_tewi', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
+  assert.strictEqual(s.players[1].taken.filter((i) => i.hiddenTaken).length, 2);
+  cycle(s, [['y_tewi'], ['y_reimu'], ['y_reimu'], ['y_reimu']], [0, 0, 0, 0]); // ラウンド終了
+  // 判定で公開される（マーク解除）・次ラウンドで幻覚はリセット
+  const allVisible = s.players.every((p) => p.taken.every((i) => !i.hiddenTaken));
+  assert.ok(allVisible, 'ラウンド末でマーク解除');
+  assert.strictEqual(s.hidden, false);
+});
+
+test('永夜: うどんげ=幻覚は出したラウンドのみ・次ラウンドは通常公開', () => {
+  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal' });
+  cycle(s, [['y_reisen', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
+  assert.strictEqual(s.hidden, true);
+  cycle(s, [['y_tewi', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
+  cycle(s, [['y_tewi'], ['y_reimu'], ['y_reimu'], ['y_reimu']], [0, 0, 0, 0]); // R1 終了
+  assert.strictEqual(s.round, 1);
+  assert.strictEqual(s.hidden, false, '次ラウンドで幻覚リセット');
+  cycle(s, [['y_tewi', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
+  assert.strictEqual(s.players[1].taken.filter((i) => i.hiddenTaken).length, 0, '幻覚なしの取得は公開');
 });
 
 // ================= 永夜メカニズム =================

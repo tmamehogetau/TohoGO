@@ -331,6 +331,10 @@
       statusEl.textContent = `早飲みモード：2枚選んでね（${CHOP_SELECTED.length}/2 枚選択）`;
     } else if (PICK_SELECTED !== null && p.hand[PICK_SELECTED]) {
       statusEl.textContent = `「${defOf(p.hand[PICK_SELECTED].key).name}」を選択中。決定ボタンで確定`;
+    } else if (STATE.hidden) {
+      statusEl.textContent = STATE.hiddenOwner === 0
+        ? '幻覚をかけている：全員のピックがあなたにだけ見えている'
+        : '幻覚がかかっている：他の幹事のピックは非公開';
     } else {
       statusEl.textContent = '手札から 1 枚選んで決定ボタンを押してね';
     }
@@ -527,7 +531,17 @@
         // 今ピック分だけ .new を付ける: taken 末尾から lastPicks の keys と照合
         const lp = STATE.lastPicks && STATE.lastPicks.find((x) => x.pi === pi);
         const keys = lp ? [...lp.keys] : [];
-        const els = p.taken.map((inst) => cardEl(inst.key, inst.icons, 'mini', inst));
+        const els = p.taken.map((inst) => {
+          // うどんげの幻覚: 幻覚中の他プレイヤーのピックは「？」カードで隠す
+          if (inst.hiddenTaken && STATE.hiddenOwner !== pi) {
+            const hidden = document.createElement('div');
+            hidden.className = 'card mini hidden-card';
+            hidden.innerHTML = '<div class="card-icon">？</div><div class="card-name">？？？</div>';
+            hidden.title = '幻覚中のピック（ラウンド終了まで非公開）';
+            return hidden;
+          }
+          return cardEl(inst.key, inst.icons, 'mini', inst);
+        });
         for (let i = els.length - 1; i >= 0 && keys.length; i--) {
           const k = keys.indexOf(p.taken[i].key);
           if (k >= 0) { els[i].classList.add('new'); keys.splice(k, 1); }

@@ -184,6 +184,20 @@
       }
       state.picks = new Array(state.playerCount).fill(null);
 
+      // うどんげの幻覚: 幻覚がかかっている間の全員のピックは非公開マーク
+      // （出した本人だけ全員分が見える。マークはラウンド末の判定で解除＝公開される）
+      if (state.hidden && state.hiddenOwner !== null) {
+        for (const lp of state.lastPicks) {
+          if (lp.pi === state.hiddenOwner) continue;
+          const p = state.players[lp.pi];
+          const keys = [...lp.keys];
+          for (let i = p.taken.length - 1; i >= 0 && keys.length; i--) {
+            const k = keys.indexOf(p.taken[i].key);
+            if (k >= 0) { p.taken[i].hiddenTaken = true; keys.splice(k, 1); }
+          }
+        }
+      }
+
       if (state.players.every((p) => p.hand.length === 0)) {
         beginSelectionPhase(state);
         if (state.phase !== 'select') endRound(state);
@@ -476,6 +490,7 @@
         for (const inst of p.taken) {
           delete inst.flipped;
           delete inst.discarded;
+          delete inst.hiddenTaken; // 幻覚はラウンド末判定で解除＝公開される
           delete inst.absentChecked;
           delete inst.instantScored;
           delete inst.selectionDone;
