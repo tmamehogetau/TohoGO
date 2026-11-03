@@ -87,7 +87,7 @@ const TARGETS = {
     ['y_eirin', '八意永琳 3点', (d) => { d.points = 0; }],
     ['y_reisen', '鈴仙 1点', (d) => { d.points = 0; }],
     ['y_tewi', 'てゐ 2枚6点', (d) => { d.table = [0, 0, 0]; }],
-    ['y_moko', '妹紅 ラウンド+3/最終-6', (d) => { d.roundMost = 0; d.finalLeast = 0; }],
+    ['y_moko', '妹紅 -1/最多+10/最少-6', (d) => { d.roundPenalty = 0; d.endMost = 0; d.endLeast = 0; }],
     ['y_riggle', 'リグル 同時取得', (d) => { d.points = 0; }],
     ['y_reimu', '霊夢 3枚ごと9点+通算9枚', (d) => { d.points = 0; d.gameEndTotalAtLeast = null; }],
     ['y_marisa', '魔理沙 2枚ごと4点+通算最多', (d) => { d.points = 0; d.gameEndMost = null; }],

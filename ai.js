@@ -163,8 +163,15 @@
       case 'dessertIce':
         return def.points / def.per;
       case 'dessertRound': {
-        const isFinal = state.round === RULES.ROUNDS - 1;
-        return isFinal ? -1 : def.roundMost / 2 + 1;
+        // ラウンド内は 1 枚ごとに -1。ゲーム末は最多 +10 / 最少 -6 の競争
+        if (def.roundPenalty) {
+          const mine = dessertCount(state, pi, key);
+          const others = Math.max(...state.players.map((q, i) => (i === pi ? -1 : dessertCount(state, i, key))));
+          if (mine < others) return 2.2; // 追いつく価値が高い
+          if (mine === others) return 1.6; // 並ぶと +10 圏内
+          return 0.4; // 既に単独最多なら追加は -1 の損
+        }
+        return 1.5;
       }
       default:
         return 1.5;

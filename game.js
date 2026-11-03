@@ -107,7 +107,7 @@
       case 'parity': return `ゲーム末・偶数枚なら 2 枚ごとに ${def.per2Even} 点／奇数なら ${def.per2Odd} 点`;
       case 'dessertLeast': return `ゲーム末・このデザートの枚数が最少なら ${def.least} 点`;
       case 'dessertIce': return `ゲーム末・${def.per} 枚ごとに +${def.points} 点`;
-      case 'dessertRound': return `ラウンド末・最多保有で +${def.roundMost} 点／ゲーム末に最多で ${def.finalLeast} 点`;
+      case 'dessertRound': return `ラウンド末・そのラウンドに取った 1 枚ごとに ${def.roundPenalty} 点／ゲーム末・最多 +${def.endMost} 点・最少 ${def.endLeast} 点`;
       default: return '';
     }
   }

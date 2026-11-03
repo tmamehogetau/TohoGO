@@ -749,26 +749,21 @@
       return pts;
     }
 
-    // 妹紅（dessertRound）: 各ラウンド終了時に手元の枚数最多なら加点/減点
-    // 手元 = 取得行（ラウンド中に取ったデザート）+ デザート置き場（前ラウンドまでの蓄積）
+    // 妹紅（dessertRound）: ラウンド終了時に、そのラウンドに取った妹紅 1 枚につき roundPenalty
+    // ゲーム末の最多/最少は gameEndScore 側で判定する（endMost / endLeast）
     // 破棄/裏返し/コピーされたデザートは判定から外れる
     function applyDessertRound(state, results) {
       const def = state.dessert;
-      if (def.kind !== 'dessertRound') return;
-      const count = (p) =>
-        p.taken.filter((i) => i.key === def.key && !i.discarded && !i.flipped && !i.copied).length +
-        p.desserts.filter((i) => i.key === def.key).length;
-      const counts = state.players.map(count);
-      const max = Math.max(...counts);
-      if (max === 0) return;
-      const topIdx = counts.map((c, i) => (c === max ? i : -1)).filter((i) => i >= 0);
-      const isFinal = state.round === RULES.ROUNDS - 1;
-      for (const i of topIdx) {
-        const pts = isFinal ? def.finalLeast : def.roundMost;
-        state.players[i].roundScores[state.round] += pts;
+      if (def.kind !== 'dessertRound' || !def.roundPenalty) return;
+      for (let i = 0; i < state.players.length; i++) {
+        const p = state.players[i];
+        const n = p.taken.filter((inst) => inst.key === def.key && !inst.discarded && !inst.flipped && !inst.copied).length;
+        if (!n) continue;
+        const pts = def.roundPenalty * n;
+        p.roundScores[state.round] += pts;
         const r = results.find((x) => x.pi === i);
         if (r) r.points += pts;
-        addLog(state, `${state.players[i].name}: 妹紅の炎が${isFinal ? '暴走した（' : '燃え上がった（'}${pts >= 0 ? '+' : ''}${pts}点）`);
+        addLog(state, `${p.name}: 妹紅の炎に焼かれた（${pts >= 0 ? '+' : ''}${pts}点）`);
       }
     }
 
@@ -791,6 +786,19 @@
       for (const def of iceDefs) {
         const cnt = p.desserts.filter((i) => i.key === def.key).length;
         pts += Math.floor(cnt / def.per) * def.points;
+      }
+      // dessertRound（妹紅）: ゲーム末に所持枚数が最多なら +endMost / 最少なら endLeast。
+      // 同点は全員に適用（多数決・チルノの最少と同様）。全員同数なら最多も最少も判定しない
+      const roundDessertDefs = Object.values(state.cardMap).filter((d) => d.kind === 'dessertRound');
+      for (const def of roundDessertDefs) {
+        if (def.endMost === undefined && def.endLeast === undefined) continue;
+        const counts = state.players.map((q) => q.desserts.filter((i) => i.key === def.key).length);
+        const max = Math.max(...counts);
+        const min = Math.min(...counts);
+        if (max === 0 || max === min) continue;
+        const cnt = counts[pi];
+        if (cnt === max && def.endMost !== undefined) pts += def.endMost;
+        if (cnt === min && def.endLeast !== undefined) pts += def.endLeast;
       }
       // ゲーム末判定（霊夢・魔理沙）: ゲーム通算の取得枚数で決まる追加点。
       // ラウンド点はラウンド内の枚数で別途計算される（霊夢=3枚ごと・魔理沙=2枚ごと）
