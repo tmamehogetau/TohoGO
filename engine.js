@@ -119,6 +119,8 @@
       state.phase = 'pick';
       state.hidden = false;
       state.hiddenOwner = null;
+      state.peekNeeded = null;
+      state.peekCards = null;
       state.roundStats = state.players.map(() => ({ springIcons: 0, dessertTaken: 0, intruderTaken: false }));
       state.coopCount = new Array(state.playerCount).fill(0);
     }
@@ -176,20 +178,29 @@
     function resolvePicks(state) {
       const wasHidden = state.hidden; // このピックの前に幻覚がかかっていたか
       state.lastPicks = [];
+      let hiddenActivated = null; // このピックでうどんげを出したプレイヤー
       for (let i = 0; i < state.playerCount; i++) {
         const idxs = [...state.picks[i]].sort((a, b) => b - a);
         const insts = idxs.map((idx) => state.players[i].hand.splice(idx, 1)[0]);
         insts.reverse();
         for (const inst of insts) applyTake(state, i, inst);
         state.lastPicks.push({ pi: i, keys: insts.map(instKey) });
+        // うどんげは「出した番」に発動する（小悪魔の山札確認で獲得した場合は発動しない）
+        if (insts.some((inst) => inst.key === 'y_reisen')) hiddenActivated = i;
       }
       state.picks = new Array(state.playerCount).fill(null);
 
-      // うどんげの幻覚: 「うどんげを出した番」に公開されるカードがすべてうどんげとして見える
+      // 幻覚の開始
+      if (hiddenActivated !== null && !wasHidden) {
+        state.hidden = true;
+        state.hiddenOwner = hiddenActivated;
+        addLog(state, `${state.players[hiddenActivated].name}: 幻覚で全員のピックが見えなくなった`);
+      }
+      // 「うどんげを出した番」に公開されるカードがすべてうどんげとして見える
       // （出した本人は影響を受けない。以降のピックは通常どおり公開・ラウンド末に判定で解除）
-      if (!wasHidden && state.hidden && state.hiddenOwner !== null) {
+      if (hiddenActivated !== null) {
         for (const lp of state.lastPicks) {
-          if (lp.pi === state.hiddenOwner) continue;
+          if (lp.pi === hiddenActivated) continue;
           const p = state.players[lp.pi];
           const keys = [...lp.keys];
           for (let i = p.taken.length - 1; i >= 0 && keys.length; i--) {
@@ -229,13 +240,6 @@
 
       // 乱入者の取得記録（輝夜・永琳のペナルティ判定に使用）
       if (state.intruderKey && inst.key === state.intruderKey) stats.intruderTaken = true;
-
-      // うどんげの情報隠蔽
-      if (def.hidden) {
-        state.hidden = true;
-        state.hiddenOwner = pi;
-        addLog(state, `${p.name}: 幻覚で全員のピックが見えなくなった`);
-      }
 
       // 妖夢の春吸収（即座に適用）
       if (def.kind === 'springSteal') {
@@ -314,13 +318,14 @@
 
     function selectionNeeded(state, pi) {
       const p = state.players[pi];
-      const need = { discard: false, flip: false, copy: false };
+      const need = { discard: false, flip: false, copy: false, peek: false };
       for (const inst of p.taken) {
         const def = state.cardMap[inst.key];
         if (!def || inst.selectionDone) continue;
         if (def.kind === 'instant' && def.discardBonus) need.discard = true;
         if (def.kind === 'flip') need.flip = true;
         if (def.kind === 'copy') need.copy = true;
+        if (def.kind === 'deckPeek') need.peek = true;
       }
       return need;
     }
@@ -328,9 +333,19 @@
     function beginSelectionPhase(state) {
       applySamePickConditions(state);
       const needed = [];
+      state.peekNeeded = state.peekNeeded || new Array(state.playerCount).fill(false);
+      state.peekCards = state.peekCards || new Array(state.playerCount).fill(null);
       for (let i = 0; i < state.playerCount; i++) {
         const need = selectionNeeded(state, i);
-        if (need.discard || need.flip || need.copy) needed.push(i);
+        if (need.peek) {
+          // 小悪魔の山札確認: 山札の上 N 枚（def.peek）を候補として取り出す
+          // （解決時に peekNeeded は false に戻るため、同ラウンドに別枚の小悪魔を取っても再発動する）
+          state.peekNeeded[i] = true;
+          const peekDef = Object.values(state.cardMap).find((d) => d.kind === 'deckPeek');
+          const n = (peekDef && peekDef.peek) || 4;
+          state.peekCards[i] = state.deck.splice(0, Math.min(n, state.deck.length));
+        }
+        if (need.discard || need.flip || need.copy || need.peek) needed.push(i);
       }
       if (needed.length === 0) return;
       state.phase = 'select';
@@ -374,7 +389,14 @@
         if (!Number.isInteger(idx) || idx < 0 || idx >= p.taken.length) return err('無効なコピー対象');
         if (p.taken[idx].discarded) return err('破棄されたカードはコピーできない');
         // 効果カード自身は対象外（慧音が慧音をコピーする循環を防ぐ）
+        // デザートもコピー可（copied デザートはそのラウンドの取得として判定に参加し、ラウンド末に山札へ戻る）
         if (map[p.taken[idx].key] && map[p.taken[idx].key].kind === 'copy') return err('慧音自身はコピーできない');
+      }
+      if (need.peek && c.pick !== null && c.pick !== undefined) {
+        // 小悪魔の山札確認: 候補 4 枚の中から 1 枚を選ぶ（未指定 = 効果を使わない）
+        if (!Number.isInteger(c.pick) || c.pick < 0 || c.pick >= (state.peekCards[pi] || []).length) {
+          return err('山札から獲得するカードを選んでください');
+        }
       }
 
       state.selections[pi] = c;
@@ -432,10 +454,24 @@
           }
         }
 
+        // 小悪魔の山札確認: 選んだ 1 枚を獲得（applyTake を通して統計・コンボ判定を反映）し、
+        // 残りは山札の下へ戻す。選択待ちフラグは解除する
+        if (state.peekNeeded && state.peekNeeded[i]) {
+          const candidates = state.peekCards[i] || [];
+          const chosen = Number.isInteger(c.pick) ? candidates[c.pick] : null;
+          if (chosen) applyTake(state, i, chosen);
+          // 選ばなかったカード（スキップ時は全部）は失われないよう山札の下へ戻す
+          for (const inst of candidates) {
+            if (inst !== chosen) state.deck.push(inst);
+          }
+          state.peekCards[i] = null;
+          state.peekNeeded[i] = false;
+        }
+
         // 選択済みフラグ（次ラウンドで再選択しないよう taken をマーク）
         for (const inst of p.taken) {
           const idef = map[inst.key];
-          if (idef && (idef.discardBonus || idef.kind === 'flip' || idef.kind === 'copy')) inst.selectionDone = true;
+          if (idef && (idef.discardBonus || idef.kind === 'flip' || idef.kind === 'copy' || idef.kind === 'deckPeek')) inst.selectionDone = true;
         }
       }
       state.phase = 'pick';
@@ -754,6 +790,7 @@
       roundBreakdown,
       countKey,
       countKeys,
+      selectionNeeded,
       PASS_DIRS,
     };
   })();

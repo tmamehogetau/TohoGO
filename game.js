@@ -8,8 +8,9 @@
   let CHOPSTICKS_MODE = false;
   let CHOP_SELECTED = []; // pick2 モード中の選択 idx
   let PICK_SELECTED = null; // 通常ピックで選択中の idx（決定ボタンで確定）
-  let SEL_MODE = null;    // 取得時選択: 'discard' | 'flip' | 'copy' | null
+  let SEL_MODE = null;    // 取得時選択: 'discard' | 'flip' | 'copy' | 'peek' | null
   let SEL_SELECTED = [];  // flip モード中の選択 idx
+  let STAGED_CHOICE = null; // 段階選択中の確定済み choice（全モード揃ったら choose で送る）
 
   const $ = (id) => document.getElementById(id);
 
@@ -48,6 +49,7 @@
     DEAL_ANIM = true; // 初回配りアニメ
     HAND_SIG = '';
     HAND_COUNT = null;
+    STAGED_CHOICE = null;
     $('lobby').classList.add('hidden');
     $('app').classList.remove('hidden');
     renderAll();
@@ -190,7 +192,7 @@
     for (const pi of STATE.selectNeeded) {
       if (pi === 0) continue; // 人間の選択は select UI に委ねる（{} で自動解決しない）
       if (STATE.selections[pi] === null) {
-        Engine.dispatch(STATE, { kind: 'choose', pi, choice: {} });
+        Engine.dispatch(STATE, { kind: 'choose', pi, choice: AI.selectChoice(STATE, pi) });
       }
     }
   }
@@ -209,30 +211,43 @@
   function humanSelectNeeded() {
     // エンジンの selectionNeeded と同じ判定を UI 側で行う
     const p = STATE.players[0];
-    const need = { discard: false, flip: false, copy: false };
+    const need = { discard: false, flip: false, copy: false, peek: false };
     for (const inst of p.taken) {
       const def = defOf(inst.key);
       if (!def || inst.selectionDone) continue;
       if (def.kind === 'instant' && def.discardBonus) need.discard = true;
       if (def.kind === 'flip') need.flip = true;
       if (def.kind === 'copy') need.copy = true;
+      if (def.kind === 'deckPeek') need.peek = true;
     }
     return need;
   }
 
   function enterSelectMode() {
     const need = humanSelectNeeded();
-    if (need.discard) SEL_MODE = 'discard';
-    else if (need.copy) SEL_MODE = 'copy';
-    else if (need.flip) SEL_MODE = 'flip';
-    else SEL_MODE = null;
+    // 蓄積済み choice に含まれていないモードを優先順に選ぶ
+    const order = ['discard', 'copy', 'flip', 'peek'];
+    SEL_MODE = order.find((m) => need[m] && !modeStaged(m)) || null;
     SEL_SELECTED = [];
     return SEL_MODE;
+  }
+
+  // 段階選択で既に確定済みのモードか
+  function modeStaged(mode) {
+    if (!STAGED_CHOICE) return false;
+    if (mode === 'flip') return Array.isArray(STAGED_CHOICE.flip);
+    return STAGED_CHOICE[CHOICE_KEY[mode]] !== undefined;
   }
 
   function onTakenClick(idx) {
     if (!STATE || STATE.phase !== 'select') return;
     if (!SEL_MODE) return;
+    if (SEL_MODE === 'peek') {
+      // 小悪魔の山札確認: 候補から単一選択（全部選択可）
+      SEL_SELECTED = [idx];
+      renderAll();
+      return;
+    }
     // 対象外カード（効果カード自身・破棄済み）は選択不可
     const inst = STATE.players[0].taken[idx];
     if (!inst || !selectTargetable(inst, SEL_MODE)) return;
@@ -260,31 +275,69 @@
     return false;
   }
 
-  // select フェーズの決定ボタン（flip は 0 枚でも確定可・discard/copy は 1 枚選択が条件）
+  // 選択モード → choice オブジェクトのキー（小悪魔の山札確認だけ pick になる）
+  const CHOICE_KEY = { discard: 'discard', copy: 'copy', flip: 'flip', peek: 'pick' };
+
+  // select フェーズの決定ボタン: 現在のモードを確定して choice に積む。
+  // 他に未選択の必要があれば次のモードへ移り、すべて揃ったら choose で一括送信する
   function confirmSelect() {
     if (!STATE || STATE.phase !== 'select') return;
+    const choice = { ...(STAGED_CHOICE || {}) };
     if (SEL_MODE === 'discard') {
       if (SEL_SELECTED.length !== 1) return;
-      Engine.dispatch(STATE, { kind: 'choose', pi: 0, choice: { discard: SEL_SELECTED[0] } });
+      choice.discard = SEL_SELECTED[0];
     } else if (SEL_MODE === 'copy') {
       if (SEL_SELECTED.length !== 1) return;
-      Engine.dispatch(STATE, { kind: 'choose', pi: 0, choice: { copy: SEL_SELECTED[0] } });
+      choice.copy = SEL_SELECTED[0];
     } else if (SEL_MODE === 'flip') {
-      Engine.dispatch(STATE, { kind: 'choose', pi: 0, choice: { flip: [...SEL_SELECTED] } });
+      choice.flip = [...SEL_SELECTED]; // 0 枚可
+    } else if (SEL_MODE === 'peek') {
+      if (SEL_SELECTED.length !== 1) return;
+      choice.pick = SEL_SELECTED[0];
     } else {
       return;
     }
+
+    // 残りの必要モードがあれば次へ進む
+    const need = humanSelectNeeded();
+    const order = ['discard', 'copy', 'flip', 'peek'];
+    const next = order.find((m) => need[m] && (m === 'flip' ? !Array.isArray(choice.flip) : choice[CHOICE_KEY[m]] === undefined));
+    if (next) {
+      STAGED_CHOICE = choice;
+      SEL_MODE = next;
+      SEL_SELECTED = [];
+      renderAll();
+      return;
+    }
+
+    STAGED_CHOICE = null;
     SEL_MODE = null;
     SEL_SELECTED = [];
+    Engine.dispatch(STATE, { kind: 'choose', pi: 0, choice });
     runAiSelections();
     renderAll();
   }
 
   function skipSelection() {
     if (!STATE || STATE.phase !== 'select') return;
-    Engine.dispatch(STATE, { kind: 'choose', pi: 0, choice: SEL_MODE === 'flip' ? { flip: [] } : {} });
+    // 段階選択: 現在のモードをスキップして次の必要モードへ（すべてスキップなら choose {} で解決）
+    const choice = { ...(STAGED_CHOICE || {}) };
+    if (SEL_MODE === 'flip') choice.flip = [];
+    // discard/copy/peek は choice に含めない = 「使わない」扱い（エンジンは未指定を許容）
+    const need = humanSelectNeeded();
+    const order = ['discard', 'copy', 'flip', 'peek'];
+    const next = order.find((m) => need[m] && (m === 'flip' ? !Array.isArray(choice.flip) : choice[CHOICE_KEY[m]] === undefined) && m !== SEL_MODE);
+    if (next) {
+      STAGED_CHOICE = choice;
+      SEL_MODE = next;
+      SEL_SELECTED = [];
+      renderAll();
+      return;
+    }
+    STAGED_CHOICE = null;
     SEL_MODE = null;
     SEL_SELECTED = [];
+    Engine.dispatch(STATE, { kind: 'choose', pi: 0, choice });
     runAiSelections();
     renderAll();
   }
@@ -410,6 +463,9 @@
     if (SEL_MODE === 'copy') return SEL_SELECTED.length === 1
       ? 'コピーするカードを選択中。決定ボタンで確定'
       : 'コピーするカードを 1 枚選んでね';
+    if (SEL_MODE === 'peek') return SEL_SELECTED.length === 1
+      ? '獲得するカードを選択中。決定ボタンで確定'
+      : '山札の上 4 枚の中から獲得するカードを 1 枚選んでね';
     return '取得カードの効果を選択中…';
   }
 
@@ -441,23 +497,34 @@
 
     const list = document.createElement('div');
     list.className = 'select-list';
-    p.taken.forEach((card, idx) => {
-      const el = cardEl(card.key, card.icons, 'taken', card);
-      const isSel = SEL_SELECTED.includes(idx);
-      if (isSel) el.classList.add('selected');
-      if (selectTurn) {
-        // 効果カード自身・破棄済みは対象外としてグレーアウト表示
-        if (selectTargetable(card, SEL_MODE)) {
-          el.classList.add('clickable');
-          el.addEventListener('click', () => onTakenClick(idx));
+    if (SEL_MODE === 'peek' && selectTurn) {
+      // 小悪魔の山札確認: 候補 4 枚を表示（全部選択可）
+      (STATE.peekCards[0] || []).forEach((inst, idx) => {
+        const el = cardEl(inst.key, inst.icons, 'taken', inst);
+        if (SEL_SELECTED.includes(idx)) el.classList.add('selected');
+        el.classList.add('clickable');
+        el.addEventListener('click', () => onTakenClick(idx));
+        list.appendChild(el);
+      });
+    } else {
+      p.taken.forEach((card, idx) => {
+        const el = cardEl(card.key, card.icons, 'taken', card);
+        const isSel = SEL_SELECTED.includes(idx);
+        if (isSel) el.classList.add('selected');
+        if (selectTurn) {
+          // 効果カード自身・破棄済みは対象外としてグレーアウト表示
+          if (selectTargetable(card, SEL_MODE)) {
+            el.classList.add('clickable');
+            el.addEventListener('click', () => onTakenClick(idx));
+          } else {
+            el.classList.add('not-target');
+          }
         } else {
-          el.classList.add('not-target');
+          el.classList.add('disabled');
         }
-      } else {
-        el.classList.add('disabled');
-      }
-      list.appendChild(el);
-    });
+        list.appendChild(el);
+      });
+    }
     areaEl.appendChild(list);
 
     const btnRow = document.createElement('div');
@@ -472,6 +539,8 @@
         confirmBtn.textContent = `このカードを破棄する（+${bonus} 点）`;
       } else if (SEL_MODE === 'copy') {
         confirmBtn.textContent = 'この効果をコピーする';
+      } else if (SEL_MODE === 'peek') {
+        confirmBtn.textContent = 'このカードを獲得する';
       }
       confirmBtn.addEventListener('click', confirmSelect);
       btnRow.appendChild(confirmBtn);

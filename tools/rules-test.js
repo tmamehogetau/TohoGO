@@ -27,6 +27,10 @@ function inst(key, icons) {
 }
 
 function pickAll(state, choices) {
+  // 小悪魔の山札確認（peek）の候補を決定論化: 山札の上 4 枚を無害なダミーに差し替えてからピックする
+  if (state.cardMap && state.cardMap['x_dummy']) {
+    state.deck = [{ key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }].concat(state.deck);
+  }
   choices.forEach((c, pi) => {
     const res = Array.isArray(c)
       ? Engine.dispatch(state, { kind: 'pick2', pi, idxs: c })
@@ -39,7 +43,10 @@ function settleSelection(state) {
   if (state.phase !== 'select') return;
   for (const pi of state.selectNeeded) {
     if (state.selections[pi] === null) {
-      Engine.dispatch(state, { kind: 'choose', pi, choice: {} });
+      const choice = {};
+      if (state.peekNeeded && state.peekNeeded[pi]) choice.pick = 0; // 山札確認は先頭の 1 枚を選択
+      const r = Engine.dispatch(state, { kind: 'choose', pi, choice });
+      assert.ok(r.ok, `choose 失敗: ${r.error}`);
     }
   }
 }
@@ -50,6 +57,10 @@ function cycle(state, hands, choices) {
     hands.forEach((keys, pi) => {
       state.players[pi].hand = keys.map((x) => (typeof x === 'string' ? inst(x) : { ...x }));
     });
+  }
+  // 小悪魔の山札確認（peek）の候補を決定論化: 山札の上 4 枚を無害なダミーに差し替えてからピックする
+  if (state.cardMap && state.cardMap['x_dummy']) {
+    state.deck = [{ key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }].concat(state.deck);
   }
   pickAll(state, choices);
   settleSelection(state);
@@ -65,6 +76,15 @@ const D = 'k_kozue'; // 紅霧のダミー（効果のみ・即時点数なし�
 const DS = 's_yukari'; // 春雪のダミー（即時3点）
 const DY = 'y_reisen'; // 永夜のダミー（即時1点・情報隠蔽フラグのみ）
 const DY4 = 'y_eirin'; // 永夜 4 人テスト用ダミー（即時 3 点）
+
+// 小悪魔の山札確認（peek）は山札の上 4 枚に依存するため、テストでは候補を無害なダミーで固定する
+// （x_dummy は即時 0 点・多数決/収集に影響しないテスト専用カード）
+function fixPeek(state) {
+  state.cardMap['x_dummy'] = { key: 'x_dummy', kind: 'instant', points: 0, name: 'テストダミー', icon: 'ダ', color: '#555555' };
+  state.deck = [
+    { key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' },
+  ].concat(state.deck);
+}
 
 // ================= デッキ構成 =================
 
@@ -86,6 +106,7 @@ test('春雪: メイン54枚・春のアイコン配分（1個4/2個5/3個3）',
 
 test('永夜: 乱入者指定で1種のみ組み込まれる', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
   assert.strictEqual(s.intruderKey, 'y_reimu');
   const deckKeys = s.deck.map((i) => i.key);
   assert.ok(deckKeys.includes('y_reimu'));
@@ -94,9 +115,11 @@ test('永夜: 乱入者指定で1種のみ組み込まれる', () => {
 
 test('手札2-3人10枚/4-5人9枚・対応外人数はnull', () => {
   const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'scarlet' });
+  fixPeek(s);
   assert.strictEqual(s.handSize, 10);
   assert.strictEqual(s.players[0].hand.length, 10);
   const s2 = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'scarlet' });
+  fixPeek(s2);
   assert.strictEqual(s2.handSize, 9);
   assert.strictEqual(s2.players[0].hand.length, 9);
   assert.strictEqual(Engine.newGame(6, ['a']), null);
@@ -106,6 +129,7 @@ test('手札2-3人10枚/4-5人9枚・対応外人数はnull', () => {
 
 test('ラウンド終了時に取得カードが山札へ戻る（デザートは蓄積）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
   cycle(s, [['k_cirno'], ['k_rumia']], [0, 0]); // p0 チルノ取得・p1 ルーミア取得・ラウンド終了
   assert.strictEqual(s.round, 1);
   assert.strictEqual(s.players[0].taken.length, 0);
@@ -115,6 +139,7 @@ test('ラウンド終了時に取得カードが山札へ戻る（デザート�
 
 test('ラウンド 1 は左(-1)・ラウンド 2 は右(+1)・ラウンド 3 は左（DESIGN 4）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
   assert.strictEqual(s.passDir, -1);
   cycle(s, [['k_remi'], ['k_remi']], [0, 0]);
   assert.strictEqual(s.round, 1);
@@ -128,6 +153,7 @@ test('ラウンド 1 は左(-1)・ラウンド 2 は右(+1)・ラウンド 3 は
 
 test('紅霧: レミリア=即時3点×3枚=9点（純ポイント）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
   cycle(s, [['k_remi', D], [D, D]], [0, 0]);
   cycle(s, [['k_remi', D], [D, D]], [0, 0]);
   cycle(s, [['k_remi'], [D]], [0, 0]); // 手札尽き → ラウンド終了
@@ -136,6 +162,7 @@ test('紅霧: レミリア=即時3点×3枚=9点（純ポイント）', () => {
 
 test('紅霧: フラン=即時2点・破棄しなければそのまま', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
   cycle(s, [['k_fran', D], [D, D]], [0, 0]);
   cycle(s, [['k_fran'], [D]], [0, 0]);
   assert.strictEqual(s.players[0].roundScores[0], 4); // 2枚×2点
@@ -143,6 +170,8 @@ test('紅霧: フラン=即時2点・破棄しなければそのまま', () => {
 
 test('紅霧: フラン破棄で+2点・破棄カードは taken に残り判定から外れる', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  fixPeek(s); // 小悪魔の peek 候補を無害なダミーに固定
   cycle(s, [['k_remi', D], [D, D]], [0, 0]); // レミリア3点取得・taken[0]
   setHands(s, [['k_fran', D], [D, D]]);
   pickAll(s, [0, 0]); // フラン取得 → 選択フェーズ（settleSelection は手動）
@@ -169,6 +198,8 @@ test('紅霧: フラン破棄で+2点・破棄カードは taken に残り判定
 
 test('紅霧: 破棄されたカードは収集判定から除外される', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  fixPeek(s);
   cycle(s, [['k_rumia', D], [D, D]], [0, 0]); // ルーミア1枚
   setHands(s, [['k_fran'], [D]]);
   pickAll(s, [0, 0]); // フラン取得・ルーミアを破棄
@@ -183,25 +214,33 @@ test('紅霧: 破棄されたカードは収集判定から除外される', () 
 
 test('紅霧: 咲夜=同ピックで他プレイヤーがレミリア/フランを出したら0点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
   setHands(s, [['k_sakuya', 'k_kozue'], ['k_remi', 'k_kozue']]);
   pickAll(s, [0, 0]); // 咲夜取得（同ピックで相手がレミリア）
+  settleSelection(s); // 小悪魔の選択フェーズを解決
   setHands(s, [['k_kozue'], ['k_kozue']]);
   pickAll(s, [0, 0]); // ラウンド終了・集計
+  settleSelection(s); // 小悪魔の選択を解決
   assert.strictEqual(s.players[0].roundScores[0], 0, '同席したので 0 点');
   assert.strictEqual(s.players[1].roundScores[0], 3, 'レミリアは 3 点');
 });
 
 test('紅霧: 咲夜=相手がレミリア/フランなしのピックなら3点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
   setHands(s, [['k_sakuya', 'k_kozue'], ['k_kozue', 'k_kozue']]);
   pickAll(s, [0, 0]); // 咲夜取得（相手はダミーのみ）
+  settleSelection(s); // 小悪魔の選択フェーズを解決
   setHands(s, [['k_kozue'], ['k_kozue']]);
   pickAll(s, [0, 0]); // ラウンド終了・集計
+  settleSelection(s); // 小悪魔の選択を解決
   assert.strictEqual(s.players[0].roundScores[0], 3);
 });
 
 test('紅霧: 美鈴=同ラウンドに咲夜を獲得していたら+1点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  fixPeek(s);
   cycle(s, [['k_meirin', D], [D, D]], [0, 0]); // 美鈴取得（咲夜なし → コンボ不発）
   cycle(s, [['k_sakuya', 'k_meirin'], [D, D]], [0, 0]); // 咲夜取得
   cycle(s, [['k_meirin'], [D]], [0, 0]); // 美鈴取得（ラウンド内に咲夜あり → コンボ発動）・ラウンド終了・集計
@@ -210,6 +249,8 @@ test('紅霧: 美鈴=同ラウンドに咲夜を獲得していたら+1点', () 
 
 test('紅霧: 美鈴コンボは獲得時判定（後から咲夜を取っても+1されない）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  fixPeek(s);
   cycle(s, [['k_meirin', D], [D, D]], [0, 0]); // 美鈴1点（取得時に咲夜なし → コンボ不発）
   cycle(s, [['k_sakuya', D], [D, D]], [0, 0]); // 咲夜を後から取得
   cycle(s, [[D], [D]], [0, 0]); // ラウンド終了・集計
@@ -218,6 +259,7 @@ test('紅霧: 美鈴コンボは獲得時判定（後から咲夜を取っても
 
 test('紅霧: パチュリー=種類数−3（最低0・チルノ含む）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
   cycle(s, [['k_patch', 'k_remi', D], [D, D]], [0, 0]); // patch+remi 取得（2種）
   cycle(s, [['k_rumia', 'k_cirno', D], [D, D]], [0, 0]); // rumia+cirno 取得（+2種）
   cycle(s, [['k_remi'], [D]], [0, 0]); // ラウンド終了
@@ -225,8 +267,46 @@ test('紅霧: パチュリー=種類数−3（最低0・チルノ含む）', () 
   assert.strictEqual(s.players[0].roundScores[0], 3 + 1);
 });
 
+test('紅霧: 小悪魔=山札 4 枚を見て 1 枚獲得・残りは山札の下へ', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  // p1 は peek を発動しないカードにする（山札の増減を p0 の分だけで検証するため）
+  setHands(s, [['k_kozue', 'k_kozue'], ['k_remi', 'k_remi']]);
+  pickAll(s, [0, 0]); // 小悪魔取得 → 選択フェーズ（解決はしない）
+  assert.strictEqual(s.phase, 'select');
+  assert.ok(s.peekNeeded[0], '山札確認が必要');
+  assert.strictEqual(s.peekCards[0].length, 4, '山札の上 4 枚が候補');
+  const deckBefore = s.deck.length; // 候補は既に山札から取り出されている
+  const chosen = s.peekCards[0][0];
+  const rest = s.peekCards[0].filter((_, i) => i !== 0).map((i) => i.key).sort();
+  const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { pick: 0 } });
+  assert.ok(res.ok, res.error);
+  settleSelection(s); // p1 の選択も解決 → applySelections 発火
+  assert.strictEqual(s.peekCards[0], null, '候補は消費される');
+  // 選んだカードは手元に獲得・残り 3 枚は山札の下へ
+  assert.ok(s.players[0].taken.some((i) => i.key === chosen.key), '選んだカードを獲得');
+  assert.strictEqual(s.deck.length, deckBefore + 3, '残り 3 枚が山札に戻る');
+  const tail = s.deck.slice(-3).map((i) => i.key).sort();
+  assert.deepStrictEqual(tail, rest, '残りは山札の下に積まれる');
+});
+
+test('紅霧: 小悪魔=山札確認をスキップしても候補 4 枚は失われない', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  setHands(s, [['k_kozue', 'k_kozue'], ['k_remi', 'k_remi']]);
+  pickAll(s, [0, 0]); // 小悪魔取得 → 選択フェーズ
+  assert.strictEqual(s.phase, 'select');
+  const deckBefore = s.deck.length; // 候補 4 枚は山札から抜けている
+  const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: {} }); // 効果を使わない
+  assert.ok(res.ok, res.error);
+  assert.strictEqual(s.deck.length, deckBefore + 4, '候補 4 枚が山札へ戻る');
+  assert.strictEqual(s.players[0].taken.filter((i) => i.key !== 'k_kozue').length, 0, '何も獲得しない');
+});
+
 test('紅霧: ルーミア=収集 3枚=6点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  fixPeek(s);
   cycle(s, [['k_rumia', D], [D, D]], [0, 0]);
   cycle(s, [['k_rumia', D], [D, D]], [0, 0]);
   cycle(s, [['k_rumia'], [D]], [0, 0]);
@@ -235,6 +315,8 @@ test('紅霧: ルーミア=収集 3枚=6点', () => {
 
 test('紅霧: 大妖精=今ラウンドのチルノ1枚ごとに1点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  fixPeek(s);
   cycle(s, [['k_daiyousei', D, D], [D, D]], [0, 0]); // 大妖精取得
   cycle(s, [['k_cirno', D], [D, D]], [0, 0]); // チルノ1枚取得
   cycle(s, [['k_cirno'], [D]], [0, 0]); // チルノ2枚目・ラウンド終了 → 2点
@@ -243,6 +325,8 @@ test('紅霧: 大妖精=今ラウンドのチルノ1枚ごとに1点', () => {
 
 test('紅霧: 妖精メイド=多数決 最多4/最少−4', () => {
   const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'scarlet' });
+  fixPeek(s);
+  fixPeek(s);
   cycle(s, [['k_maid', 'k_maid', 'k_maid'], ['k_maid', D], [D, D]], [0, 0, 0]);
   cycle(s, [['k_maid'], [D], [D]], [0, 0, 0]); // ラウンド終了
   // p0: 3枚 最多4点 / p1: 1枚 / p2: 0枚 最少−4（ダミー小悪魔は点数に影響なし）
@@ -253,6 +337,8 @@ test('紅霧: 妖精メイド=多数決 最多4/最少−4', () => {
 
 test('紅霧: チルノ=デザート蓄積・ゲーム末に最少 −9', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  fixPeek(s);
   s.players[0].desserts.push(inst('k_cirno'), inst('k_cirno'), inst('k_cirno'));
   for (let r = 0; r < 3; r++) {
     cycle(s, [['k_remi', D], [D, D]], [0, 0]);
@@ -267,6 +353,7 @@ test('紅霧: チルノ=デザート蓄積・ゲーム末に最少 −9', () => 
 
 test('春雪: 春=マキ準拠多数決（アイコン合計で順位）', () => {
   const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'spring' });
+  fixPeek(s);
   cycle(s, [
     [inst('s_spring', 2), DS],
     [inst('s_spring', 2), DS],
@@ -281,6 +368,7 @@ test('春雪: 春=マキ準拠多数決（アイコン合計で順位）', () =>
 
 test('春雪: 春=2人配点（1位4点・同点は各2点・DESIGN 2-4）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  fixPeek(s);
   cycle(s, [[inst('s_spring', 2), DS], [inst('s_spring', 1), DS]], [0, 0]);
   cycle(s, [[inst('s_spring', 1)], [DS]], [0, 0]); // ラウンド終了
   // p0: 3 / p1: 1 → 一意の1位 = 4点（2位ボーナスなし）。p1 はダミー紫の+3点も持つ
@@ -290,6 +378,7 @@ test('春雪: 春=2人配点（1位4点・同点は各2点・DESIGN 2-4）', () 
 
 test('春雪: 春=2人同点は各2点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  fixPeek(s);
   cycle(s, [[inst('s_spring', 2), DS], [inst('s_spring', 2), DS]], [0, 0]);
   cycle(s, [[DS], [DS]], [0, 0]); // ラウンド終了
   // 2/2 で同点 → 各 2 点。ダミー紫の+3点も加算
@@ -299,6 +388,7 @@ test('春雪: 春=2人同点は各2点', () => {
 
 test('春雪: 幽々子=ラウンド内の春最多なら4点（幽々子取得が必須・春多数決も併走）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  fixPeek(s);
   cycle(s, [['s_yuyuko', inst('s_spring', 3)], [inst('s_spring', 1), DS]], [0, 0]); // p0 幽々子・p1 春1
   cycle(s, [[inst('s_spring', 3)], [DS]], [0, 0]); // p0 春3取得・ラウンド終了
   // 2人配点: p0 春3（1位4点）→ 幽々子4 + 春4 = 8点。p1: 春2位ボーナスなし・ダミー紫3点
@@ -308,6 +398,7 @@ test('春雪: 幽々子=ラウンド内の春最多なら4点（幽々子取得�
 
 test('春雪: 妖夢=他プレイヤー全員の春を1個ずつ引き自分に足す', () => {
   const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'spring' });
+  fixPeek(s);
   cycle(s, [
     [inst('s_spring', 1), DS],
     [inst('s_spring', 2), DS],
@@ -323,6 +414,7 @@ test('春雪: 妖夢=他プレイヤー全員の春を1個ずつ引き自分に�
 
 test('春雪: レティ=(レティ枚数−春枚数)×2・最低0', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  fixPeek(s);
   cycle(s, [['s_letty', 's_letty'], [DS, DS]], [0, 0]); // レティ2枚取得
   cycle(s, [['s_letty', DS], [DS]], [0, 0]); // レティ3枚目・p1 が紫1枚取得
   cycle(s, [['s_letty'], [DS]], [0, 0]); // 手札尽き・ラウンド終了
@@ -333,6 +425,7 @@ test('春雪: レティ=(レティ枚数−春枚数)×2・最低0', () => {
 
 test('春雪: 藍・橙=紫を含む主従コンボ（獲得時判定・最後に揃えた1枚だけ発動）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  fixPeek(s);
   cycle(s, [['s_yukari', DS], [DS, DS]], [0, 0]); // 紫3点
   cycle(s, [['s_ran', DS], [DS, DS]], [0, 0]); // 藍2点（取得時に橙なし → コンボ不発）
   cycle(s, [['s_chen'], [DS]], [0, 0]); // 橙取得（取得時に紫+藍あり → 発動）・ラウンド終了
@@ -342,6 +435,7 @@ test('春雪: 藍・橙=紫を含む主従コンボ（獲得時判定・最後�
 
 test('春雪: 紅霧と同じく逆順（紫→橙→藍）では藍のみ発動', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  fixPeek(s);
   cycle(s, [['s_yukari', DS], [DS, DS]], [0, 0]); // 紫3点
   cycle(s, [['s_chen', DS], [DS, DS]], [0, 0]); // 橙1点（取得時に藍なし → 不発）
   cycle(s, [['s_ran'], [DS]], [0, 0]); // 藍取得（取得時に紫+橙あり → 発動）・ラウンド終了
@@ -351,6 +445,7 @@ test('春雪: 紅霧と同じく逆順（紫→橙→藍）では藍のみ発動
 
 test('春雪: アリス=ペア2枚5点・三姉妹=3枚セット10点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  fixPeek(s);
   cycle(s, [['s_alice', DS], [DS, DS]], [0, 0]); // アリス1枚
   cycle(s, [['s_alice', DS], [DS, DS]], [0, 0]); // アリス2枚目（ペア5点）
   cycle(s, [['s_prism', DS], [DS, DS]], [0, 0]); // 三姉妹1枚
@@ -363,6 +458,7 @@ test('春雪: アリス=ペア2枚5点・三姉妹=3枚セット10点', () => {
 
 test('春雪: リリーホワイト=デザート蓄積・ゲーム末に4枚ごとに12点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  fixPeek(s);
   for (let i = 0; i < 5; i++) s.players[0].desserts.push(inst('s_lily'));
   for (let r = 0; r < 3; r++) {
     cycle(s, [['s_yukari', DS], [DS, DS]], [0, 0]);
@@ -375,8 +471,10 @@ test('春雪: リリーホワイト=デザート蓄積・ゲーム末に4枚ご�
 
 test('デザート=ラウンド中は taken に置かれ、ラウンド末にデザート置き場へ送られる', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
   setHands(s, [['k_cirno', D], [D, D]]);
   pickAll(s, [0, 0]); // チルノ取得
+  settleSelection(s); // 小悪魔の選択フェーズを解決
   assert.strictEqual(s.players[0].taken.filter((i) => i.key === 'k_cirno').length, 1, 'ラウンド中は他のカード同様手元に置かれる');
   assert.strictEqual(s.players[0].desserts.length, 0, 'ラウンド中は置き場にいない');
   cycle(s, [[D], [D]], [0, 0]); // ラウンド終了
@@ -387,6 +485,8 @@ test('デザート=ラウンド中は taken に置かれ、ラウンド末にデ
 test('デザート=効果の対象に含まれる（破棄/裏返しで判定から外れ、置き場には行かない）', () => {
   // 紅霧: チルノ取得後にフラン取得 → チルノ（デザート）を破棄して −9 リスク回避
   const s1 = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s1);
+  fixPeek(s1);
   cycle(s1, [['k_cirno', 'k_cirno'], [D, D]], [0, 0]); // チルノ1枚（taken にいる）
   setHands(s1, [['k_fran', D], [D, D]]);
   pickAll(s1, [0, 0]); // フラン取得 → 選択フェーズ
@@ -394,7 +494,7 @@ test('デザート=効果の対象に含まれる（破棄/裏返しで判定か
   // taken: [チルノ(idx0)=デザート, フラン(idx1)] → チルノを破棄できる
   const r1 = Engine.dispatch(s1, { kind: 'choose', pi: 0, choice: { discard: 0 } });
   assert.ok(r1.ok, r1.error);
-  Engine.dispatch(s1, { kind: 'choose', pi: 0, choice: {} }); // 効果なしで解決
+  settleSelection(s1); // 他のプレイヤーの選択も解決 → applySelections 発火
   assert.strictEqual(s1.players[0].taken[0].discarded, true, 'デザートが破棄フラグ付きで残る');
   assert.strictEqual(s1.players[0].desserts.length, 0, '破棄されたデザートは置き場にいかない');
   cycle(s1, [[D], [D]], [0, 0]); // ラウンド終了
@@ -404,6 +504,7 @@ test('デザート=効果の対象に含まれる（破棄/裏返しで判定か
 
   // 永夜: 妹紅取得後にミスティア取得 → 妹紅（デザート）を裏返して 2 点化
   const s2 = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s2);
   cycle(s2, [['y_moko', 'y_moko'], [DY, DY]], [0, 0]); // 妹紅1枚
   setHands(s2, [['y_mystia', 'y_reimu'], ['y_reimu', 'y_reimu']]);
   pickAll(s2, [0, 0]); // ミスティア取得 → 選択フェーズ
@@ -411,7 +512,7 @@ test('デザート=効果の対象に含まれる（破棄/裏返しで判定か
   // taken: [妹紅(idx0)=デザート, ミスティア(idx1)]
   const r2 = Engine.dispatch(s2, { kind: 'choose', pi: 0, choice: { flip: [0] } });
   assert.ok(r2.ok, r2.error);
-  Engine.dispatch(s2, { kind: 'choose', pi: 0, choice: {} }); // 効果なしで解決
+  settleSelection(s2); // 他のプレイヤーの選択も解決 → applySelections 発火
   assert.strictEqual(s2.players[0].taken[0].flipped, true, 'デザートが裏返しフラグ付き');
   cycle(s2, [['y_reimu'], ['y_reimu']], [0, 0]); // ラウンド終了
   assert.strictEqual(s2.players[0].roundScores[0], 2, '裏返したデザートは 2 点のみ・妹紅判定からは外れる');
@@ -420,6 +521,7 @@ test('デザート=効果の対象に含まれる（破棄/裏返しで判定か
 
 test('永夜: うどんげ=出した番のピックだけうどんげ表示（次のピックは通常公開）', () => {
   const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
   // p0 がうどんげ取得（幻覚開始）・他はダミー
   cycle(s, [['y_reisen', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
   assert.strictEqual(s.hidden, true);
@@ -441,6 +543,7 @@ test('永夜: うどんげ=出した番のピックだけうどんげ表示（�
 
 test('永夜: うどんげ=出した番のみ効果あり・次ラウンドは通常公開', () => {
   const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
   cycle(s, [['y_reisen', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
   assert.strictEqual(s.hidden, true);
   cycle(s, [['y_tewi', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
@@ -455,6 +558,7 @@ test('永夜: うどんげ=出した番のみ効果あり・次ラウンドは�
 
 test('永夜: 輝夜=即時4点・乱入者を取得したラウンドは−1', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
   cycle(s, [['y_kaguya', DY], [DY, DY]], [0, 0]); // 輝夜1枚取得
   cycle(s, [['y_kaguya'], [DY]], [0, 0]); // 輝夜2枚目・ラウンド終了 → 輝夜(4点)×2枚 = 8点
   assert.strictEqual(s.players[0].roundScores[0], 8);
@@ -467,6 +571,7 @@ test('永夜: 輝夜=即時4点・乱入者を取得したラウンドは−1', 
 
 test('永夜: てゐ=2枚6点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
   cycle(s, [['y_tewi', 'y_tewi', DY], [DY, DY]], [0, 0]);
   cycle(s, [['y_tewi'], [DY]], [0, 0]); // 2枚 → 6点
   assert.strictEqual(s.players[0].roundScores[0], 6);
@@ -474,6 +579,7 @@ test('永夜: てゐ=2枚6点', () => {
 
 test('永夜: てゐ=3枚以上0点（ジレンマ）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
   cycle(s, [['y_tewi', 'y_tewi', DY], [DY, DY]], [0, 0]); // てゐ1枚
   cycle(s, [['y_tewi', 'y_tewi', DY], [DY, DY]], [0, 0]); // てゐ2枚目
   cycle(s, [['y_tewi'], [DY]], [0, 0]); // てゐ3枚目・ラウンド終了 → 0点
@@ -482,6 +588,7 @@ test('永夜: てゐ=3枚以上0点（ジレンマ）', () => {
 
 test('永夜: リグル=他プレイヤーのリグル出し回数×1点', () => {
   const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
   cycle(s, [
     [DY, DY],
     ['y_riggle', DY],
@@ -496,6 +603,7 @@ test('永夜: リグル=他プレイヤーのリグル出し回数×1点', () =>
 
 test('永夜: 玉兎=兎アイコンマキ準拠多数決（2人配点 1位4点）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
   cycle(s, [
     [inst('y_rabbit', 3), inst('y_rabbit', 2), DY],
     [inst('y_rabbit', 1), DY],
@@ -508,6 +616,7 @@ test('永夜: 玉兎=兎アイコンマキ準拠多数決（2人配点 1位4点�
 
 test('永夜: 霊夢=ゲーム末に2枚ごと4点・4枚以上で+2', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
   s.players[0].taken.push(inst('y_reimu'), inst('y_reimu'), inst('y_reimu'), inst('y_reimu'), inst('y_reimu'));
   s.phase = 'over';
   assert.strictEqual(Engine.charmBonus(s, 0), 10); // 5枚 = 4+4+2
@@ -515,6 +624,7 @@ test('永夜: 霊夢=ゲーム末に2枚ごと4点・4枚以上で+2', () => {
 
 test('永夜: 魔理沙=ゲーム末に偶数なら2枚ごと6点・奇数なら3点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_marisa' });
+  fixPeek(s);
   s.players[0].taken.push(inst('y_marisa'), inst('y_marisa'), inst('y_marisa'));
   s.phase = 'over';
   assert.strictEqual(Engine.charmBonus(s, 0), 3); // 3枚・奇数 → floor(3/2)=1組×3点
@@ -522,6 +632,7 @@ test('永夜: 魔理沙=ゲーム末に偶数なら2枚ごと6点・奇数なら
 
 test('永夜: 妹紅=デザートラウンド別判定（R1/R2最多+3・R3最多−6）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
   for (let i = 0; i < 5; i++) s.players[0].desserts.push(inst('y_moko'));
   for (let r = 0; r < 3; r++) {
     cycle(s, [[DY, DY], [DY, DY]], [0, 0]);
@@ -536,6 +647,7 @@ test('永夜: 妹紅=デザートラウンド別判定（R1/R2最多+3・R3最�
 
 test('永夜: ミスティア=取得時にカードを任意枚数裏返して2点化', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
   cycle(s, [['y_tewi', 'y_tewi'], ['y_reimu', 'y_reimu']], [0, 0]); // てゐ1枚（手札1残る）
   setHands(s, [['y_mystia', 'y_tewi'], ['y_reimu', 'y_reimu']]);
   pickAll(s, [0, 0]); // ミスティア取得（手札1残る）→ 選択フェーズ
@@ -555,6 +667,7 @@ test('永夜: ミスティア=取得時にカードを任意枚数裏返して2�
 
 test('永夜: 慧音=ラウンド中取得カードの効果をコピー（自身は対象外）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
   cycle(s, [['y_tewi', DY], [DY, DY]], [0, 0]); // R1 pick1: てゐ1枚
   setHands(s, [['y_keine'], [DY]]);
   pickAll(s, [0, 0]); // R1 pick2: 慧音取得 → 選択フェーズ（settleSelection は手動）
@@ -573,6 +686,7 @@ test('永夜: 慧音=ラウンド中取得カードの効果をコピー（自�
 
 test('永夜: うどんげ=出したラウンド終了時まで非公開フラグ', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
   cycle(s, [['y_reisen', DY], [DY, DY]], [0, 0]);
   assert.strictEqual(s.hidden, true);
   cycle(s, [['y_reisen'], [DY]], [0, 0]); // ラウンド終了
@@ -600,9 +714,17 @@ function aiDispatch(s, pi) {
 
 function fullRun(incident, intruder) {
   const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident, intruder });
+  fixPeek(s);
   let guard = 0;
   while (s.phase !== 'over' && guard++ < 2000) {
-    for (let pi = 0; pi < 4; pi++) aiDispatch(s, pi);
+    if (s.phase === 'select') {
+      // 取得時選択（フラン破棄・ミスティア・慧音・小悪魔の山札確認）を AI が解答
+      for (const pi of s.selectNeeded) {
+        if (s.selections[pi] === null) Engine.dispatch(s, { kind: 'choose', pi, choice: AI.selectChoice(s, pi) });
+      }
+    } else {
+      for (let pi = 0; pi < 4; pi++) aiDispatch(s, pi);
+    }
   }
   assert.strictEqual(s.phase, 'over');
   assert.ok([0, 1, 2, 3].every((pi) => Engine.scorePlayer(s, pi) >= -15), '合計点が異常な負値');
@@ -632,6 +754,7 @@ test('UI API 存在: game.js が使う Engine 関数がすべて公開されて�
     assert.strictEqual(typeof Engine[fn], 'function', `Engine.${fn} が未定義`);
   }
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
   s.players[0].taken = [inst(D, 2), inst(D), inst('k_sakuya')];
   const counts = Engine.countKeys(s.players[0].taken);
   assert.strictEqual(counts[D], 3, 'icons 合算される');
@@ -641,10 +764,12 @@ test('UI API 存在: game.js が使う Engine 関数がすべて公開されて�
 test('initialCounts: 全異変でカードリファレンス用の構成枚数が記録される', () => {
   for (const inc of ['scarlet', 'spring', 'eternal']) {
     const s = Engine.newGame(2, ['A', 'B'], { incident: inc });
+  fixPeek(s);
     const total = Object.values(s.initialCounts).reduce((a, b) => a + b, 0);
     assert.strictEqual(total, 54 + 15, `${inc} の構成合計はメイン54+デザート15`);
   }
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
   assert.strictEqual(s.initialCounts['y_reimu'], 8, '乱入者は参加分のみ記録');
   assert.strictEqual(s.initialCounts['y_marisa'], undefined, '不参加の乱入者は記録されない');
 });
@@ -653,6 +778,7 @@ test('initialCounts: 全異変でカードリファレンス用の構成枚数�
 // （2026-11-03 事故: runAiSelections が人間のフラン破棄も {} で解決し、効果が発揮されないまま進行していた）
 test('select フェーズ: 人間の選択は AI 解決で埋められない', () => {
   const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'scarlet' });
+  fixPeek(s);
   setHands(s, [['k_fran'], [D], [D], [D]]);
   pickAll(s, [0, 0, 0, 0]);
   assert.strictEqual(s.phase, 'select', 'フラン取得で select フェーズに入る');

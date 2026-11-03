@@ -9,6 +9,11 @@
   if (typeof window !== 'undefined' && window.Data) DATA = window.Data;
   else DATA = require('./data.js');
 
+  function engineOf() {
+    if (typeof window !== 'undefined' && window.Engine) return window.Engine;
+    return require('./engine.js');
+  }
+
   const AI = (() => {
   const { RULES } = DATA;
 
@@ -66,7 +71,23 @@
     return [ranked[0].idx, ranked[1].idx].sort((a, b) => a - b);
   }
 
-  return { pick, pick2, cardValue };
+  // 取得時選択の AI 解答: 小悪魔の山札確認（peek）がある場合は候補から即時点が高いカードを 1 枚選ぶ
+  function selectChoice(state, pi) {
+    const need = engineOf().selectionNeeded(state, pi);
+    if (need.peek && state.peekCards && state.peekCards[pi]) {
+      let best = 0;
+      let bestPts = -1;
+      state.peekCards[pi].forEach((inst, idx) => {
+        const def = state.cardMap[inst.key];
+        const pts = def && def.kind === 'instant' ? def.points : def ? 1 : 0;
+        if (pts > bestPts) { bestPts = pts; best = idx; }
+      });
+      return { pick: best };
+    }
+    return {};
+  }
+
+  return { pick, pick2, cardValue, selectChoice };
   })();
 
   if (typeof module !== 'undefined' && module.exports) module.exports = AI;
