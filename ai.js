@@ -17,45 +17,125 @@
   const AI = (() => {
   const { RULES } = DATA;
 
+  // 手元の枚数。engine.countKey と同じくアイコン合計で数える（マキ・ペアの判定と揃える）
   function countKey(p, key) {
-    return p.taken.filter((k) => k === key).length;
+    let n = 0;
+    for (const inst of p.taken) {
+      if (inst.key !== key || inst.flipped || inst.discarded) continue;
+      n += inst.icons || 1;
+    }
+    return n;
   }
 
-  function cardValue(state, pi, key) {
+  // デザート置き場も含めた所持数（デザート系はラウンド末に置き場へ移るため）
+  function dessertCount(state, pi, key) {
     const p = state.players[pi];
-    switch (key) {
-      case 'dish3': return p.pendingSpell > 0 ? 12 : 4;
-      case 'dish2': return p.pendingSpell > 0 ? 10 : 3;
-      case 'dish1': return p.pendingSpell > 0 ? 8 : 1.5;
-      case 'spell': return p.pendingSpell === 0 ? 5 : 0;
-      case 'sake':
-        // 奇数枚持っていれば次でペア成立（高価値）
-        return countKey(p, 'sake') % 2 === 1 ? 7 : 4;
-      case 'chinmi':
-        return countKey(p, 'chinmi') % 3 === 2 ? 9 : 4;
-      case 'dumpling': {
-        const d = countKey(p, 'dumpling');
-        const next = RULES.DUMPLING_TABLE[Math.min(d + 1, 5) - 1];
-        const cur = d > 0 ? RULES.DUMPLING_TABLE[Math.min(d, 5) - 1] : 0;
-        return 3 + (next - cur) * 0.8;
+    const inTaken = p.taken.filter((i) => i.key === key && !i.discarded && !i.flipped).length;
+    return inTaken + p.desserts.filter((i) => i.key === key).length;
+  }
+
+  // 手札 1 枚を取ったときの「今ラウンドの得点」増分の見積もり。
+  // engine.js のラウンド末・ゲーム末判定と同じ式をなぞり、増えるぶんだけを返す近似。
+  // 条件系（同席・乱入者・ペナルティ）は「今の自分の場」で満たしているかで価値を変える。
+  function cardValue(state, pi, card) {
+    const key = typeof card === 'string' ? card : card.key;
+    const def = state.cardMap[key];
+    if (!def) return 1;
+    const p = state.players[pi];
+    const stats = (state.roundStats && state.roundStats[pi]) || { springIcons: 0, dessertTaken: 0, intruderTaken: false };
+    const others = state.players.map((_, i) => i).filter((i) => i !== pi);
+    const mine = countKey(p, key);
+    const icons = (typeof card === 'object' && card.icons) || 1;
+
+    switch (def.kind) {
+      case 'instant': {
+        let value = def.points;
+        // 乱入者ペナルティ: 既に取っていれば確定減点、まだなら確率ぶんだけ割り引く
+        if (def.intruderPenalty) {
+          value -= stats.intruderTaken ? def.intruderPenalty : def.intruderPenalty * 0.4;
+        }
+        // 同席条件（咲夜）: 誰かが条件カードを取っていれば、このラウンドは 0 点
+        if (def.absentKeys) {
+          const blocked = others.some((j) => def.absentKeys.some((k) => countKey(state.players[j], k) > 0));
+          value = blocked ? 0.2 : value * 0.85;
+        }
+        // 取得時コンボ（美鈴・藍・橙）: 相方が既に手元なら加点される
+        if (def.comboKeys && def.comboKeys.some((k) => countKey(p, k) > 0)) value += def.comboBonus || 0;
+        return value;
       }
-      case 'firework': {
-        const my = countKey(p, 'firework');
-        const othersMax = Math.max(
-          ...state.players.filter((_, i) => i !== pi).map((q) => countKey(q, 'firework'))
-        );
-        return my >= othersMax ? 6 : 3;
+      case 'temaki': {
+        // 最多 +most / 最少 least。既に最多なら維持、そうでなければ取りに行く
+        const othersMax = Math.max(0, ...others.map((j) => countKey(state.players[j], key)));
+        if (mine > othersMax) return 1.2;
+        return mine === 0 && othersMax > 0 ? 4.0 : 3.2;
       }
-      case 'charm': return 3;
-      case 'chopsticks': return 4.5;
-      default: return 1;
+      case 'maki': {
+        // 最多 6 点 / 2 位 3 点を 4 人で分け合う想定 → 1 アイコンあたり 1.8 点前後
+        return 1.8 * icons;
+      }
+      case 'collect': {
+        const at = (k) => (k <= 0 ? 0 : def.table[Math.min(k, def.table.length) - 1]);
+        return Math.max(0.2, at(mine + 1) - at(mine));
+      }
+      case 'pair':
+        return mine % 2 === 1 ? def.points : def.points / 2;
+      case 'set3':
+        return mine % 3 === 2 ? def.points : def.points / 3;
+      case 'springMost': {
+        const othersMax = Math.max(0, ...others.map((j) => state.roundStats[j].springIcons));
+        return stats.springIcons > othersMax ? def.most * 0.9 : def.most * 0.35;
+      }
+      case 'springSteal': {
+        const stolen = others.reduce((acc, j) => (state.roundStats[j].springIcons > 0 ? acc + def.steal : acc), 0);
+        return 0.8 + stolen * 0.7;
+      }
+      case 'roundComboCount':
+        return def.per * 1.2;
+      case 'tofu': {
+        const at = (k) => (k <= 0 ? 0 : def.table[Math.min(k, def.table.length) - 1]);
+        return at(mine + 1) - at(mine); // 3 枚目は負になるので取らなくなる
+      }
+      case 'kindCount': {
+        const isNew = !p.taken.some((i) => i.key === key && !i.flipped && !i.discarded);
+        return isNew ? 1.1 : 0.2;
+      }
+      case 'letty': {
+        const own = countKey(p, def.ownKey);
+        return own > stats.springIcons ? def.mult : 0.4;
+      }
+      case 'coop':
+        // 自分以外がリグルを出した回数がそのまま点になる（他人の枚数は読めないので期待値）
+        return 0.8 + state.coopCount.reduce((a, b) => a + b, 0) * 0.15;
+      case 'flip':
+        return 2.6; // 腐ったカードを 2 点に変換できる
+      case 'copy':
+        return 2.8; // 一番強いカードの効果を複製
+      case 'deckPeek':
+        return 2.4 + (def.peek || 4) * 0.1;
+      case 'collectByTwo': {
+        const next = mine + 1;
+        return def.per2 / 2 + (next % 2 === 0 && next >= 4 ? def.bonusAt4 * 0.6 : 0);
+      }
+      case 'parity':
+        return (def.per2Even + def.per2Odd) / 4;
+      case 'dessertLeast':
+        // 最少になると減点。1 枚持つだけで回避できるので初動の価値が高い
+        return dessertCount(state, pi, key) === 0 ? Math.min(4.5, Math.abs(def.least) / 2) : 1.2;
+      case 'dessertIce':
+        return def.points / def.per;
+      case 'dessertRound': {
+        const isFinal = state.round === RULES.ROUNDS - 1;
+        return isFinal ? -1 : def.roundMost / 2 + 1;
+      }
+      default:
+        return 1.5;
     }
   }
 
   function rankedHand(state, pi) {
     const hand = state.players[pi].hand;
     return hand
-      .map((key, idx) => ({ idx, value: cardValue(state, pi, key) + Math.random() * 0.5 }))
+      .map((card, idx) => ({ idx, value: cardValue(state, pi, card) + Math.random() * 0.5 }))
       .sort((a, b) => b.value - a.value);
   }
 
@@ -71,18 +151,17 @@
     return [ranked[0].idx, ranked[1].idx].sort((a, b) => a - b);
   }
 
-  // 取得時選択の AI 解答: 小悪魔の山札確認（peek）がある場合は候補から即時点が高いカードを 1 枚選ぶ
+  // 取得時選択の AI 解答: 小悪魔の山札確認（peek）は候補の中で一番価値が高いカードを取る
   function selectChoice(state, pi) {
     const need = engineOf().selectionNeeded(state, pi);
     if (need.peek && state.peekCards && state.peekCards[pi]) {
-      let best = 0;
-      let bestPts = -1;
+      let best = -1;
+      let bestValue = -Infinity;
       state.peekCards[pi].forEach((inst, idx) => {
-        const def = state.cardMap[inst.key];
-        const pts = def && def.kind === 'instant' ? def.points : def ? 1 : 0;
-        if (pts > bestPts) { bestPts = pts; best = idx; }
+        const value = cardValue(state, pi, inst);
+        if (value > bestValue) { bestValue = value; best = idx; }
       });
-      return { pick: best };
+      if (best >= 0) return { pick: best };
     }
     return {};
   }

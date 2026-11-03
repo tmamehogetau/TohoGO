@@ -2,17 +2,27 @@
 
 // AI vs AI バランスシミュレーション。node tools/sim.js で実行。
 //
-// 目的: 「取らない理由がないカード」を数字で炙り出す。
-// 各カードについて「そのラウンドに取ったときの平均ラウンド点」と
-// 「取らなかったときの平均ラウンド点」の差（= 貢献度）を出す。
-// 差が大きいカードは条件なしで強い疑い、差が 0 以下なら死にカードの疑い。
+// 指標は 2 つ。用途が違うので混同しないこと。
+//
+// 1. 卓平均差（相対指標）
+//    「そのカードを取った人が、同じラウンドで他プレイヤーより何点上だったか」の平均。
+//    + が大きい = 持っていると勝ちやすい、− が大きい = 持っていても勝てない。
+//    ただし全員が同じ頻度で強いカードを引くため、カードの絶対的な強さは相殺される。
+//    実際、点数を動かしても単調に動かない（4 点と 2 点で同じ値になるなど）。
+//    条件付きカード・デザートは構造的に下振れするので、単独で弱いと判断しないこと。
+//
+// 2. 感度分析 --ablate（絶対指標）
+//    指定カードの点数を step 点動かして再実行し、卓全体の平均合計点がいくつ動くかを見る。
+//    こちらのほうが「このカードがゲームの点経済にどれだけ効いているか」を素直に表す。
 //
 // 使い方:
-//   node tools/sim.js                     # 全異変 × 300 ゲーム
-//   node tools/sim.js --games 1000        # ゲーム数指定
-//   node tools/sim.js --incident scarlet  # 異変を 1 つに絞る
-//   node tools/sim.js --seed 12345        # 乱数固定（既定 1）
-//   node tools/sim.js --csv               # CSV 出力（スプレッドシート用）
+//   node tools/sim.js                          # 全異変 × 300 ゲーム
+//   node tools/sim.js --games 1000             # ゲーム数指定
+//   node tools/sim.js --incident scarlet       # 異変を 1 つに絞る
+//   node tools/sim.js --seed 12345             # 乱数固定（既定 1）
+//   node tools/sim.js --csv                    # CSV 出力（スプレッドシート用）
+//   node tools/sim.js --ablate y_kaguya        # 輝夜の点数を 1 下げたときの影響を見る
+//   node tools/sim.js --ablate y_kaguya --step -2
 
 const Engine = require('../engine.js');
 const AI = require('../ai.js');
@@ -29,7 +39,7 @@ function out(line) {
 
 // ---- 引数 ----
 function parseArgs(argv) {
-  const opts = { games: 300, incident: 'all', seed: 1, csv: false, top: 99, out: null };
+  const opts = { games: 300, incident: 'all', seed: 1, csv: false, top: 99, out: null, ablate: null, step: -1 };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--games') opts.games = Math.max(1, parseInt(argv[++i], 10) || 300);
@@ -38,6 +48,8 @@ function parseArgs(argv) {
     else if (a === '--csv') opts.csv = true;
     else if (a === '--top') opts.top = Math.max(1, parseInt(argv[++i], 10) || 99);
     else if (a === '--out') opts.out = argv[++i] || null;
+    else if (a === '--ablate') opts.ablate = argv[++i] || null;
+    else if (a === '--step') opts.step = parseInt(argv[++i], 10) || -1;
   }
   return opts;
 }
@@ -238,6 +250,66 @@ function printCsv(allRows) {
   }
 }
 
+function findCardDef(key) {
+  for (const id of Data.INCIDENT_IDS) {
+    const inc = Data.incidentById(id);
+    const all = [...inc.main, ...(inc.dessert ? [inc.dessert] : []), ...(inc.intruders || [])];
+    const def = all.find((d) => d.key === key);
+    if (def) return { incident: id, def };
+  }
+  return null;
+}
+
+// 乱数を固定して 1 回ぶん実行する（感度分析で基準と変更後を同じ条件で比べるため）
+function runWithSeed(seed, fn) {
+  const origRandom = Math.random;
+  Math.random = makeRng(seed);
+  try {
+    return fn();
+  } finally {
+    Math.random = origRandom;
+  }
+}
+
+function avgScore(totals) {
+  return mean(totals.scoreSamples.flat());
+}
+
+// 指定カードの点数を step 点動かして再実行し、卓全体の平均合計点の変化を出す。
+// 卓平均差が相対指標で単調でないのに対し、こちらは点経済への寄与を素直に測れる。
+function runAblation(args, incidents, baseTotals) {
+  const found = findCardDef(args.ablate);
+  if (!found) {
+    out(`感度分析: 未知のカード ${args.ablate}`);
+    return;
+  }
+  const { incident, def } = found;
+  if (!incidents.includes(incident)) {
+    out(`感度分析: ${def.name} は --incident で選んだ異変に含まれていない`);
+    return;
+  }
+  const original = def.points;
+  if (typeof original !== 'number') {
+    out(`感度分析: ${def.name} はポイント制のカードではない（kind: ${def.kind}）`);
+    return;
+  }
+
+  def.points = original + args.step;
+  let changed;
+  try {
+    changed = runWithSeed(args.seed, () => run([incident], args.games));
+  } finally {
+    def.points = original;
+  }
+
+  const before = avgScore(baseTotals.get(incident));
+  const after = avgScore(changed.totalsByIncident.get(incident));
+  out('');
+  out(`--- 感度分析: ${def.name}（${def.key}） ---`);
+  out(`  ${original} 点 → ${original + args.step} 点: 卓平均合計 ${fmt(before, 2)} → ${fmt(after, 2)}`);
+  out(`  点数 1 点あたりの重み ${fmt((after - before) / args.step, 2)}（枚数と取られやすさ込みの効き方）`);
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const incidents = args.incident === 'all' ? Data.INCIDENT_IDS.slice() : [args.incident];
@@ -248,14 +320,7 @@ function main() {
     }
   }
 
-  const origRandom = Math.random;
-  Math.random = makeRng(args.seed);
-  let result;
-  try {
-    result = run(incidents, args.games);
-  } finally {
-    Math.random = origRandom;
-  }
+  const result = runWithSeed(args.seed, () => run(incidents, args.games));
 
   const allRows = [];
   for (const incident of incidents) {
@@ -271,18 +336,20 @@ function main() {
 
   if (args.csv) printCsv(allRows);
 
-  // 全異変を通した「強すぎ / 死にカード」の警告
+  // 全異変を通した「偏りが大きいカード」の警告
   out('');
-  out('--- 設計チェック（卓平均差の絶対値が大きいカード）---');
+  out('--- 設計チェック（卓平均差の絶対値が大きいカード・相対指標）---');
   const flagged = [];
   for (const { incident, rows } of allRows) {
     for (const r of rows) flagged.push({ incident, ...r });
   }
   flagged.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
   for (const r of flagged.slice(0, 6)) {
-    const tag = r.delta > 0 ? '強すぎ疑い' : '弱すぎ疑い';
+    const tag = r.delta > 0 ? '持ちが強い' : '持ちが弱い';
     out(`  ${tag}: ${r.incident} / ${r.name}（${r.kind}・${r.count}枚） 卓平均差 ${r.delta >= 0 ? '+' : ''}${fmt(r.delta, 2)} 取得率 ${fmt(r.acquireRate * 100, 1)}%`);
   }
+
+  if (args.ablate) runAblation(args, incidents, result.totalsByIncident);
 
   if (args.out) {
     fs.writeFileSync(args.out, OUTPUT_LINES.join('\n') + '\n', 'utf8');
