@@ -16,6 +16,20 @@
 
   let SEL_INCIDENT = ''; // '' = おまかせ（ランダム抽選）
 
+  let ONLINE = false; // 対戦モード（サーバー権威）
+  let MY_SEAT = 0;
+
+  // 自分の行動。対戦中はサーバーへ送り、ホットシート中はエンジンへ直接適用する
+  function actHuman(action) {
+    if (ONLINE) {
+      Net.action(action);
+      // 連打・再送を防ぐため、ピック系は提出済み表示にする（サーバーの state で上書きされる）
+      if (action.kind !== 'choose' && STATE && STATE.picks) STATE.picks[0] = true;
+      return { ok: true };
+    }
+    return Engine.dispatch(STATE, { ...action, pi: 0 });
+  }
+
   // ロビーの異変選択 UI（data.js の INCIDENTS から動的生成）
   function incidentOption(id, title, desc) {
     const el = document.createElement('div');
@@ -39,6 +53,7 @@
   function startGame() {
     const name = $('input-name').value.trim() || '幹事';
     const opts = SEL_INCIDENT ? { incident: SEL_INCIDENT } : {};
+    ONLINE = false;
     STATE = Engine.newGame(4, [name, '萃香', '魔理沙', 'にとり'], opts);
     CHOPSTICKS_MODE = false;
     CHOP_SELECTED = [];
@@ -129,7 +144,7 @@
 
   // クリックは選択のトグルのみ。確定は決定ボタン（confirmPick）で行う（ミスクリック防止）
   function onHandClick(idx) {
-    if (!STATE || STATE.phase !== 'pick' || STATE.picks[0] !== null) return;
+    if (!STATE || STATE.phase !== 'pick' || STATE.picks[0]) return;
     const p = STATE.players[0];
 
     if (CHOPSTICKS_MODE && p.chopsticks > 0) {
@@ -151,13 +166,13 @@
 
   // 決定ボタン: 選択したカードで確定してエンジンに送る
   function confirmPick() {
-    if (!STATE || STATE.phase !== 'pick' || STATE.picks[0] !== null) return;
+    if (!STATE || STATE.phase !== 'pick' || STATE.picks[0]) return;
     const p = STATE.players[0];
 
     if (CHOPSTICKS_MODE && p.chopsticks > 0) {
       if (CHOP_SELECTED.length !== 2) return;
       CHOP_SELECTED.forEach((i) => flyFromIdx(i));
-      Engine.dispatch(STATE, { kind: 'pick2', pi: 0, idxs: [...CHOP_SELECTED].sort((a, b) => a - b) });
+      actHuman({ kind: 'pick2', idxs: [...CHOP_SELECTED].sort((a, b) => a - b) });
       CHOP_SELECTED = [];
       afterHumanPick();
       return;
@@ -165,7 +180,7 @@
 
     if (PICK_SELECTED === null) return;
     flyFromIdx(PICK_SELECTED);
-    const res = Engine.dispatch(STATE, { kind: 'pick', pi: 0, idx: PICK_SELECTED });
+    const res = actHuman({ kind: 'pick', idx: PICK_SELECTED });
     if (!res.ok) { FLY_FROMS.pop(); alert(res.error); return; }
     PICK_SELECTED = null;
     afterHumanPick();
@@ -180,6 +195,7 @@
   }
 
   function runAiPicks() {
+    if (ONLINE) return; // 対戦中はサーバーが全席を解決する
     for (let i = 1; i < STATE.playerCount; i++) {
       if (STATE.picks[i] !== null) continue;
       const use2 = STATE.players[i].chopsticks > 0 && STATE.players[i].hand.length >= 2;
@@ -192,13 +208,14 @@
 
   // 早飲みで枚数がズレて人間の手札が先に尽きた場合、自動で空ピックして進行を止めない
   function autoSkipIfEmpty() {
-    if (!STATE || STATE.phase !== 'pick' || STATE.picks[0] !== null) return;
+    if (!STATE || STATE.phase !== 'pick' || STATE.picks[0]) return;
     if (STATE.players[0].hand.length !== 0) return;
-    const res = Engine.dispatch(STATE, { kind: 'skip', pi: 0 });
+    const res = actHuman({ kind: 'skip' });
     if (res.ok) runAiPicks();
   }
 
   function runAiSelections() {
+    if (ONLINE) return; // 対戦中はサーバーが全席を解決する
     if (STATE.phase !== 'select') return;
     for (const pi of STATE.selectNeeded) {
       if (pi === 0) continue; // 人間の選択は select UI に委ねる（{} で自動解決しない）
@@ -209,6 +226,13 @@
   }
 
   function afterHumanPick() {
+    if (ONLINE) {
+      CHOPSTICKS_MODE = false;
+      CHOP_SELECTED = [];
+      PICK_SELECTED = null;
+      renderAll();
+      return;
+    }
     runAiPicks();
     runAiSelections();
     CHOPSTICKS_MODE = false;
@@ -324,7 +348,7 @@
     STAGED_CHOICE = null;
     SEL_MODE = null;
     SEL_SELECTED = [];
-    Engine.dispatch(STATE, { kind: 'choose', pi: 0, choice });
+    actHuman({ kind: 'choose', choice });
     runAiSelections();
     renderAll();
   }
@@ -348,7 +372,7 @@
     STAGED_CHOICE = null;
     SEL_MODE = null;
     SEL_SELECTED = [];
-    Engine.dispatch(STATE, { kind: 'choose', pi: 0, choice });
+    actHuman({ kind: 'choose', choice });
     runAiSelections();
     renderAll();
   }
@@ -405,7 +429,7 @@
     const handEl = $('hand');
     handEl.innerHTML = '';
     const p = STATE.players[0];
-    const myTurn = STATE.phase === 'pick' && STATE.picks[0] === null;
+    const myTurn = STATE.phase === 'pick' && !STATE.picks[0];
     const selectTurn = STATE.phase === 'select' && STATE.selectNeeded.includes(0);
 
     // 手札変化の検出: DEAL_ANIM 中 or 枚数増=配り・それ以外の内容変化=パス流れ込み
@@ -423,7 +447,7 @@
       statusEl.textContent = '宴会終了！';
     } else if (STATE.phase === 'select') {
       statusEl.textContent = selectStatusText(selectTurn);
-    } else if (STATE.picks[0] !== null) {
+    } else if (STATE.picks[0]) {
       statusEl.textContent = '他の幹事の選択を待っている…';
     } else if (CHOPSTICKS_MODE) {
       statusEl.textContent = `早飲みモード：2枚選んでね（${CHOP_SELECTED.length}/2 枚選択）`;
@@ -661,8 +685,8 @@
         const keys = lp ? [...lp.keys] : [];
         const els = shown.map((inst) => {
           // うどんげの幻覚: 幻覚中の他プレイヤーのピックは「うどんげ」として表示される。
-          // ツールチップも本物と完全に同一にする（ホバーで幻覚と判明すると出した人が特定できてしまう）
-          if (inst.hiddenTaken && STATE.hiddenOwner !== pi) {
+          // 幻覚を出した本人（hiddenOwner === 0）は影響を受けない
+          if (inst.hiddenTaken && STATE.hiddenOwner !== pi && STATE.hiddenOwner !== 0) {
             return cardEl('y_reisen', null, 'mini');
           }
           return cardEl(inst.key, inst.icons, 'mini', inst, roundPtsOf(inst, pi));
@@ -789,9 +813,12 @@
       .sort((a, x) => x.points - a.points)
       .map((r) => `<div>${r.pi === 0 ? 'あなた' : ''}${r.name}: ${r.points >= 0 ? '+' : ''}${r.points}点</div>`)
       .join('');
-    el.innerHTML = `<h2>ラウンド ${b.round + 1} 結果</h2>${rows}<p class="banner-note">カードをクリックで次のラウンド開始</p>`;
+    el.innerHTML = `<h2>ラウンド ${b.round + 1} 結果</h2>${rows}<p class="banner-note">${ONLINE ? 'クリックで次へ（全員の準備を待っています）' : 'カードをクリックで次のラウンド開始'}</p>`;
     el.classList.remove('hidden');
-    el.onclick = () => { STATE.roundBanner = null; DEAL_ANIM = true; renderAll(); }; // 次ラウンドの配りアニメ
+    el.onclick = () => {
+      if (ONLINE) { Net.continueRound(); return; }
+      STATE.roundBanner = null; DEAL_ANIM = true; renderAll(); // 次ラウンドの配りアニメ
+    };
   }
 
   // 異変カード一覧モーダル（現在のセットの全カード・説明・構成枚数）
@@ -858,14 +885,100 @@
     renderLog();
   }
 
+  // ---- 対戦（サーバー権威） ----
+
+  function randomRoomCode() {
+    const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    return Array.from({ length: 4 }, () => A[Math.floor(Math.random() * A.length)]).join('');
+  }
+
+  function lobbyName() {
+    return $('input-name').value.trim() || '幹事';
+  }
+
+  function createRoom() {
+    Net.join(randomRoomCode(), lobbyName());
+  }
+
+  function joinRoom() {
+    const code = $('input-code').value.trim().toUpperCase();
+    if (!code) { $('input-code').focus(); return; }
+    Net.join(code, lobbyName());
+  }
+
+  function showOnlineLobby(lobby) {
+    ONLINE = true;
+    $('online-lobby').classList.remove('hidden');
+    $('mp-entry').classList.add('hidden');
+    $('online-code').textContent = lobby.roomCode;
+    $('online-players').innerHTML = lobby.players
+      .map((p) => `<div class="online-player${p.seat === MY_SEAT ? ' me' : ''}">${p.isHost ? '★' : ''}${p.name}${p.connected ? '' : ' <span class="off">（切断）</span>'}</div>`)
+      .join('');
+    const me = lobby.players.find((p) => p.seat === MY_SEAT);
+    $('btn-online-start').classList.toggle('hidden', !(me && me.isHost));
+    $('online-hint').textContent = lobby.started
+      ? 'ゲーム開始…'
+      : `${lobby.players.length}/${lobby.maxPlayers}人（${lobby.minPlayers}人以上で開始）`;
+  }
+
   function init() {
     $('btn-start').addEventListener('click', startGame);
     $('input-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') startGame(); });
     $('btn-chopsticks').addEventListener('click', toggleChopsticks);
     $('btn-confirm-pick').addEventListener('click', confirmPick);
     $('btn-cardref').addEventListener('click', toggleCardRef);
+    $('btn-create').addEventListener('click', createRoom);
+    $('btn-join').addEventListener('click', joinRoom);
+    $('input-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinRoom(); });
+    $('btn-online-start').addEventListener('click', () => Net.start(SEL_INCIDENT || undefined));
     buildIncidentPicker();
   }
+
+  // サーバーからの通知（net.js 経由）
+  window.App = {
+    onJoined(msg) {
+      ONLINE = true;
+      MY_SEAT = msg.seat;
+      $('mp-entry').classList.add('hidden');
+      $('online-lobby').classList.remove('hidden');
+      if (msg.reconnected) {
+        const hint = $('online-hint');
+        if (hint) hint.textContent = '再接続しました';
+      }
+    },
+    onLobby(lobby) {
+      showOnlineLobby(lobby);
+    },
+    onState(view) {
+      const hadBanner = !!(STATE && STATE.roundBanner);
+      STATE = view;
+      if (hadBanner && !view.roundBanner) DEAL_ANIM = true;
+      if (view.picks && view.picks[0]) {
+        PICK_SELECTED = null;
+        CHOP_SELECTED = [];
+        CHOPSTICKS_MODE = false;
+      }
+      $('lobby').classList.add('hidden');
+      $('app').classList.remove('hidden');
+      renderAll();
+    },
+    onGameOver() { /* 最終バナーは renderBanner が担当 */ },
+    onStatus(text) {
+      const hint = $('online-hint');
+      if (hint) hint.textContent = text;
+    },
+    onError(message) {
+      const hint = $('online-hint');
+      if (hint && !$('online-lobby').classList.contains('hidden')) hint.textContent = message;
+      else alert(message);
+    },
+    onDisconnect() {
+      if (!ONLINE) return;
+      const st = $('hand-status');
+      if (st) st.textContent = '接続が切れたよ。自動で再接続しています…';
+    },
+    onConnected() {},
+  };
 
   document.addEventListener('DOMContentLoaded', init);
 

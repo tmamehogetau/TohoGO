@@ -6,8 +6,12 @@
   "scripts": {
     "start": "node server.js",
     "test": "node tools/rules-test.js",
+    "test:ws": "node tools/ws-test.js",
     "sim": "node tools/sim.js",
     "attrib": "node tools/attrib.js",
     "ai-check": "node tools/ai-check.js"
+  },
+  "dependencies": {
+    "ws": "^8.22.1"
   }
 }

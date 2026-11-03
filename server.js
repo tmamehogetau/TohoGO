@@ -1,11 +1,14 @@
 'use strict';
 
-// 静的配信サーバー（Node 組み込み http のみ・依存なし）。
-// WebSocket 対戦は v0.2 で ws ベースに拡張予定（Cascadia の server.js を参照）。
+// 静的配信 + 対戦サーバー（Node 組み込み http + ws）。
+// クライアントは静的ファイルを取得し、/ws でルームに参加して行動を送る。
+// 状態はサーバーの engine が唯一の正で、クライアントには席ごとのビューだけ配る。
 
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { WebSocketServer } = require('ws');
+const { Room } = require('./room.js');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -15,6 +18,7 @@ const MIME = {
   '.md': 'text/markdown; charset=utf-8',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
 };
 
 const server = http.createServer((req, res) => {
@@ -36,6 +40,172 @@ const server = http.createServer((req, res) => {
     res.end(data);
   });
 });
+
+// ---------------- ルーム ----------------
+
+const rooms = new Map(); // code -> Room
+const sessions = new Map(); // ws -> { code, seat }
+
+const wss = new WebSocketServer({ server, path: '/ws' });
+
+wss.on('connection', (ws) => {
+  ws.meta = { code: null, seat: null };
+  ws.on('message', (raw) => {
+    let msg;
+    try { msg = JSON.parse(raw.toString()); } catch { return send(ws, { type: 'error', message: 'JSON が不正です' }); }
+    if (!msg || typeof msg.type !== 'string') return send(ws, { type: 'error', message: 'メッセージが不正です' });
+
+    switch (msg.type) {
+      case 'join': return onJoin(ws, msg);
+      case 'start': return onStart(ws, msg);
+      case 'action': return onAction(ws, msg);
+      case 'continue': return onContinue(ws);
+      case 'leave': return onLeave(ws);
+      case 'ping': return send(ws, { type: 'pong' });
+      case 'heartbeat': return;
+      default: return send(ws, { type: 'error', message: '未対応のコマンドです' });
+    }
+  });
+  ws.on('close', () => onDisconnect(ws));
+});
+
+function onJoin(ws, msg) {
+  const code = String(msg.code || '').trim().toUpperCase();
+  if (!code) return send(ws, { type: 'error', message: 'ルームコードを入力してください' });
+  let room = rooms.get(code);
+  if (!room) {
+    room = new Room(code);
+    rooms.set(room.code, room);
+  }
+  const result = room.join(msg.name, msg.playerId);
+  if (!result.ok) return send(ws, { type: 'error', message: result.error });
+
+  // 同じ席に古い接続が残っていれば切る（再接続・二重タブ対策）
+  const old = room.sockets.get(result.seat);
+  if (old && old !== ws) {
+    sessions.delete(old);
+    try { old.close(1000, 'replaced'); } catch { /* noop */ }
+  }
+  room.sockets.set(result.seat, ws);
+  sessions.set(ws, { code: room.code, seat: result.seat });
+  ws.meta = { code: room.code, seat: result.seat };
+
+  send(ws, {
+    type: 'joined',
+    roomCode: room.code,
+    seat: result.seat,
+    playerId: result.playerId,
+    isHost: result.isHost,
+    reconnected: !!result.reconnected,
+  });
+  broadcastLobby(room);
+  if (room.started) broadcastState(room);
+}
+
+function onStart(ws, msg) {
+  const { room, seat } = ctx(ws);
+  if (!room) return send(ws, { type: 'error', message: '先に join してください' });
+  const res = room.start(seat, msg.incident);
+  if (!res.ok) return send(ws, { type: 'error', message: res.error });
+  broadcastLobby(room);
+  broadcastState(room);
+}
+
+function onAction(ws, msg) {
+  const { room, seat } = ctx(ws);
+  if (!room) return send(ws, { type: 'error', message: '先に join してください' });
+  const res = room.act(seat, msg.action);
+  if (!res.ok) return send(ws, { type: 'error', message: res.error });
+  afterChange(room);
+}
+
+function onContinue(ws) {
+  const { room, seat } = ctx(ws);
+  if (!room) return;
+  room.continueAfterRound(seat);
+  afterChange(room);
+}
+
+function onLeave(ws) {
+  onDisconnect(ws);
+  try { ws.close(1000, 'left'); } catch { /* noop */ }
+}
+
+function onDisconnect(ws) {
+  const s = sessions.get(ws);
+  sessions.delete(ws);
+  if (!s) return;
+  const room = rooms.get(s.code);
+  if (!room) return;
+  // この ws がまだ現役の席なら切断扱い（再接続で置き換え済みなら何もしない）
+  if (room.sockets.get(s.seat) === ws) {
+    room.sockets.delete(s.seat);
+    room.disconnect(s.seat);
+    broadcastLobby(room);
+    if (room.state) {
+      broadcastState(room);
+      scheduleAutoPlay(room);
+    }
+  }
+}
+
+function ctx(ws) {
+  const s = sessions.get(ws);
+  if (!s) return { room: null, seat: null };
+  return { room: rooms.get(s.code) || null, seat: s.seat };
+}
+
+function afterChange(room) {
+  broadcastState(room);
+  scheduleAutoPlay(room);
+}
+
+// 切断中の席が行動待ちなら、少し待って AI に代行させる（ゲーム停止防止）
+function scheduleAutoPlay(room) {
+  if (room.autoTimer) return;
+  const waiting = room.seats.some((s, i) => !s.connected && room.needsAction(i));
+  if (!waiting) return;
+  room.autoTimer = setTimeout(() => {
+    room.autoTimer = null;
+    if (!rooms.has(room.code)) return;
+    if (room.autoPlayDisconnected()) afterChange(room);
+  }, 1500);
+}
+
+function broadcastLobby(room) {
+  const msg = JSON.stringify(room.lobby());
+  for (const ws of room.sockets.values()) {
+    if (ws.readyState === ws.OPEN) ws.send(msg);
+  }
+}
+
+function broadcastState(room) {
+  if (!room.state) return;
+  for (const [seat, ws] of room.sockets) {
+    if (ws.readyState !== ws.OPEN) continue;
+    ws.send(JSON.stringify({ type: 'state', view: room.view(seat) }));
+    if (room.state.phase === 'over') {
+      ws.send(JSON.stringify({ type: 'gameover' }));
+    }
+  }
+}
+
+function send(ws, msg) {
+  if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
+}
+
+// 放置ルームの掃除（2時間）
+setInterval(() => {
+  const now = Date.now();
+  for (const [code, room] of rooms) {
+    if (now - room.lastActivity > 2 * 60 * 60 * 1000) {
+      for (const ws of room.sockets.values()) {
+        try { ws.close(1000, 'expired'); } catch { /* noop */ }
+      }
+      rooms.delete(code);
+    }
+  }
+}, 10 * 60 * 1000).unref();
 
 const PORT = process.env.PORT || 3010;
 server.listen(PORT, () => {

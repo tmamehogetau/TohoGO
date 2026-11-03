@@ -428,3 +428,34 @@ main {
 .ref-name { font-weight: bold; }
 .ref-count { color: var(--gold); margin-left: 8px; font-size: 0.8rem; }
 .ref-desc { font-size: 0.78rem; color: var(--text-dim); line-height: 1.45; margin-top: 3px; }
+
+/* 対戦ロビー */
+#mp-entry {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 6px;
+}
+#mp-entry input {
+  display: inline-block;
+  margin: 0;
+  width: 84px;
+  text-align: center;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+#online-lobby {
+  margin-top: 16px;
+  border-top: 1px solid #3a3342;
+  padding-top: 12px;
+}
+#online-code {
+  color: var(--accent);
+  font-size: 1.3rem;
+  letter-spacing: 0.18em;
+}
+.online-player { padding: 4px 0; }
+.online-player.me { color: var(--accent); font-weight: bold; }
+.online-player .off { color: var(--text-dim); font-size: 0.8rem; }
+#online-hint { min-height: 1em; }

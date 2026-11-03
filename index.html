@@ -17,6 +17,19 @@
     <input id="input-name" placeholder="幹事の名前" value="貴殿" maxlength="12">
     <div id="incident-picker" class="incident-picker"></div>
     <button id="btn-start">宴会を始める</button>
+
+    <div id="mp-entry">
+      <button id="btn-create" class="secondary">ルームを作る</button>
+      <input id="input-code" placeholder="コード" maxlength="4" autocomplete="off">
+      <button id="btn-join" class="secondary">参加する</button>
+    </div>
+
+    <div id="online-lobby" class="hidden">
+      <p class="note">ルームコード: <strong id="online-code"></strong>（参加者に伝えてください）</p>
+      <div id="online-players"></div>
+      <button id="btn-online-start" class="hidden">ゲーム開始</button>
+      <p class="note" id="online-hint"></p>
+    </div>
   </div>
 </div>
 
@@ -60,5 +73,6 @@
 <script src="engine.js"></script>
 <script src="ai.js"></script>
 <script src="game.js"></script>
+<script src="net.js"></script>
 </body>
 </html>
