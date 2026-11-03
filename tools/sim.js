@@ -326,6 +326,61 @@ function runByCard(args, key) {
     const b = byGame.get(c);
     out(`${pad(c, 18)}${pad(b.n, 8)}${pad(fmt((b.win / b.n) * 100, 1) + '%', 10)}${pad(fmt(b.scoreSum / b.n, 2), 12)}`);
   }
+
+  // ゲーム末ボーナス（通算条件）の達成状況
+  const cond = def.gameEndTotalAtLeast
+    ? { type: 'totalAtLeast', count: def.gameEndTotalAtLeast.count, points: def.gameEndTotalAtLeast.points }
+    : def.gameEndMost
+      ? { type: 'most', points: def.gameEndMost.points }
+      : null;
+  if (!cond) return;
+
+  let metN = 0, metWin = 0, metScore = 0;
+  let unmetN = 0, unmetWin = 0, unmetScore = 0;
+  const rounds = games[0].rounds.length;
+  const needBuckets = new Map();
+  for (const g of games) {
+    const totals = g.rounds.reduce((acc, round) => round.map((m, pi) => acc[pi] + (m.get(key) || 0)), [0, 0, 0, 0]);
+    const best = Math.max(...g.totals);
+    const winners = g.totals.filter((t) => t === best).length;
+    const maxCopies = Math.max(...totals);
+    for (let pi = 0; pi < g.totals.length; pi++) {
+      const met = cond.type === 'totalAtLeast'
+        ? totals[pi] >= cond.count
+        : maxCopies > 0 && totals[pi] === maxCopies;
+      const win = g.totals[pi] === best ? 1 / winners : 0;
+      if (met) { metN += 1; metWin += win; metScore += g.totals[pi]; }
+      else { unmetN += 1; unmetWin += win; unmetScore += g.totals[pi]; }
+
+      if (cond.type === 'totalAtLeast') {
+        let before = 0;
+        for (let r = 0; r < rounds - 1; r++) before += g.rounds[r][pi].get(key) || 0;
+        const need = Math.max(0, cond.count - before);
+        const b = needBuckets.get(need) || { n: 0, win: 0, met: 0 };
+        b.n += 1;
+        if (g.totals[pi] === best) b.win += 1 / winners;
+        if (met) b.met += 1;
+        needBuckets.set(need, b);
+      }
+    }
+  }
+
+  const condLabel = cond.type === 'totalAtLeast'
+    ? `通算 ${cond.count} 枚以上で +${cond.points}`
+    : `通算の枚数が最多で +${cond.points}`;
+  out('');
+  out(`--- ゲーム末ボーナス（${condLabel}）の達成状況 ---`);
+  out(`  ${pad('達成', 8)}${pad(String(metN) + ' 人', 12)}${pad(fmt((metN / (metN + unmetN)) * 100, 1) + '%', 10)}${pad('勝率 ' + fmt((metWin / Math.max(1, metN)) * 100, 1) + '%', 14)}平均 ${fmt(metScore / Math.max(1, metN), 2)}`);
+  out(`  ${pad('未達', 8)}${pad(String(unmetN) + ' 人', 12)}${pad(fmt((unmetN / (metN + unmetN)) * 100, 1) + '%', 10)}${pad('勝率 ' + fmt((unmetWin / Math.max(1, unmetN)) * 100, 1) + '%', 14)}平均 ${fmt(unmetScore / Math.max(1, unmetN), 2)}`);
+
+  if (cond.type === 'totalAtLeast') {
+    out('');
+    out(`  ${pad('最終R開始時の残り必要', 22)}${pad('人数', 8)}${pad('達成率', 10)}${pad('勝率', 10)}`);
+    for (const k of [...needBuckets.keys()].sort((a, b) => a - b)) {
+      const b = needBuckets.get(k);
+      out(`  ${pad(k === 0 ? '0（達成済み）' : k, 22)}${pad(b.n, 8)}${pad(fmt((b.met / b.n) * 100, 1) + '%', 10)}${pad(fmt((b.win / b.n) * 100, 1) + '%', 10)}`);
+    }
+  }
 }
 
 // 乱数を固定して 1 回ぶん実行する（感度分析で基準と変更後を同じ条件で比べるため）

@@ -57,10 +57,12 @@
       if (need > 0 && need <= 3) value += def.gameEndTotalAtLeast.points / need;
     }
     if (def.gameEndMost) {
+      // 「最多」ボーナスは最終ラウンドまで温存する（序盤から追うと過剰に集めてしまう）
+      const isFinalRound = state.round >= DATA.RULES.ROUNDS - 1;
       const othersMax = Math.max(0, ...state.players
         .filter((_, i) => i !== pi)
         .map((q) => (q.gameEndCounts && q.gameEndCounts[def.key]) || 0));
-      if (total + 1 >= othersMax) value += def.gameEndMost.points / 3;
+      if (isFinalRound && total + 1 >= othersMax) value += def.gameEndMost.points / 3;
     }
     return value;
   }
