@@ -215,10 +215,14 @@ touhou-draft/
 ├── room.js         対戦ルーム管理・席ごとのビュー（サーバー権威）
 ├── net.js          対戦クライアント（ws・再接続）
 ├── server.js       静的配信 + WebSocket サーバー
+├── assets/cards/   カードイラスト（<key>.webp・512×768）
 ├── package.json    ws のみ
 └── tools/
     ├── rules-test.js  ルールテスト（node 直実行）
-    └── ws-test.js     対戦サーバーのスモークテスト
+    ├── ws-test.js     対戦サーバーのスモークテスト
+    ├── start-comfyui.ps1 / comfy-standalone.ps1  画像生成（ComfyUI 単独）
+    ├── process-card-art.py  生成画像 → WebP
+    └── card-art/runs.json   カード31枚の生成プロンプト
 ```
 
 ### 対戦の設計（v0.3）
@@ -265,7 +269,7 @@ touhou-draft/
 | v0.2（済） | **異変パックシステム**（共通カード廃止・異変3パック・10種×105枚） |
 | v0.3（済） | **対戦**（サーバー権威・ルームコード・席ごとのビュー・再接続・切断時AI代行） |
 | v0.4 | 異変パック追加（風神録・地霊殿・輝針城）+ バランス調整（AIシミュレーション） |
-| v1.0 | ルール最終化・カードイラスト（東方キャラ）・サウンド |
+| v1.0 | ルール最終化・カードイラスト（31枚生成済み・WebP）・サウンド |
 
 ---
 

@@ -18,6 +18,7 @@
 - 3異変パック、全カード実装済み（未実装カードなし）
 - ホットシート対戦（人間1 + AI3）、BGA風レイアウト、2ステップ確定UI
 - **対戦（v0.3）**: ルームコード・サーバー権威・席ごとのビュー・再接続・切断時AI代行（`ws` 使用）
+- **カードイラスト31枚**（512×768 WebP・ComfyUI 生成・画像が無い場合は色＋字フォールバック）
 - ルールテスト 72件（`npm test`）＋ 対戦スモークテスト（`npm run test:ws`）
 - 同点タイブレーキ（合計点 → デザート合計枚数 → 同率1位。`Engine.finalRanking()` が定義元）
 - バランス計測ツール一式（下記）
@@ -109,6 +110,19 @@ Windows の PowerShell 5.1 は node の UTF-8 出力を化けさせるので、`
 - 再接続: ルームごとの `playerId` を localStorage に保存。同じ id で join すると元の席へ
 - 切断時の代行: 行動待ちの切断席は 1.5 秒後に AI が代行する。**ロビーで切断した席があっても開始でき、
   その席は AI が代行する**（幽霊席で開始できなくならないように。2026-11-03 修正）
+
+## 4.6 カードイラスト（ComfyUI 単独ルート）
+
+- 全31種のカードに生成イラスト（512×768 WebP、`assets/cards/<key>.webp`）を配置
+- 生成は **ComfyUI 単独**で行う（Strata は停止しておく）。`comfygen.ps1` の Strata ハンドオフは使わない
+  - `tools/start-comfyui.ps1` … ComfyUI を `--disable-all-custom-nodes` で起動（管理バックグラウンドジョブで実行）
+  - `tools/comfy-standalone.ps1` … ワークフロー投入・ポーリング・ダウンロード（Strata チェックなし）
+  - `tools/card-art/runs.json` … 31枚のプロンプトと seed
+  - `tools/process-card-art.py` … 2:3 センタークロップ → 512×768 WebP q84
+- サンドボックス対策で ComfyUI の output/temp/input/user を `.tmp` 配下へ逃がしている
+- モデル: Qwen-Image 2.1 turbo（832×1216 生成 → WebP 化）
+- 画像が無い/読み込み失敗時は色＋字のフォールバック（`.card.no-art`）
+- カスタムノードを無効化すると起動が約3秒（有効時は数分かかった）
 - テスト: `tools/ws-test.js`（join / start / setSettings / タイマー / ピック / 秘匿 / 再接続 / 幻覚マスク）
 - 制限: ルームはサーバーのメモリ保持（Render 無料枠はスリープで消える）。観戦・チャット・投了は未実装
 

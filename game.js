@@ -120,7 +120,7 @@
       case 'maki': return `このアイコンの合計を競う・最多 ${MAKI.first} 点／2 位 ${MAKI.second} 点`;
       case 'temaki': return `この枚数を競う・最多 +${def.most}／最少 ${def.least} 点`;
       case 'springMost': return `ラウンド末・春の獲得数が全員最多なら、所持 1 枚ごとに +${def.most} 点（このカードの所持が条件）`;
-      case 'springSteal': return `取った瞬間・他の全員から春を ${def.steal} 個ずつ奪う。**春を持っていない相手 1 人につき +${def.pointPer} 点**（誰からも奪えないと失敗）`;
+      case 'springSteal': return `取った瞬間・他の全員から春を ${def.steal} 個ずつ奪う。春を持っていない相手 1 人につき +${def.pointPer} 点（誰からも奪えないと失敗）`;
       case 'pair': return `2 枚で 1 ペア = ${def.points} 点${gameEndBonusText(def)}`;
       case 'set3': return `3 枚で 1 セット = ${def.points} 点${gameEndBonusText(def)}`;
       case 'collect': return `1/2/3/4/5+ 枚で ${def.table.join('/')} 点`;
@@ -398,12 +398,16 @@
     const def = defOf(key);
     const el = document.createElement('div');
     el.className = `card${extra ? ' ' + extra : ''}`;
-    el.style.background = def.color;
+    el.style.background = def.color; // 画像が無いときのフォールバック
     const iconText = icons ? `${def.icon}<span class="card-icons">×${icons}</span>` : def.icon;
     el.innerHTML = `
-      <div class="card-icon">${iconText}</div>
-      <div class="card-name">${def.name}</div>
-      <div class="card-desc">${shortDesc(def)}</div>`;
+      <img class="card-art" src="assets/cards/${key}.webp" alt="" loading="lazy" onerror="this.remove(); this.parentElement.classList.add('no-art')">
+      <div class="card-scrim"></div>
+      <div class="card-glyph">${def.icon}</div>
+      <div class="card-body">
+        <div class="card-name"><span class="card-seal">${iconText}</span><span class="card-title">${def.name}</span></div>
+        <div class="card-desc">${shortDesc(def)}</div>
+      </div>`;
     // 効果の影響状態をカードに直接示す（破棄=半透明+ラベル・裏返し=暗く+2点ラベル）
     if (inst) {
       if (inst.discarded) {

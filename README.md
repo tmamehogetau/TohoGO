@@ -54,6 +54,27 @@ npm run test:ws
 
 詳細は `DESIGN.md` を参照。
 
+## カードイラスト
+
+全31種のカードに生成イラスト（512×768 WebP）を用意している。
+
+- 生成: ComfyUI + Qwen-Image 2.1 turbo（プロンプトは `tools/card-art/runs.json`）
+- 変換: `tools/process-card-art.py` が 2:3 にセンタークロップして `assets/cards/<key>.webp` を出力
+- 画像が無いカードは色＋字のフォールバックで表示される
+
+再生成する場合（Strata は停止しておく）:
+
+```bash
+# 1. ComfyUI を単独起動（バックグラウンドジョブで実行）
+pwsh -File tools/start-comfyui.ps1
+
+# 2. 31枚を生成
+pwsh -File tools/comfy-standalone.ps1 -SkipStart -Manifest tools/card-art/runs.json
+
+# 3. WebP に変換
+python tools/process-card-art.py .tmp/card-art/raw assets/cards
+```
+
 ## 開発
 
 ```
@@ -67,12 +88,17 @@ touhou-draft/
 ├── room.js         対戦ルーム管理・席ごとのビュー（サーバー権威）
 ├── net.js          対戦クライアント（ws・再接続）
 ├── server.js       静的配信 + WebSocket サーバー
+├── assets/cards/   カードイラスト（<key>.webp）
 └── tools/
     ├── rules-test.js  ルールテスト（node 直実行）
     ├── ws-test.js     対戦サーバーのスモークテスト
     ├── sim.js         AI vs AI バランスシミュレーション
     ├── attrib.js      得点源の分解（どのカードが点を出しているか）
-    └── ai-check.js    AI の「標準らしさ」検証（同型対戦・摂動耐性・異種混合）
+    ├── ai-check.js    AI の「標準らしさ」検証（同型対戦・摂動耐性・異種混合）
+    ├── start-comfyui.ps1     ComfyUI を Strata なしで起動
+    ├── comfy-standalone.ps1  ComfyUI 単独で画像生成
+    ├── process-card-art.py   生成画像を WebP に変換
+    └── card-art/runs.json    カード31枚の生成プロンプト
 ```
 
 - エンジンはヘッドレス（DOM 非依存）。ブラウザ・Node・将来の権威サーバーで同一ルール
