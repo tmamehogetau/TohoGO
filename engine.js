@@ -319,17 +319,20 @@
       if (need.discard && c.discard !== null && c.discard !== undefined) {
         const idx = c.discard;
         if (!Number.isInteger(idx) || idx < 0 || idx >= p.taken.length) return err('無効な破棄対象');
+        if (p.taken[idx].discarded) return err('すでに破棄されたカードは選べない');
       }
       if (need.flip && Array.isArray(c.flip)) {
         // 裏返しは最大 1 枚（2026-11-03 仕様変更: 旧「任意枚数」から制限）
         if (c.flip.length > 1) return err('裏返せるのは 1 枚まで');
         for (const idx of c.flip) {
           if (!Number.isInteger(idx) || idx < 0 || idx >= p.taken.length) return err('無効な裏返し対象');
+          if (p.taken[idx].discarded) return err('破棄されたカードは裏返せない');
         }
       }
       if (need.copy && c.copy !== null && c.copy !== undefined) {
         const idx = c.copy;
         if (!Number.isInteger(idx) || idx < 0 || idx >= p.taken.length) return err('無効なコピー対象');
+        if (p.taken[idx].discarded) return err('破棄されたカードはコピーできない');
       }
 
       state.selections[pi] = c;
@@ -346,19 +349,21 @@
         const p = state.players[i];
         const map = state.cardMap;
 
-        // フラン破棄: フランを持つプレイヤーが、それまでに獲得したカード 1 枚を破棄する
+        // フラン破棄: 破棄するカードは taken から削除せず discarded フラグを立てる
+        // （判定から除外・UI には半透明の「破棄」で残る。ラウンド末に他の取得カードと一緒に山札へ戻る）
         if (c.discard !== null && c.discard !== undefined && Number.isInteger(c.discard)) {
-          const hasFran = p.taken.some((inst2) => inst2.key === 'k_fran');
-          if (hasFran) {
+          const inst = p.taken[c.discard];
+          if (inst && !inst.discarded) {
             const franBonus = map['k_fran'] ? map['k_fran'].discardBonus : 2;
-            const inst = p.taken[c.discard];
-            // 破棄したカードの計上済み点数を取り消してから山札の下へ
+            const idef = map[inst.key];
+            // 破棄したカードの計上済み点数を取り消してからフラグを立てる
             p.roundScores[state.round] -= (inst.instantScored || 0);
             inst.instantScored = 0;
-            p.taken.splice(c.discard, 1);
-            state.deck.push(inst); // 山札の下へ
+            inst.discarded = true;
+            // 破棄されたリグルは共闘カウントからも外す
+            if (idef && idef.kind === 'coop') state.coopCount[pi] = Math.max(0, state.coopCount[pi] - 1);
             p.roundScores[state.round] += franBonus;
-            addLog(state, `${p.name}: フランが${inst.key}を破棄した（+${franBonus}点）`);
+            addLog(state, `${p.name}: フランが${idef ? idef.name : inst.key}を破棄した（+${franBonus}点）`);
           }
         }
 
@@ -419,7 +424,7 @@
     function countKey(p, key) {
       let n = 0;
       for (const i of p.taken) {
-        if (i.key === key && !i.flipped) n += i.icons || 1;
+        if (i.key === key && !i.flipped && !i.discarded) n += i.icons || 1;
       }
       return n;
     }
@@ -463,6 +468,7 @@
         const p = state.players[i];
         for (const inst of p.taken) {
           delete inst.flipped;
+          delete inst.discarded;
           delete inst.absentChecked;
           delete inst.instantScored;
           delete inst.selectionDone;
@@ -543,17 +549,17 @@
     function endRoundIndividual(state, pi) {
       const p = state.players[pi];
       let pts = 0;
-      // 裏返しカード（ミスティア）は 2 点のみ・他の判定から除外
+      // 裏返しカード（ミスティア）は 2 点のみ・他の判定から除外（破棄カードは加点対象外）
       let flippedPts = 0;
       for (const inst of p.taken) {
-        if (inst.flipped) flippedPts++;
+        if (inst.flipped && !inst.discarded) flippedPts++;
       }
       pts += flippedPts * 2;
 
       // 各カード種別の判定（instant は即時点+取得時コンボで完結するため対象外）
       const seenKinds = {};
       for (const inst of p.taken) {
-        if (inst.flipped) continue;
+        if (inst.flipped || inst.discarded) continue;
         const def = state.cardMap[inst.key];
         if (!def) continue;
         if (['pair', 'set3', 'collect', 'tofu', 'kindCount', 'letty', 'roundComboCount'].includes(def.kind)) {
@@ -584,10 +590,10 @@
             break;
           }
           case 'kindCount': {
-            // 種類数（チルノ含む・同種は 1 種）− offset
+            // 種類数（チルノ含む・同種は 1 種）− offset。破棄・裏返しは対象外
             const kinds = new Set();
             for (const inst of p.taken) {
-              if (inst.flipped) continue;
+              if (inst.flipped || inst.discarded) continue;
               kinds.add(inst.key);
             }
             // デザートも含める（手元のデザート）
@@ -682,7 +688,7 @@
       const p = state.players[pi];
       const out = {};
       for (const inst of p.taken) {
-        if (inst.flipped) continue;
+        if (inst.flipped || inst.discarded) continue;
         const def = state.cardMap[inst.key];
         if (!def) continue;
         if (['collect', 'pair', 'set3', 'tofu', 'kindCount', 'letty'].includes(def.kind)) {

@@ -266,7 +266,7 @@
 
   // ---- 描画 ----
 
-  function cardEl(key, icons, extra) {
+  function cardEl(key, icons, extra, inst) {
     const def = defOf(key);
     const el = document.createElement('div');
     el.className = `card${extra ? ' ' + extra : ''}`;
@@ -276,7 +276,20 @@
       <div class="card-icon">${iconText}</div>
       <div class="card-name">${def.name}</div>
       <div class="card-desc">${shortDesc(def)}</div>`;
-    el.title = `${def.name}：${descOf(def)}`;
+    // 効果の影響状態をカードに直接示す（破棄=半透明+ラベル・裏返し=暗く+2点ラベル）
+    if (inst) {
+      if (inst.discarded) {
+        el.classList.add('discarded');
+        el.insertAdjacentHTML('beforeend', '<div class="card-tag tag-discard">破棄</div>');
+      }
+      if (inst.flipped) {
+        el.classList.add('flipped');
+        el.insertAdjacentHTML('beforeend', '<div class="card-tag tag-flip">2点</div>');
+      }
+    }
+    el.title = inst && inst.copied
+      ? `慧音のコピー・${def.name}：${descOf(def)}`
+      : `${def.name}：${descOf(def)}`;
     return el;
   }
 
@@ -487,10 +500,22 @@
         // 今ピック分だけ .new を付ける: taken 末尾から lastPicks の keys と照合
         const lp = STATE.lastPicks && STATE.lastPicks.find((x) => x.pi === pi);
         const keys = lp ? [...lp.keys] : [];
-        const els = p.taken.map((inst) => cardEl(inst.key, inst.icons, 'mini'));
+        const els = p.taken.map((inst) => cardEl(inst.key, inst.icons, 'mini', inst));
         for (let i = els.length - 1; i >= 0 && keys.length; i--) {
           const k = keys.indexOf(p.taken[i].key);
           if (k >= 0) { els[i].classList.add('new'); keys.splice(k, 1); }
+        }
+        // 慧音のコピー: copied インスタンスは独立カードにせず慧音カードに重ねる
+        const copiedInst = p.taken.find((inst) => inst.copied);
+        if (copiedInst) {
+          for (let i = 0; i < els.length; i++) {
+            const def = defOf(p.taken[i].key);
+            if (def && def.kind === 'copy' && !p.taken[i].discarded) {
+              const overlay = cardEl(copiedInst.key, copiedInst.icons, 'mini copy-overlay', null);
+              els[i].appendChild(overlay);
+              break;
+            }
+          }
         }
         els.forEach((el) => cards.appendChild(el));
       }

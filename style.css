@@ -217,6 +217,38 @@ main {
 .card.mini.new { animation: popIn 0.4s ease-out; }
 .card.mini.new.fly { animation: none; }
 
+/* 効果の影響状態（フランの破棄・ミスティアの裏返し） */
+.card.mini.discarded { opacity: 0.45; }
+.card.mini.flipped { filter: brightness(0.55) saturate(0.6); }
+.card-tag {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  font-size: 0.58rem;
+  font-weight: bold;
+  padding: 1px 5px;
+  border-radius: 6px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+}
+.card-tag.tag-flip { left: auto; right: 3px; background: var(--gold); color: #333; }
+.card { position: relative; }
+
+/* 慧音のコピー: コピー元カードを慧音カードの右上に重ねる */
+.card.copy-overlay {
+  position: absolute;
+  right: -10px;
+  top: -10px;
+  width: 44px;
+  height: 62px;
+  transform: rotate(10deg);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
+  z-index: 2;
+  cursor: default;
+}
+.card.copy-overlay .card-icon { font-size: 0.95rem; }
+.card.copy-overlay .card-name { font-size: 0.42rem; }
+
 /* 行ラベルの追跡リソース（春の合計・兎枚数など） */
 .row-tag {
   display: inline-block;

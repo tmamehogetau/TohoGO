@@ -140,18 +140,42 @@ test('紅霧: フラン=即時2点・破棄しなければそのまま', () => {
   assert.strictEqual(s.players[0].roundScores[0], 4); // 2枚×2点
 });
 
-test('紅霧: フラン破棄で+2点・対象は山札の下へ', () => {
+test('紅霧: フラン破棄で+2点・破棄カードは taken に残り判定から外れる', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
   cycle(s, [['k_remi', D], [D, D]], [0, 0]); // レミリア3点取得・taken[0]
-  setHands(s, [['k_fran'], [D]]);
+  setHands(s, [['k_fran', D], [D, D]]);
   pickAll(s, [0, 0]); // フラン取得 → 選択フェーズ（settleSelection は手動）
   assert.strictEqual(s.phase, 'select');
-  // taken: [レミリア(idx0), フラン(idx1)] → レミリアを破棄 → フラン2点+2点
+  // taken: [レミリア(idx0), ダミー(idx1), フラン(idx2)] → レミリアを破棄 → フラン2点+2点
   const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { discard: 0 } });
   assert.ok(res.ok, res.error);
   settleSelection(s);
   assert.strictEqual(s.players[0].roundScores[0], 4); // 3点は取り消され、フラン2+2
-  assert.ok(s.deck.some((i) => i.key === 'k_remi'), '破棄カードはラウンド末に山札へ戻る');
+  // 手札が残っているのでラウンドは続行・破棄カードは taken に残る（UI で半透明「破棄」表示）
+  assert.strictEqual(s.players[0].taken.length, 2);
+  assert.strictEqual(s.players[0].taken[0].discarded, true);
+  cycle(s, [['k_rumia', D], [D, D]], [0, 0]); // ルーミア1枚取得（収集1点）
+  cycle(s, [[D], [D]], [0, 0]); // ラウンド終了
+  // 破棄済みレミリアは instant 点数取消済み・ルーミア1枚で収集1点 → 4+1 = 5
+  assert.strictEqual(s.players[0].roundScores[0], 5);
+  // ラウンド末に山札へ戻る（dealRound で手札に配られた後なら手札の中にいる）
+  const backInDeck = s.deck.some((i) => i.key === 'k_remi');
+  const backInHand = s.players.some((p) => p.hand.some((i) => i.key === 'k_remi'));
+  assert.ok(backInDeck || backInHand, '破棄カードは山札（手札経由含む）に戻る');
+});
+
+test('紅霧: 破棄されたカードは収集判定から除外される', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  cycle(s, [['k_rumia', D], [D, D]], [0, 0]); // ルーミア1枚
+  setHands(s, [['k_fran'], [D]]);
+  pickAll(s, [0, 0]); // フラン取得・ルーミアを破棄
+  assert.strictEqual(s.phase, 'select');
+  const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { discard: 0 } });
+  assert.ok(res.ok, res.error);
+  settleSelection(s);
+  cycle(s, [[D], [D]], [0, 0]); // ラウンド終了
+  // 破棄されたルーミアは収集判定から除外 → 収集 0 点。フラン2+2 のみ
+  assert.strictEqual(s.players[0].roundScores[0], 4);
 });
 
 test('紅霧: 咲夜=同ピックで他プレイヤーがレミリア/フランを出したら0点', () => {
