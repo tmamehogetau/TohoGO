@@ -95,6 +95,14 @@ npm run attrib
 npm run attrib -- --incident eternal --games 1500 --out .tmp/attrib.txt
 ```
 
+**所持枚数分析 `--by-card`** — 指定カードを「ラウンド内に何枚持ったか」ごとに、ラウンド点の卓平均との差と
+勝率を出す。取るほど勝てるカード（dominant）と、取るほど損になるカード（sucker）を切り分けられる。
+
+```
+npm run sim -- --games 1500 --by-card y_tewi
+npm run sim -- --games 1500 --by-card y_riggle
+```
+
 ## ロードマップ
 
 | バージョン | 内容 |

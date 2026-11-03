@@ -50,6 +50,7 @@ function parseArgs(argv) {
     else if (a === '--out') opts.out = argv[++i] || null;
     else if (a === '--ablate') opts.ablate = argv[++i] || null;
     else if (a === '--step') opts.step = parseInt(argv[++i], 10) || -1;
+    else if (a === '--by-card') opts.byCard = argv[++i] || null;
   }
   return opts;
 }
@@ -260,6 +261,73 @@ function findCardDef(key) {
   return null;
 }
 
+// 指定カードを「何枚持ったか」ごとに、ラウンド点の卓平均との差と勝率を見る。
+// 取るほど勝てるカード（dominant）と、取るほど損になるカード（sucker）を切り分けられる。
+function runByCard(args, key) {
+  const found = findCardDef(key);
+  if (!found) {
+    out(`所持枚数分析: 未知のカード ${key}`);
+    return;
+  }
+  const { incident, def } = found;
+  if (args.incident !== 'all' && args.incident !== incident) {
+    out(`所持枚数分析: ${def.name} は ${args.incident} に含まれていない（${incident} のカード）`);
+    return;
+  }
+
+  const games = runWithSeed(args.seed, () => {
+    const gs = [];
+    for (let i = 0; i < args.games; i++) gs.push(playGame(incident));
+    return gs;
+  });
+
+  const perRound = new Map();
+  let roundTotal = 0;
+  for (const g of games) {
+    for (let r = 0; r < g.roundScores[0].length; r++) {
+      const rs = g.roundScores.map((a) => a[r]);
+      const m = mean(rs);
+      for (let pi = 0; pi < rs.length; pi++) {
+        const c = g.rounds[r][pi].get(key) || 0;
+        const b = perRound.get(c) || { n: 0, devSum: 0, scoreSum: 0 };
+        b.n += 1;
+        b.devSum += rs[pi] - m;
+        b.scoreSum += rs[pi];
+        perRound.set(c, b);
+        roundTotal += 1;
+      }
+    }
+  }
+
+  out('');
+  out(`--- 所持枚数分析: ${def.name}（${incident}・${args.games} ゲーム） ---`);
+  out(`${pad('ラウンド内の枚数', 18)}${pad('割合', 9)}${pad('ラウンド点', 12)}${pad('卓平均との差', 13)}`);
+  for (const c of [...perRound.keys()].sort((a, b) => a - b)) {
+    const b = perRound.get(c);
+    out(`${pad(c, 18)}${pad(fmt((b.n / roundTotal) * 100, 1) + '%', 9)}${pad(fmt(b.scoreSum / b.n, 2), 12)}${pad((b.devSum / b.n >= 0 ? '+' : '') + fmt(b.devSum / b.n, 2), 13)}`);
+  }
+
+  const byGame = new Map();
+  for (const g of games) {
+    const totals = g.rounds.reduce((acc, round) => round.map((m, pi) => acc[pi] + (m.get(key) || 0)), [0, 0, 0, 0]);
+    const best = Math.max(...g.totals);
+    const winners = g.totals.filter((t) => t === best).length;
+    for (let pi = 0; pi < g.totals.length; pi++) {
+      const b = byGame.get(totals[pi]) || { n: 0, win: 0, scoreSum: 0 };
+      b.n += 1;
+      b.scoreSum += g.totals[pi];
+      if (g.totals[pi] === best) b.win += 1 / winners;
+      byGame.set(totals[pi], b);
+    }
+  }
+  out('');
+  out(`${pad('ゲーム通算の枚数', 18)}${pad('人数', 8)}${pad('勝率', 10)}${pad('平均合計点', 12)}`);
+  for (const c of [...byGame.keys()].sort((a, b) => a - b)) {
+    const b = byGame.get(c);
+    out(`${pad(c, 18)}${pad(b.n, 8)}${pad(fmt((b.win / b.n) * 100, 1) + '%', 10)}${pad(fmt(b.scoreSum / b.n, 2), 12)}`);
+  }
+}
+
 // 乱数を固定して 1 回ぶん実行する（感度分析で基準と変更後を同じ条件で比べるため）
 function runWithSeed(seed, fn) {
   const origRandom = Math.random;
@@ -350,6 +418,7 @@ function main() {
   }
 
   if (args.ablate) runAblation(args, incidents, result.totalsByIncident);
+  if (args.byCard) runByCard(args, args.byCard);
 
   if (args.out) {
     fs.writeFileSync(args.out, OUTPUT_LINES.join('\n') + '\n', 'utf8');
