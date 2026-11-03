@@ -161,8 +161,9 @@ class Room {
     if (this.started) return { ok: false, error: 'すでに開始しています' };
     const s = this.seats[seat];
     if (!s || !s.isHost) return { ok: false, error: 'ホストのみ開始できます' };
-    if (this.seats.length < MIN_PLAYERS) return { ok: false, error: `${MIN_PLAYERS}人以上で開始できます` };
-    if (this.seats.some((x) => !x.connected)) return { ok: false, error: '全員の接続を待っています' };
+    // 切断中の席はゲーム開始後と同じく AI が代行する（幽霊席で開始できなくならないように）
+    const connected = this.seats.filter((x) => x.connected).length;
+    if (connected < MIN_PLAYERS) return { ok: false, error: `${MIN_PLAYERS}人以上で開始できます` };
     const names = this.seats.map((x) => x.name);
     const opts = incident ? { incident } : {};
     this.state = Engine.newGame(names.length, names, opts);

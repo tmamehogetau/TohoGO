@@ -108,6 +108,28 @@ const isState = (m) => m.type === 'state';
   const sb2 = (await b2.next(isState)).view;
   assert(sb2.players[1].handCount === 9, 'reconnected client gets current state');
 
+  // ロビーで切断した席があっても開始でき、その席は AI が代行する
+  const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+  const h = connect();
+  await h.open();
+  h.send({ type: 'join', code: 'GHOST', name: 'H' });
+  await h.next((m) => m.type === 'joined');
+  const g1 = connect();
+  await g1.open();
+  g1.send({ type: 'join', code: 'GHOST', name: 'G1' });
+  await g1.next((m) => m.type === 'joined');
+  const g2 = connect();
+  await g2.open();
+  g2.send({ type: 'join', code: 'GHOST', name: 'G2' });
+  await g2.next((m) => m.type === 'joined');
+  g2.ws.close();
+  await delay(200);
+  h.send({ type: 'start', incident: 'scarlet' });
+  const sh = (await h.next(isState)).view;
+  assert(sh.playerCount === 3, 'ghost seat is included and game starts');
+  const sp = await h.next((m) => isState(m) && m.view.picks[2] === true);
+  assert(!!sp, 'disconnected seat auto-plays (AI代行)');
+
   // うどんげの幻覚: 幻覚中は本人以外のビューから本物のカードが消える（単体）
   const { viewFor } = require('../room.js');
   const mkPlayer = (name, taken) => ({

@@ -109,6 +109,7 @@ function onStart(ws, msg) {
   if (!res.ok) return send(ws, { type: 'error', message: res.error });
   broadcastLobby(room);
   broadcastState(room);
+  scheduleAutoPlay(room); // 開始時点で切断している席は AI に任せる
 }
 
 function onAction(ws, msg) {
