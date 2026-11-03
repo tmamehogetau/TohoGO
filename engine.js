@@ -207,30 +207,34 @@
         inst.coopPoints = others * coopPointValue(state.cardMap[inst.key]);
       }
       // 妖夢: 手番終了時に一括判定（同じ手番の春も含めて数える）。
-      // 他の全員から春を 1 個ずつ奪い、春を持っていない相手 1 人につき +pointPer 点。
-      // 誰からも奪えないと失敗（0 点）
-      for (const { pi, inst } of youmuThisTurn) {
-        const def = state.cardMap[inst.key];
-        const steal = def.steal || 1;
-        const pointPer = def.pointPer || 1;
-        const opponents = state.playerCount - 1;
-        let holders = 0;
-        for (let j = 0; j < state.playerCount; j++) {
-          if (j === pi) continue;
-          const loss = Math.min(steal, Math.max(0, state.roundStats[j].springIcons));
-          if (loss > 0) {
-            state.roundStats[j].springIcons -= loss;
-            state.roundStats[pi].springIcons += loss;
-            holders += 1;
+      // 同じ手番に妖夢が 2 枚以上出たら相殺（どちらも不発）
+      if (youmuThisTurn.length >= 2) {
+        for (const { inst } of youmuThisTurn) inst.springGain = 0;
+        addLog(state, '妖夢同士がぶつかり、効果は相殺された');
+      } else {
+        for (const { pi, inst } of youmuThisTurn) {
+          const def = state.cardMap[inst.key];
+          const steal = def.steal || 1;
+          const pointPer = def.pointPer || 1;
+          const opponents = state.playerCount - 1;
+          let holders = 0;
+          for (let j = 0; j < state.playerCount; j++) {
+            if (j === pi) continue;
+            const loss = Math.min(steal, Math.max(0, state.roundStats[j].springIcons));
+            if (loss > 0) {
+              state.roundStats[j].springIcons -= loss;
+              state.roundStats[pi].springIcons += loss;
+              holders += 1;
+            }
           }
-        }
-        if (holders === 0) {
-          inst.springGain = 0;
-          addLog(state, `${state.players[pi].name}: 奪える春がなく、妖夢の効果は失敗に終わった`);
-        } else {
-          const springless = opponents - holders;
-          inst.springGain = springless * pointPer;
-          addLog(state, `${state.players[pi].name}: ${holders} 人から春を奪い、春を持たない ${springless} 人ぶんの ${inst.springGain} 点を得た`);
+          if (holders === 0) {
+            inst.springGain = 0;
+            addLog(state, `${state.players[pi].name}: 奪える春がなく、妖夢の効果は失敗に終わった`);
+          } else {
+            const springless = opponents - holders;
+            inst.springGain = springless * pointPer;
+            addLog(state, `${state.players[pi].name}: ${holders} 人から春を奪い、春を持たない ${springless} 人ぶんの ${inst.springGain} 点を得た`);
+          }
         }
       }
       state.picks = new Array(state.playerCount).fill(null);

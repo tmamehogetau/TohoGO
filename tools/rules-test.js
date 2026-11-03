@@ -396,6 +396,15 @@ test('春雪: 幽々子=所持1枚ごとに4点（春が最多のラウンドの
   assert.strictEqual(s.players[0].roundScores[0], 12);
 });
 
+test('春雪: 妖夢が同じ手番に2枚出たら相殺', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  fixPeek(s);
+  cycle(s, [[inst('s_spring', 3), DS], [inst('s_spring', 3), DS]], [0, 0]); // 双方が春を持つ
+  cycle(s, [['s_youmu'], ['s_youmu']], [0, 0]); // 同時に妖夢
+  assert.strictEqual(s.lastRoundStats[0].springIcons, 3, 'p0 の春はそのまま（奪われない）');
+  assert.strictEqual(s.lastRoundStats[1].springIcons, 3, 'p1 の春もそのまま');
+});
+
 test('春雪: 妖夢=春を持たない相手の数だけ加点（誰からも奪えないと失敗）', () => {
   const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'spring' });
   fixPeek(s);
