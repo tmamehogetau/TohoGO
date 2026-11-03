@@ -726,12 +726,12 @@ test('永夜: 魔理沙=通算最多でないと +9 は入らない', () => {
   assert.strictEqual(Engine.scorePlayer(s, 0) - roundTotal, 0, '最多ではないので 0');
 });
 
-test('永夜: 霊夢=通算7枚で +7（未達なら 0）', () => {
+test('永夜: 霊夢=通算7枚で +4（未達なら 0）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
   s.players[0].gameEndCounts['y_reimu'] = 7;
   s.phase = 'over';
-  assert.strictEqual(Engine.charmBonus(s, 0), 7);
+  assert.strictEqual(Engine.charmBonus(s, 0), 4);
 
   const s2 = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s2);
@@ -740,15 +740,15 @@ test('永夜: 霊夢=通算7枚で +7（未達なら 0）', () => {
   assert.strictEqual(Engine.charmBonus(s2, 0), 0);
 });
 
-test('永夜: 魔理沙=通算の枚数が最多で +9（同点は全員・0枚は対象外）', () => {
+test('永夜: 魔理沙=通算の枚数が最多で +5（同点は全員・0枚は対象外）', () => {
   const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'eternal', intruder: 'y_marisa' });
   fixPeek(s);
   s.players[0].gameEndCounts['y_marisa'] = 4;
   s.players[1].gameEndCounts['y_marisa'] = 4;
   s.players[2].gameEndCounts['y_marisa'] = 1;
   s.phase = 'over';
-  assert.strictEqual(Engine.charmBonus(s, 0), 9);
-  assert.strictEqual(Engine.charmBonus(s, 1), 9);
+  assert.strictEqual(Engine.charmBonus(s, 0), 5);
+  assert.strictEqual(Engine.charmBonus(s, 1), 5);
   assert.strictEqual(Engine.charmBonus(s, 2), 0);
 });
 
