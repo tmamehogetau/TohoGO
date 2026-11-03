@@ -95,6 +95,7 @@ const isState = (m) => m.type === 'state';
   const ra = (await a.next((m) => isState(m) && m.view.lastPicks.length === 2)).view;
   assert(ra.lastPicks.length === 2, 'both picks revealed after resolution');
   assert(ra.players[0].hand.length === 9, 'A hand went from 10 to 9');
+  assert(ra.pickSeq === 1, 'pickSeq advances on resolution (UI animation trigger)');
 
   // 再接続: B が切れて、同じ playerId で入り直す
   b.ws.close();
