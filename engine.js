@@ -261,15 +261,27 @@
       }
 
       // 妖夢の春吸収（即座に適用）
+      // 春を持っている相手からは春を 1 個奪い、持っていない相手からは代わりに点を奪う
       if (def.kind === 'springSteal') {
         const steal = def.steal;
+        const pointSteal = def.stealPoints || 0;
+        let stolenIcons = 0;
+        let stolenPoints = 0;
         for (let j = 0; j < state.playerCount; j++) {
           if (j === pi) continue;
           const loss = Math.min(steal, Math.max(0, state.roundStats[j].springIcons));
-          state.roundStats[j].springIcons -= loss;
-          stats.springIcons += loss;
+          if (loss > 0) {
+            state.roundStats[j].springIcons -= loss;
+            stats.springIcons += loss;
+            stolenIcons += loss;
+          } else if (pointSteal > 0) {
+            state.players[j].roundScores[state.round] -= pointSteal;
+            p.roundScores[state.round] += pointSteal;
+            stolenPoints += pointSteal;
+          }
         }
-        addLog(state, `${p.name}: 庭師が春を剪定して自分の庭に集めた`);
+        if (stolenPoints > 0) addLog(state, `${p.name}: 春を持たない相手から ${stolenPoints} 点を奪った`);
+        if (stolenIcons > 0) addLog(state, `${p.name}: 庭師が春を剪定して自分の庭に集めた`);
       }
 
       // 即時点数はラウンド末に一括集計する（ここでは加点しない）。
