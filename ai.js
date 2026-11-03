@@ -155,7 +155,7 @@
       case 'deckPeek':
         return 1.7 + (def.peek || 4) * 0.07;
       case 'dessertLeast':
-        // 最少になると減点。1 枚持つだけで回避できるので初動の価値が高い
+        // 最少になると減点。同点最少が複数いると全員に飛ぶので、1 枚持つ価値は高い
         return dessertCount(state, pi, key) === 0 ? Math.min(4.5, Math.abs(def.least) / 2) : 1.2;
       case 'dessertIce':
         return def.points / def.per;

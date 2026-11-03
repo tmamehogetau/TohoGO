@@ -7,6 +7,7 @@
     "start": "node server.js",
     "test": "node tools/rules-test.js",
     "sim": "node tools/sim.js",
-    "attrib": "node tools/attrib.js"
+    "attrib": "node tools/attrib.js",
+    "ai-check": "node tools/ai-check.js"
   }
 }
