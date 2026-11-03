@@ -369,6 +369,51 @@ test('春雪: リリーホワイト=デザート蓄積・ゲーム末に4枚ご�
   assert.strictEqual(Engine.charmBonus(s, 1), 0);
 });
 
+test('デザート=ラウンド中は taken に置かれ、ラウンド末にデザート置き場へ送られる', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  setHands(s, [['k_cirno', D], [D, D]]);
+  pickAll(s, [0, 0]); // チルノ取得
+  assert.strictEqual(s.players[0].taken.filter((i) => i.key === 'k_cirno').length, 1, 'ラウンド中は他のカード同様手元に置かれる');
+  assert.strictEqual(s.players[0].desserts.length, 0, 'ラウンド中は置き場にいない');
+  cycle(s, [[D], [D]], [0, 0]); // ラウンド終了
+  assert.strictEqual(s.players[0].taken.length, 0, 'ラウンド末に手元から消える');
+  assert.strictEqual(s.players[0].desserts.filter((i) => i.key === 'k_cirno').length, 1, 'デザート置き場へ送られる');
+});
+
+test('デザート=取得時選択（破棄/裏返し/コピー）の対象外', () => {
+  // 紅霧: チルノ取得後にフラン取得 → select 中にチルノ（デザート）を破棄しようとして拒否
+  const s1 = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  cycle(s1, [['k_cirno', 'k_cirno'], [D, D]], [0, 0]); // チルノ1枚（taken にいる）
+  setHands(s1, [['k_fran', D], [D, D]]);
+  pickAll(s1, [0, 0]); // フラン取得 → 選択フェーズ
+  assert.strictEqual(s1.phase, 'select');
+  // taken: [チルノ(idx0)=デザート, フラン(idx1)]
+  const r1 = Engine.dispatch(s1, { kind: 'choose', pi: 0, choice: { discard: 0 } });
+  assert.ok(!r1.ok, 'デザートは破棄できない');
+  Engine.dispatch(s1, { kind: 'choose', pi: 0, choice: {} }); // 効果なしで解決
+  assert.strictEqual(s1.players[0].taken[0].key, 'k_cirno', 'デザートは手元に残る');
+  assert.strictEqual(s1.players[0].desserts.length, 0);
+
+  // 永夜: 妹紅取得後にミスティア取得 → デザートの裏返しは拒否
+  const s2 = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  cycle(s2, [['y_moko', 'y_moko'], [DY, DY]], [0, 0]); // 妹紅1枚
+  setHands(s2, [['y_mystia', 'y_keine'], [DY, DY]]);
+  pickAll(s2, [0, 0]); // ミスティア取得 → 選択フェーズ
+  assert.strictEqual(s2.phase, 'select');
+  // taken: [妹紅(idx0)=デザート, ミスティア(idx1)]
+  const r2 = Engine.dispatch(s2, { kind: 'choose', pi: 0, choice: { flip: [0] } });
+  assert.ok(!r2.ok, 'デザートは裏返せない');
+  Engine.dispatch(s2, { kind: 'choose', pi: 0, choice: { flip: [] } }); // 効果なしで解決
+  // 慧音取得 → 選択フェーズ（need copy）
+  setHands(s2, [['y_keine'], [DY, DY]]);
+  pickAll(s2, [0, 0]);
+  assert.strictEqual(s2.phase, 'select');
+  // taken: [妹紅(idx0)=デザート, ミスティア(idx1), 慧音(idx2)]
+  const r3 = Engine.dispatch(s2, { kind: 'choose', pi: 0, choice: { copy: 0 } });
+  assert.ok(!r3.ok, 'デザートはコピーできない');
+  Engine.dispatch(s2, { kind: 'choose', pi: 0, choice: {} });
+});
+
 test('永夜: うどんげ=幻覚中の他プレイヤーピックが非公開マーク（判定で公開）', () => {
   const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal', intruder: 'y_reimu' });
   // p0 がうどんげ取得（幻覚開始）・他はダミー

@@ -245,10 +245,11 @@
     renderAll();
   }
 
-  // select モードごとの選択対象判定（効果カード自身・破棄済みは対象外）
+  // select モードごとの選択対象判定（効果カード自身・破棄済み・デザートは対象外）
   function selectTargetable(inst, mode) {
     const def = defOf(inst.key);
     if (!def || inst.discarded) return false;
+    if (inst.key === STATE.dessert.key) return false; // デザートは破棄/裏返し/コピー不可
     if (mode === 'discard') return !def.discardBonus; // フラン自身は破棄できない
     if (mode === 'flip') return def.kind !== 'flip'; // ミスティア自身は裏返せない
     if (mode === 'copy') return def.kind !== 'copy'; // 慧音自身はコピーできない
