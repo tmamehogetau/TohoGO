@@ -115,6 +115,10 @@
         if (def.comboKeys) parts.push(`取った瞬間に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`);
         if (def.discardBonus) parts.push(`取得時・手元 1 枚を山札へ戻し +${def.discardBonus} 点`);
         if (def.intruderPenalty) parts.push(`自分が乱入者を取ったラウンドは所持 1 枚ごとに -${def.intruderPenalty} 点`);
+        if (def.hidden) {
+          parts.push('取った番・他の全員の取得は「うどんげ」に見える');
+          parts.push('免疫はその番の自分だけ。他の人が出した番では自分も影響を受ける');
+        }
         return parts.join('／');
       }
       case 'maki': return `このアイコンの合計を競う・最多 ${MAKI.first} 点／2 位 ${MAKI.second} 点`;
@@ -141,18 +145,53 @@
     }
   }
 
-  // カード面に載せる短縮版（全文はツールチップ・カード一覧で見れる）
-  function shortDesc(def) {
-    const full = descOf(def);
-    if (full.length <= 30) return full;
-    const parts = full.split('／');
-    let out = parts[0];
-    for (let i = 1; i < parts.length; i++) {
-      if ((out + '／' + parts[i]).length > 30) break;
-      out += '／' + parts[i];
+  // カード面用の極短テキスト（詳細は右の拡大表示とカード一覧で読む）
+  function tinyDesc(def) {
+    switch (def.kind) {
+      case 'instant': return `${def.points}点${def.hidden ? '＋幻覚' : ''}${def.comboKeys ? '＋コンボ' : ''}`;
+      case 'maki': return '最多+6／2位+3';
+      case 'temaki': return `最多+${def.most}／最少${def.least}`;
+      case 'springMost': return `春の最多で+${def.most}×枚`;
+      case 'springSteal': return `春を${def.steal}個ずつ強奪`;
+      case 'pair': return `2枚で${def.points}点`;
+      case 'set3': return `3枚で${def.points}点`;
+      case 'collect': return `枚数で加点`;
+      case 'roundComboCount': return `デザート毎+${def.per}`;
+      case 'tofu': return `${def.table.join('/')}点`;
+      case 'kindCount': return `種類数${def.offset >= 0 ? '+' : ''}${def.offset}`;
+      case 'letty': return `(冬−春)×${def.mult}`;
+      case 'coop': return `同手番1枚+${def.points}`;
+      case 'flip': return '任意枚を裏返す';
+      case 'copy': return '効果をコピー';
+      case 'deckPeek': return `山札${def.peek}枚見て1枚`;
+      case 'collectByTwo': return `2枚毎+${def.per2}`;
+      case 'parity': return '偶数/奇数で加点';
+      case 'dessertLeast': return `最少で${def.least}`;
+      case 'dessertIce': return `${def.per}枚毎+${def.points}`;
+      case 'dessertRound': return `取得毎${def.roundPenalty}／最多×${def.endMostPer}`;
+      default: return '';
     }
-    return out.length > 30 ? out.slice(0, 28) + '…' : out;
   }
+
+  // ---- 数アイコン（春＝桜 / 玉兎＝兎） ----
+  const COUNT_ICON_SVG = {
+    spring: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><ellipse cx="12" cy="5.4" rx="3.5" ry="4.3"/><ellipse cx="12" cy="5.4" rx="3.5" ry="4.3" transform="rotate(72 12 12)"/><ellipse cx="12" cy="5.4" rx="3.5" ry="4.3" transform="rotate(144 12 12)"/><ellipse cx="12" cy="5.4" rx="3.5" ry="4.3" transform="rotate(216 12 12)"/><ellipse cx="12" cy="5.4" rx="3.5" ry="4.3" transform="rotate(288 12 12)"/></g><circle cx="12" cy="12" r="2.1" fill="#f6d67a"/></svg>',
+    rabbit: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><ellipse cx="8.6" cy="6" rx="2.1" ry="5"/><ellipse cx="15.4" cy="6" rx="2.1" ry="5"/><circle cx="12" cy="15.4" r="6.1"/></g><circle cx="9.9" cy="14.4" r="0.9" fill="#2a2532"/><circle cx="14.1" cy="14.4" r="0.9" fill="#2a2532"/><circle cx="12" cy="17.1" r="0.8" fill="#c98ba8"/></svg>',
+  };
+  function countIconKind(def) {
+    if (!def) return null;
+    if (def.key === 's_spring') return 'spring';
+    if (def.key === 'y_rabbit') return 'rabbit';
+    return null;
+  }
+  // カード面の右上に出すアイコン数バッジ（春・玉兎だけ）
+  function countBadge(def, icons) {
+    const kind = countIconKind(def);
+    if (!kind || !icons) return '';
+    const n = Math.max(1, Math.min(3, Number(icons)));
+    return `<span class="card-count" title="アイコン ${icons} 個">${COUNT_ICON_SVG[kind].repeat(n)}</span>`;
+  }
+
 
   // ---- 人間の入力 ----
 
@@ -399,15 +438,23 @@
     const el = document.createElement('div');
     el.className = `card${extra ? ' ' + extra : ''}`;
     el.style.background = def.color; // 画像が無いときのフォールバック
-    const iconText = icons ? `${def.icon}<span class="card-icons">×${icons}</span>` : def.icon;
     el.innerHTML = `
       <img class="card-art" src="assets/cards/${key}.webp" alt="" loading="lazy" onerror="this.remove(); this.parentElement.classList.add('no-art')">
       <div class="card-scrim"></div>
       <div class="card-glyph">${def.icon}</div>
+      ${countBadge(def, icons)}
       <div class="card-body">
-        <div class="card-name"><span class="card-seal">${iconText}</span><span class="card-title">${def.name}</span></div>
-        <div class="card-desc">${shortDesc(def)}</div>
+        <div class="card-name"><span class="card-title">${def.name}</span></div>
+        <div class="card-desc">${tinyDesc(def)}</div>
       </div>`;
+    // ホバーで右パネルに拡大表示する
+    el.addEventListener('mouseenter', () => {
+      PREVIEW = { key, icons, inst };
+      renderPreview();
+    });
+    el.addEventListener('mouseleave', () => {
+      if (PREVIEW && PREVIEW.key === key) { PREVIEW = null; renderPreview(); }
+    });
     // 効果の影響状態をカードに直接示す（破棄=半透明+ラベル・裏返し=暗く+2点ラベル）
     if (inst) {
       if (inst.discarded) {
@@ -634,8 +681,8 @@
       if (p.chopsticks > 0) tags.push(`早×${p.chopsticks}`);
       if (p.desserts.length > 0) tags.push(`デザート×${p.desserts.length}`);
       // 乱入者（霊夢/魔理沙）はゲーム通算で数えるので、手元ではなく通算カウントを出す
-      if (STATE.intruderKey && p.gameEndCounts) {
-        const cnt = p.gameEndCounts[STATE.intruderKey] || 0;
+      if (STATE.intruderKey) {
+        const cnt = gameEndCountFor(p, STATE.intruderKey);
         if (cnt > 0) tags.push(`${nameOf(STATE.intruderKey)}×${cnt}`);
       }
       const el = document.createElement('div');
@@ -652,12 +699,38 @@
   // 直近ピック（state.lastPicks）で取られたカードに .new を付けてポップイン表示（renderTableRows 内で処理）
 
   // プレイヤーごとの追跡リソース（春の合計・兎/妖精メイドの枚数など）
+  // うどんげの幻覚中は、隠れているカードの寄与を差し引いてバッジから中身がバレないようにする
+  // そのカードが自分から見えないか。免疫は「その手番で鈴仙を出した本人」だけ
+  function hiddenFromViewer(inst) {
+    if (!inst) return false;
+    if (inst.masked) return true; // オンラインはサーバーが既に伏せている
+    if (!inst.hiddenTaken) return false;
+    return inst.hiddenBy !== 0;
+  }
+
+  function visibleTaken(p) {
+    return p.taken.filter((inst) => !hiddenFromViewer(inst));
+  }
+
+  // 幻覚で隠した乱入者ぶんを差し引いた通算（ローカル対戦用。オンラインはサーバーが処理済み）
+  function gameEndCountFor(p, key) {
+    let n = (p.gameEndCounts && p.gameEndCounts[key]) || 0;
+    n -= p.taken.filter((i) => hiddenFromViewer(i) && i.key === key).length;
+    return Math.max(0, n);
+  }
+
   function trackedTags(pi) {
     const p = STATE.players[pi];
     const tags = [];
+    const shown = visibleTaken(p);
     // 春雪: ラウンド統計の春アイコン合計（妖夢の吸収も反映済み）
     if (STATE.incidentId === 'spring' && STATE.roundStats) {
-      tags.push({ label: `春 ${STATE.roundStats[pi].springIcons}`, color: '#d16a9e' });
+      // 自分から見えていないカードのアイコンは差し引く（オンラインはサーバーが処理済み＝0）
+      const hiddenIcons = p.taken
+        .filter((i) => hiddenFromViewer(i))
+        .reduce((a, i) => a + (i.icons || 0), 0);
+      const icons = Math.max(0, STATE.roundStats[pi].springIcons - hiddenIcons);
+      tags.push({ icon: COUNT_ICON_SVG.spring, label: String(icons), color: '#b8487e' });
     }
     // 多数決系カード（巻物=兎、妖精メイド等）のアイコン合計
     for (const def of Object.values(STATE.cardMap)) {
@@ -665,10 +738,11 @@
       // 春雪では春の合計を上で既に表示するため重複を避ける
       if (STATE.incidentId === 'spring' && def.kind === 'maki') continue;
       let n = 0;
-      for (const inst of p.taken) {
+      for (const inst of shown) {
         if (inst.key === def.key && !inst.flipped) n += inst.icons || 1;
       }
-      tags.push({ label: `${def.icon} ${n}`, color: def.color });
+      const icon = def.kind === 'maki' ? COUNT_ICON_SVG[countIconKind(def)] : '';
+      tags.push({ icon, label: `${def.kind === 'maki' ? '' : def.icon}${n}`, color: def.color });
     }
     return tags;
   }
@@ -700,7 +774,7 @@
         const tag = document.createElement('span');
         tag.className = 'row-tag';
         tag.style.background = t.color;
-        tag.textContent = t.label;
+        tag.innerHTML = (t.icon || '') + `<span>${t.label}</span>`;
         label.appendChild(tag);
       }
       main.appendChild(label);
@@ -720,9 +794,9 @@
         const keys = lp ? [...lp.keys] : [];
         const els = shown.map((inst) => {
           // うどんげの幻覚: 幻覚中の他プレイヤーのピックは「うどんげ」として表示される。
-          // 幻覚を出した本人（hiddenOwner === 0）は影響を受けない
-          if (inst.hiddenTaken && STATE.hiddenOwner !== pi && STATE.hiddenOwner !== 0) {
-            return cardEl('y_reisen', null, 'mini');
+          // 本物の鈴仙と見分けが付かないよう、偽の鈴仙にも「1点」を付ける（付けると中身がバレる）
+          if (hiddenFromViewer(inst)) {
+            return cardEl('y_reisen', null, 'mini', null, 1);
           }
           return cardEl(inst.key, inst.icons, 'mini', inst, roundPtsOf(inst, pi));
         });
@@ -730,14 +804,19 @@
           const k = keys.indexOf(shown[i].key);
           if (k >= 0) { els[i].classList.add('new'); keys.splice(k, 1); }
         }
-        // 慧音カードにコピー元カードを重ねる
+        // 慧音のコピー（copied インスタンス）は、コピー元カードの上に慧音を乗せて表示する
         const copiedInst = p.taken.find((inst) => inst.copied);
         if (copiedInst) {
           for (let i = 0; i < els.length; i++) {
             const def = defOf(shown[i].key);
             if (def && def.kind === 'copy' && !shown[i].discarded) {
-              const overlay = cardEl(copiedInst.key, copiedInst.icons, 'mini copy-overlay', null);
-              els[i].appendChild(overlay);
+              // 本体＝コピー元カード（点数・状態はコピー元のもの）、上に慧音を重ねる
+              const base = cardEl(copiedInst.key, copiedInst.icons, 'mini copy-base', null);
+              base.classList.toggle('new', els[i].classList.contains('new'));
+              const overlay = cardEl(shown[i].key, null, 'mini copy-overlay', null);
+              base.appendChild(overlay);
+              base.title = `慧音が「${nameOf(copiedInst.key)}」の効果をコピー：${descOf(defOf(copiedInst.key))}`;
+              els[i] = base;
               break;
             }
           }
@@ -896,7 +975,11 @@
         item.appendChild(cardEl(key, null, 'mini'));
         const txt = document.createElement('div');
         txt.className = 'ref-text';
-        txt.innerHTML = `<div class="ref-name">${def.name}<span class="ref-count">×${n}</span></div><div class="ref-desc">${descOf(def)}</div>`;
+        const kind = countIconKind(def);
+        const compo = kind && def.iconCounts
+          ? `<div class="ref-compo">${Object.entries(def.iconCounts).map(([c, num]) => `<span class="ref-compo-item">${COUNT_ICON_SVG[kind].repeat(Number(c))}<span>×${num}</span></span>`).join('')}</div>`
+          : '';
+        txt.innerHTML = `<div class="ref-name">${def.name}<span class="ref-count">×${n}</span></div>${compo}<div class="ref-desc">${descOf(def)}</div>`;
         item.appendChild(txt);
         grid.appendChild(item);
       }
@@ -905,9 +988,41 @@
     el.classList.remove('hidden');
   }
 
-  function renderLog() {
-    const el = $('log');
-    el.innerHTML = STATE.log.slice(-30).reverse().map((l) => `<div class="log-line">R${l.round + 1} ${l.text}</div>`).join('');
+  // 右パネル: いま選んでいる（またはホバー中の）カードを拡大表示する
+  let PREVIEW = null;
+
+  function renderPreview() {
+    const el = $('preview');
+    if (!el) return;
+    let target = PREVIEW;
+    if (!target && STATE && STATE.phase === 'pick' && PICK_SELECTED !== null) {
+      const c = STATE.players[0].hand[PICK_SELECTED];
+      if (c) target = { key: c.key, icons: c.icons };
+    }
+    if (!target && STATE && CHOP_SELECTED.length) {
+      const c = STATE.players[0].hand[CHOP_SELECTED[CHOP_SELECTED.length - 1]];
+      if (c) target = { key: c.key, icons: c.icons };
+    }
+    if (!target) {
+      el.innerHTML = '<div class="preview-empty">カードを選ぶと<br>ここに大きく表示されます</div>';
+      return;
+    }
+    const def = defOf(target.key);
+    if (!def) { el.innerHTML = ''; return; }
+    const kind = countIconKind(def);
+    const icons = Number(target.icons) || 0;
+    const iconHtml = kind && icons
+      ? `<div class="preview-icons">${COUNT_ICON_SVG[kind].repeat(icons)}<span>×${icons}</span></div>`
+      : '';
+    const tags = [];
+    if (target.inst && target.inst.discarded) tags.push('破棄');
+    if (target.inst && target.inst.flipped) tags.push('裏返し（2点）');
+    if (target.inst && target.inst.copied) tags.push('慧音のコピー');
+    el.innerHTML = `
+      <div class="preview-card"><img src="assets/cards/${def.key}.webp" alt="" onerror="this.parentElement.classList.add('no-art')"></div>
+      <div class="preview-name">${def.name}${tags.length ? `<span class="preview-tag">${tags.join('・')}</span>` : ''}</div>
+      ${iconHtml}
+      <div class="preview-desc">${descOf(def)}</div>`;
   }
 
   function renderAll() {
@@ -918,7 +1033,7 @@
     renderTableRows();
     renderSelectArea(); // table-rows 再構築の後に呼び、あなたの行にオーバーレイを重ねる
     renderBanner();
-    renderLog();
+    renderPreview();
     updateTimerIndicator();
   }
 

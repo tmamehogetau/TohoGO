@@ -33,20 +33,33 @@ function viewFor(room, seat) {
   // うどんげの幻覚中は、幻覚を出した本人以外には本物のカードを見せない
   const hideForViewer = !!state.hidden && seat !== state.hiddenOwner;
   const maskInst = (inst) => {
-    if (!hideForViewer || !inst.hiddenTaken) return inst;
-    return { key: 'y_reisen', icons: 1, hiddenTaken: true };
+    if (!inst.hiddenTaken) return inst;
+    // 免疫は「その手番で鈴仙を出した本人」だけ。別の手番で出した人は後から影響を受ける
+    if (seat === inst.hiddenBy) return inst;
+    // icons を持たせると春・玉兎のバッジで中身がバレるので、うどんげとして最小限だけ返す
+    return { key: 'y_reisen', hiddenTaken: true, masked: true };
   };
 
   const players = order.map((oi) => {
     const p = state.players[oi];
     const s = room.seats[oi];
+    // 自分に見えていない（＝他の手番で隠された）乱入者の通算は差し引く
+    const maskView = (i) => i.hiddenTaken && seat !== i.hiddenBy;
+    const hiddenGE = {};
+    for (const i of p.taken) {
+      if (!maskView(i)) continue;
+      if ((state.cardMap[i.key] || {}).gameEnd) hiddenGE[i.key] = (hiddenGE[i.key] || 0) + 1;
+    }
+    const gameEndCounts = Object.fromEntries(
+      Object.entries(p.gameEndCounts || {}).map(([k, v]) => [k, Math.max(0, v - (hiddenGE[k] || 0))]),
+    );
     return {
       name: p.name,
       hand: oi === seat ? p.hand.slice() : [],
       handCount: p.hand.length,
       taken: p.taken.map(maskInst),
       desserts: p.desserts,
-      gameEndCounts: p.gameEndCounts,
+      gameEndCounts,
       chopsticks: p.chopsticks,
       roundScores: p.roundScores,
       connected: !!(s && s.connected),
@@ -80,10 +93,25 @@ function viewFor(room, seat) {
           results: state.roundBanner.results.map((r) => ({ ...r, pi: rot(r.pi) })),
         }
       : null,
-    log: state.log,
     hidden: state.hidden,
     hiddenOwner: state.hiddenOwner === undefined || state.hiddenOwner === null ? null : rot(state.hiddenOwner),
-    roundStats: order.map((oi) => state.roundStats[oi]),
+    // 自分に見えていないカードの寄与は差し引く（バッジの数から中身がバレないように）
+    roundStats: order.map((oi) => {
+      const st = state.roundStats[oi];
+      const p = state.players[oi];
+      let hiddenIcons = 0;
+      let hiddenDessert = 0;
+      for (const i of p.taken) {
+        if (!i.hiddenTaken || seat === i.hiddenBy) continue;
+        hiddenIcons += i.icons || 0;
+        if (i.key === state.dessert.key) hiddenDessert += 1;
+      }
+      return {
+        ...st,
+        springIcons: Math.max(0, st.springIcons - hiddenIcons),
+        dessertTaken: Math.max(0, st.dessertTaken - hiddenDessert),
+      };
+    }),
     // 未公開情報はフラグだけ返す
     picks: order.map((oi) => state.picks[oi] !== null),
     choices: order.map((oi) => !!(state.choices && state.choices[oi] !== null)),

@@ -241,8 +241,8 @@
       }
       state.picks = new Array(state.playerCount).fill(null);
 
-      // 幻覚の開始
-      if (hiddenActivated !== null && !wasHidden) {
+      // 幻覚の開始（免疫は「出した手番の 1 回ぶん」だけ。ラウンド内で別の人が出せば主も移る）
+      if (hiddenActivated !== null) {
         state.hidden = true;
         state.hiddenOwner = hiddenActivated;
         addLog(state, `${state.players[hiddenActivated].name}: 幻覚で全員のピックが見えなくなった`);
@@ -256,7 +256,12 @@
           const keys = [...lp.keys];
           for (let i = p.taken.length - 1; i >= 0 && keys.length; i--) {
             const k = keys.indexOf(p.taken[i].key);
-            if (k >= 0) { p.taken[i].hiddenTaken = true; keys.splice(k, 1); }
+            if (k >= 0) {
+              p.taken[i].hiddenTaken = true;
+              // どの手番で隠されたか（この手番の出し主だけが見える＝免疫はその 1 回ぶん）
+              p.taken[i].hiddenBy = hiddenActivated;
+              keys.splice(k, 1);
+            }
           }
         }
       }

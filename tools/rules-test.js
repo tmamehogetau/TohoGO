@@ -599,6 +599,30 @@ test('永夜: うどんげ=出した番のピックだけうどんげ表示（�
   assert.strictEqual(s.hidden, false);
 });
 
+test('永夜: 幻覚で隠したカードには hiddenBy（出し主の席）が記録される', () => {
+  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  // p0 がうどんげ（幻覚開始）・同じ手番で p1 が玉兎2個を取得
+  cycle(s, [['y_reisen', 'y_tewi'], [{ key: 'y_rabbit', icons: 2 }, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
+  const hidden = s.players[1].taken.find((i) => i.hiddenTaken);
+  assert.ok(hidden, '他のプレイヤーの取得は隠される');
+  assert.strictEqual(hidden.hiddenBy, 0, '出し主の席が記録される');
+  assert.ok(!s.players[0].taken[0].hiddenTaken, '出した本人の取得は隠されない');
+});
+
+test('永夜: 幻覚の免疫は出した手番だけ（後の手番で出した人は前の出し主も隠す）', () => {
+  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  // 1手目: p0 がうどんげ
+  cycle(s, [['y_reisen', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
+  // 2手目: p1 もうどんげ（同じラウンド）
+  cycle(s, [['y_tewi', 'y_tewi'], ['y_reisen', 'y_tewi'], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
+  const p0hidden = s.players[0].taken.filter((i) => i.hiddenTaken);
+  assert.ok(p0hidden.length > 0, '前の手番の出し主も隠される');
+  assert.ok(p0hidden.every((i) => i.hiddenBy === 1), '隠したのは 2 手目の出し主');
+  assert.strictEqual(s.hiddenOwner, 1, '幻覚の主は最後に出した人');
+});
+
 test('永夜: うどんげ=出した番のみ効果あり・次ラウンドは通常公開', () => {
   const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
@@ -610,6 +634,21 @@ test('永夜: うどんげ=出した番のみ効果あり・次ラウンドは�
   assert.strictEqual(s.hidden, false, '次ラウンドで幻覚リセット');
   cycle(s, [['y_tewi', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
   assert.strictEqual(s.players[1].taken.filter((i) => i.hiddenTaken).length, 0, '幻覚なしの取得は公開');
+});
+
+test('永夜: うどんげは2ラウンド目以降も幻覚が発動する', () => {
+  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  cycle(s, [['y_reisen', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
+  assert.strictEqual(s.hidden, true, '1回目は発動');
+  assert.strictEqual(s.hiddenOwner, 0);
+  cycle(s, [['y_tewi', 'y_tewi'], [DY4, DY4], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
+  cycle(s, [['y_tewi'], ['y_reimu'], ['y_reimu'], ['y_reimu']], [0, 0, 0, 0]); // R1 終了
+  assert.strictEqual(s.hidden, false, 'ラウンド末で解除');
+  // R2: 別のプレイヤーがうどんげを取る
+  cycle(s, [['y_tewi', 'y_tewi'], ['y_reisen', 'y_tewi'], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
+  assert.strictEqual(s.hidden, true, '2回目も幻覚が発動する');
+  assert.strictEqual(s.hiddenOwner, 1, '2回目は出した本人が幻覚の主');
 });
 
 // ================= 永夜メカニズム =================

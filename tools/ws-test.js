@@ -171,12 +171,19 @@ const isState = (m) => m.type === 'state';
   });
   const fakeState = {
     playerCount: 2, handSize: 10,
-    players: [mkPlayer('A', [{ key: 'k_remi', hiddenTaken: true }]), mkPlayer('B', [])],
-    dessert: { key: 'k_cirno' }, incidentId: 'scarlet', incidentName: 'x', incidentSubtitle: 'x', incidentTheme: 'x',
+    players: [
+      mkPlayer('A', [{ key: 's_spring', icons: 2, hiddenTaken: true, hiddenBy: 1 }]),
+      mkPlayer('B', []),
+    ],
+    dessert: { key: 'k_cirno' }, incidentId: 'spring', incidentName: 'x', incidentSubtitle: 'x', incidentTheme: 'x',
     cardMap: {}, initialCounts: {}, intruderKey: null, round: 0, passDir: 1, phase: 'pick',
-    lastPicks: [{ pi: 0, keys: ['k_remi'] }, { pi: 1, keys: ['k_maid'] }],
+    lastPicks: [{ pi: 0, keys: ['s_spring'] }, { pi: 1, keys: ['k_maid'] }],
     roundBanner: null, log: [], hidden: true, hiddenOwner: 1,
-    roundStats: [{}, {}], picks: [null, null], choices: [null, null],
+    roundStats: [
+      { springIcons: 5, dessertTaken: 1, intruderTaken: false },
+      { springIcons: 1, dessertTaken: 0, intruderTaken: false },
+    ],
+    picks: [null, null], choices: [null, null],
     selections: null, selectNeeded: null, deck: [], dessertPool: [], peekNeeded: null, peekCards: null,
   };
   const fakeRoom = { code: 'X', seats: [{ connected: true }, { connected: true }], state: fakeState };
@@ -184,7 +191,18 @@ const isState = (m) => m.type === 'state';
   const v1 = viewFor(fakeRoom, 1); // seat1 = うどんげを出した本人
   assert(v0.players[0].taken[0].key === 'y_reisen', 'hidden card masked for non-owner');
   assert(v0.lastPicks[0].keys[0] === 'y_reisen', 'lastPicks masked for non-owner');
-  assert(v1.players[1].taken[0].key === 'k_remi', 'hidden card visible to owner');
+  assert(v1.players[1].taken[0].key === 's_spring', 'hidden card visible to the player who played it');
+  // うどんげの上にアイコン・点数が出ると中身がバレるので、マスク時は icons を持たせない
+  assert(v0.players[0].taken[0].icons === undefined, 'masked card has no icon count');
+  assert(v0.players[0].taken[0].masked === true, 'masked card is flagged as masked');
+  // 幻覚中は隠した分を差し引いた集計だけを見せる
+  assert(v0.roundStats[0].springIcons === 3, 'hidden spring icons deducted for non-owner');
+  assert(v0.roundStats[0].dessertTaken === 1, 'visible dessert count kept');
+  assert(v1.roundStats[1].springIcons === 5, 'the player who played it keeps the real count');
+  // 免疫は出した手番だけ: 別の手番で隠されたカードは、前の出し主からも見えない
+  fakeState.players[1].taken.push({ key: 'k_maid', hiddenTaken: true, hiddenBy: 0 });
+  const v1b = viewFor(fakeRoom, 1);
+  assert(v1b.players[0].taken[0].key === 'y_reisen', 'immune only for the hand it was played');
 
   console.log('WS SMOKE OK');
   process.exit(0);
