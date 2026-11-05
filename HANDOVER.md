@@ -146,11 +146,12 @@ Windows の PowerShell 5.1 は node の UTF-8 出力を化けさせるので、`
   - `tools/card-art-candidates-sheet.py` … 候補をキャラごと横並びにした判定シート
   - `tools/card-art/assemble-final.py` … 採用案を WebP 化（採用表は `PICK`）
   - 生成時は `-Workflow` かマニフェストの `workflow` を必ず指定する。未指定だと Qwen ワークフローが動く
-- **アリスは4種**（`s_alice_hourai` / `s_alice_shanghai` / `s_alice_orleans` / `s_alice_french`）。
-  人物は同じアリスで、抱いている人形で種類を描き分ける。**上海＝青／蓬莱＝赤**の同型人形（原作の色と二次の定番に合わせた）、
-  オルレアン＝メイド人形、仏蘭西＝フランス陶器人形。オルレアンと仏蘭西は原作ではスペカ名だけなので独自解釈。
+- **アリスは4種**（`s_alice_hourai` / `s_alice_shanghai` / `s_alice_kyo` / `s_alice_french`）。
+  人物は同じアリスで、持っている人形で種類を描き分ける。**上海＝青／蓬莱＝赤**の同型人形（原作の色と二次の定番）、
+  京人形＝黒髪おかっぱ＋桜柄の着物の市松人形（妖々夢スペカ「雅符「春の京人形」」）、仏蘭西＝フランス陶器人形。
+  妖々夢 Stage3 の人形スペカは全部で 上海/蓬莱/仏蘭西/オルレアン/和蘭/露西亜/倫敦/西蔵/京 の9種（地名シリーズ）。
   マニフェストは `tools/card-art/runs-alice.json`（採用案は `_picks`）。採用 PNG を `.tmp/alice-pick/<key>.png` に
-  置いて `py -3 tools/process-card-art.py .tmp/alice-pick assets/cards` で WebP 化する（2026-11-05 追加）
+  置いて `py -3 tools/process-card-art.py .tmp/alice-pick assets/cards` で WebP 化する（2026-11-05）
 - サンドボックス対策で ComfyUI の output/temp/input/user を `.tmp` 配下へ逃がしている
 - 画像が無い/読み込み失敗時は色＋字のフォールバック（`.card.no-art`）
 - カスタムノードを無効化すると起動が約3秒（有効時は数分かかった）

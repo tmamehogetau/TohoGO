@@ -546,14 +546,14 @@ test('春雪: アリス=人形の種類数で得点（1種1/2種4/3種9/4種16�
     fixPeek(s);
     cycle(s, [['s_alice_hourai', DS], [DS, DS]], [0, 0]);
     cycle(s, [['s_alice_shanghai', DS], [DS, DS]], [0, 0]);
-    cycle(s, [['s_alice_orleans'], [DS]], [0, 0]);
+    cycle(s, [['s_alice_kyo'], [DS]], [0, 0]);
     assert.strictEqual(s.players[0].roundScores[0], 9, '3種で9点');
   }
 });
 
 test('春雪: アリスは4種とも同じカード「アリス」（人形名で種類を区別）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
-  const keys = ['s_alice_hourai', 's_alice_shanghai', 's_alice_orleans', 's_alice_french'];
+  const keys = ['s_alice_hourai', 's_alice_shanghai', 's_alice_kyo', 's_alice_french'];
   const defs = keys.map((k) => s.cardMap[k]);
   assert.ok(defs.every((d) => d && d.name === 'アリス'), 'カード名はすべて「アリス」');
   assert.strictEqual(new Set(defs.map((d) => d.variant)).size, 4, '人形は4種');

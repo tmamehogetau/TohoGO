@@ -44,7 +44,7 @@
     // 得点は集めた種類数（1種1点/2種4点/3種9点/4種16点）
     { key: 's_alice_hourai', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '蓬莱人形', table: [0, 1, 4, 9, 16], icon: '蓬', color: '#c9a84c', count: 2 },
     { key: 's_alice_shanghai', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '上海人形', table: [0, 1, 4, 9, 16], icon: '上', color: '#c9a84c', count: 2 },
-    { key: 's_alice_orleans', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: 'オルレアン人形', table: [0, 1, 4, 9, 16], icon: '奥', color: '#c9a84c', count: 2 },
+    { key: 's_alice_kyo', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '京人形', table: [0, 1, 4, 9, 16], icon: '京', color: '#c9a84c', count: 2 },
     { key: 's_alice_french', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '仏蘭西人形', table: [0, 1, 4, 9, 16], icon: '仏', color: '#c9a84c', count: 2 },
     { key: 's_prism', kind: 'set3', points: 10, name: 'プリズムリバー3姉妹', icon: '奏', color: '#6a9fd8', count: 8 },
     // 案3.5: 2枚ごとに6点＋2枚ごとに自分の春アイコン合計-1（春の順位判定が下がる）
