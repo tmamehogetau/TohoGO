@@ -196,6 +196,23 @@ test('紅霧: フラン破棄で+2点・破棄カードは taken に残り判定
   assert.ok(backInDeck || backInHand, '破棄カードは山札（手札経由含む）に戻る');
 });
 
+test('紅霧: フラン破棄の+2はラウンド末に集計される（取得中はスコアが動かない）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  fixPeek(s);
+  cycle(s, [['k_remi', D], [D, D]], [0, 0]);
+  setHands(s, [['k_fran', D], [D, D]]);
+  pickAll(s, [0, 0]); // フラン取得 → 選択フェーズ
+  const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { discard: 0 } });
+  assert.ok(res.ok, res.error);
+  settleSelection(s);
+  assert.strictEqual(s.players[0].roundScores[0], 0, '取得中は加点されない');
+  cycle(s, [[D], [D]], [0, 0]); // ラウンド終了
+  assert.strictEqual(s.players[0].roundScores[0], 4, 'フラン2点＋破棄2点がラウンド末に入る');
+  const r = s.roundBanner.results.find((x) => x.pi === 0);
+  assert.ok(r.extras.some((e) => e.label.includes('フラン') && e.pts === 2), '内訳にフラン（破棄）+2 が出る');
+});
+
 test('紅霧: 破棄されたカードは収集判定から除外される', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
   fixPeek(s);
@@ -470,15 +487,23 @@ test('春雪: 妖夢=春を持たない相手の数だけ加点（誰からも�
   assert.strictEqual(s3.players[0].roundScores[0], 3, '妖夢は失敗して 0 点（紫 3 点のみ）');
 });
 
-test('春雪: レティ=(レティ枚数−春枚数)×2・最低0', () => {
-  const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
-  fixPeek(s);
-  cycle(s, [['s_letty', 's_letty'], [DS, DS]], [0, 0]); // レティ2枚取得
-  cycle(s, [['s_letty', DS], [DS]], [0, 0]); // レティ3枚目・p1 が紫1枚取得
-  cycle(s, [['s_letty'], [DS]], [0, 0]); // 手札尽き・ラウンド終了
-  // p0: レティ3 − 春0 = 3 ×2 = 6点（最低0）。p1: レティ0 − 春0 = 0点 + 紫2枚×3点 = 6点
-  assert.strictEqual(s.players[0].roundScores[0], 6);
-  assert.strictEqual(s.players[1].roundScores[0], 9); // 紫2枚×3点
+test('春雪: レティ=2枚ごと6点・2枚ごとに自分の春アイコン合計-1', () => {
+  { // 春なし: 2枚 → 6点
+    const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+    fixPeek(s);
+    cycle(s, [['s_letty', 's_letty'], [DS, DS]], [0, 0]);
+    cycle(s, [['s_letty'], [DS]], [0, 0]);
+    assert.strictEqual(s.players[0].roundScores[0], 6, '2枚で6点');
+  }
+  { // レティ2 + 春1 → 春アイコンは実効0（相手の春1がマキ1位）
+    const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+    fixPeek(s);
+    cycle(s, [['s_letty', 's_letty'], [DS, DS]], [0, 0]);
+    cycle(s, [['s_letty', 's_spring'], [{ key: 's_spring', icons: 1 }, DS]], [0, 0]);
+    cycle(s, [['s_spring'], [DS]], [0, 0]);
+    assert.strictEqual(s.players[0].roundScores[0], 6, 'レティ6点・春は実効0で加点なし');
+    assert.strictEqual(s.players[1].roundScores[0], 10, '相手は紫2枚6点＋春マキ1位4点');
+  }
 });
 
 test('春雪: 藍・橙=紫を含む主従コンボ（獲得時判定・最後に揃えた1枚だけ発動）', () => {
@@ -501,17 +526,39 @@ test('春雪: 紅霧と同じく逆順（紫→橙→藍）では藍のみ発動
   assert.strictEqual(s.players[0].roundScores[0], 7);
 });
 
-test('春雪: アリス=ペア2枚5点・三姉妹=3枚セット10点', () => {
+test('春雪: アリス=人形の種類数で得点（1種1/2種4/3種9/4種16）', () => {
+  { // 2種（蓬莱＋上海）→ 4点
+    const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+    fixPeek(s);
+    cycle(s, [['s_alice_hourai', DS], [DS, DS]], [0, 0]);
+    cycle(s, [['s_alice_shanghai'], [DS]], [0, 0]);
+    assert.strictEqual(s.players[0].roundScores[0], 4, '2種で4点');
+  }
+  { // 1種を2枚 → 1点（種類数だけを見る）
+    const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+    fixPeek(s);
+    cycle(s, [['s_alice_hourai', DS], [DS, DS]], [0, 0]);
+    cycle(s, [['s_alice_hourai'], [DS]], [0, 0]);
+    assert.strictEqual(s.players[0].roundScores[0], 1, '同じ種類は1種のまま');
+  }
+  { // 3種 → 9点
+    const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+    fixPeek(s);
+    cycle(s, [['s_alice_hourai', DS], [DS, DS]], [0, 0]);
+    cycle(s, [['s_alice_shanghai', DS], [DS, DS]], [0, 0]);
+    cycle(s, [['s_alice_orleans'], [DS]], [0, 0]);
+    assert.strictEqual(s.players[0].roundScores[0], 9, '3種で9点');
+  }
+});
+
+test('春雪: アリスは4種とも同じカード「アリス」（人形名で種類を区別）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
-  fixPeek(s);
-  cycle(s, [['s_alice', DS], [DS, DS]], [0, 0]); // アリス1枚
-  cycle(s, [['s_alice', DS], [DS, DS]], [0, 0]); // アリス2枚目（ペア5点）
-  cycle(s, [['s_prism', DS], [DS, DS]], [0, 0]); // 三姉妹1枚
-  cycle(s, [['s_prism', DS], [DS, DS]], [0, 0]); // 三姉妹2枚
-  cycle(s, [['s_prism'], [DS]], [0, 0]); // 三姉妹3枚目・ラウンド終了
-  // p0: ペア5 + セット10 = 15点。p1: ダミー紫5枚×3点 = 15点
-  assert.strictEqual(s.players[0].roundScores[0], 15);
-  assert.strictEqual(s.players[1].roundScores[0], 15);
+  const keys = ['s_alice_hourai', 's_alice_shanghai', 's_alice_orleans', 's_alice_french'];
+  const defs = keys.map((k) => s.cardMap[k]);
+  assert.ok(defs.every((d) => d && d.name === 'アリス'), 'カード名はすべて「アリス」');
+  assert.strictEqual(new Set(defs.map((d) => d.variant)).size, 4, '人形は4種');
+  assert.ok(defs.every((d) => d.group === 'alice'), '同じグループのカードとして扱う');
+  assert.strictEqual(defs.reduce((n, d) => n + d.count, 0), 8, 'デッキには合計8枚');
 });
 
 test('春雪: リリーホワイト=デザート蓄積・ゲーム末に4枚ごとに12点', () => {
@@ -649,6 +696,25 @@ test('永夜: うどんげは2ラウンド目以降も幻覚が発動する', ()
   cycle(s, [['y_tewi', 'y_tewi'], ['y_reisen', 'y_tewi'], [DY4, DY4], [DY4, DY4]], [0, 0, 0, 0]);
   assert.strictEqual(s.hidden, true, '2回目も幻覚が発動する');
   assert.strictEqual(s.hiddenOwner, 1, '2回目は出した本人が幻覚の主');
+});
+
+test('リザルト: 獲得カード＋判定の内訳がラウンド点と一致する', () => {
+  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'spring', intruder: 'y_reimu' });
+  fixPeek(s);
+  // 2枚 → 2枚 → 1枚 で 1 ラウンド流す
+  const h = ['s_yukari', 's_yukari'];
+  cycle(s, [h, h, h, h], [0, 0, 0, 0]);
+  cycle(s, [h, h, h, h], [0, 0, 0, 0]);
+  cycle(s, [['s_yukari'], ['s_yukari'], ['s_yukari'], ['s_yukari']], [0, 0, 0, 0]);
+  assert.ok(s.roundBanner, 'ラウンド結果が出る');
+  for (const r of s.roundBanner.results) {
+    const cards = r.cards.reduce((a, c) => a + c.pts, 0);
+    const extras = r.extras.reduce((a, e) => a + e.pts, 0);
+    if (cards + extras !== r.points) {
+      console.log('DEBUG', JSON.stringify({ name: r.name, points: r.points, cards: r.cards, extras: r.extras }));
+    }
+    assert.strictEqual(cards + extras, r.points, `${r.name}: 内訳の合計が点数と一致`);
+  }
 });
 
 // ================= 永夜メカニズム =================

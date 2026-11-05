@@ -39,9 +39,16 @@
     { key: 's_spring', kind: 'maki', iconCounts: { 1: 4, 2: 5, 3: 3 }, name: '春', icon: '春', color: '#e88ab8', count: 12 },
     { key: 's_yuyuko', kind: 'springMost', most: 4, name: '西行寺幽々子', icon: '姫', color: '#d8cfe8', count: 3 },
     { key: 's_youmu', kind: 'springSteal', steal: 1, pointPer: 1, name: '魂魄妖夢', icon: '庭', color: '#8fb8a0', count: 3 },
-    { key: 's_alice', kind: 'pair', points: 5, name: 'アリス', icon: '人', color: '#c9a84c', count: 8 },
+    // アリスは「1 枚のカード」だが、手元では 4 種の人形（各 2 枚）に分かれる。
+    // カードとしては 4 種とも「アリス」（name は共通・variant で人形を見分ける）。
+    // 得点は集めた種類数（1種1点/2種4点/3種9点/4種16点）
+    { key: 's_alice_hourai', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '蓬莱人形', table: [0, 1, 4, 9, 16], icon: '蓬', color: '#c9a84c', count: 2 },
+    { key: 's_alice_shanghai', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '上海人形', table: [0, 1, 4, 9, 16], icon: '上', color: '#c9a84c', count: 2 },
+    { key: 's_alice_orleans', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: 'オルレアン人形', table: [0, 1, 4, 9, 16], icon: '奥', color: '#c9a84c', count: 2 },
+    { key: 's_alice_french', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '仏蘭西人形', table: [0, 1, 4, 9, 16], icon: '仏', color: '#c9a84c', count: 2 },
     { key: 's_prism', kind: 'set3', points: 10, name: 'プリズムリバー3姉妹', icon: '奏', color: '#6a9fd8', count: 8 },
-    { key: 's_letty', kind: 'letty', mult: 2, ownKey: 's_letty', targetKey: 's_spring', name: 'レティ', icon: '冬', color: '#a8c8e8', count: 8 },
+    // 案3.5: 2枚ごとに6点＋2枚ごとに自分の春アイコン合計-1（春の順位判定が下がる）
+  { key: 's_letty', kind: 'pairCond', points: 6, reduceSpringIconsPerPair: 1, name: 'レティ', icon: '冬', color: '#a8c8e8', count: 8 },
   ];
   const SPRING_DESSERT = { key: 's_lily', kind: 'dessertIce', per: 4, points: 12, name: 'リリーホワイト', icon: '報', color: '#f0e6b8', pool: 15 };
 

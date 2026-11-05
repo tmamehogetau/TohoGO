@@ -204,6 +204,19 @@ const isState = (m) => m.type === 'state';
   const v1b = viewFor(fakeRoom, 1);
   assert(v1b.players[0].taken[0].key === 'y_reisen', 'immune only for the hand it was played');
 
+  // ラウンド結果の内訳（獲得カードと配点）が view に載り、席順に回転する
+  fakeState.roundBanner = {
+    round: 0,
+    results: [
+      { pi: 0, name: 'A', points: 5, cards: [{ key: 'k_remi', icons: 1, pts: 5 }], extras: [] },
+      { pi: 1, name: 'B', points: 0, cards: [], extras: [] },
+    ],
+  };
+  const vb = viewFor(fakeRoom, 1);
+  assert(vb.roundBanner.results[0].name === 'A', 'round banner keeps entries');
+  assert(vb.roundBanner.results[0].pi === 1, 'round banner seat rotated for viewer');
+  assert(vb.roundBanner.results[0].cards[0].key === 'k_remi', 'round banner keeps card breakdown');
+
   console.log('WS SMOKE OK');
   process.exit(0);
 })().catch((e) => {

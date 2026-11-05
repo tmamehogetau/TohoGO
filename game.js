@@ -84,6 +84,19 @@
     renderAll();
   }
 
+  // ゲーム終了後にロビー（モード選択）へ戻る
+  function backToLobby() {
+    if (ONLINE) {
+      try { Net.leave(); } catch (e) { /* 切断済みでも続行 */ }
+    }
+    ONLINE = false;
+    STATE = null;
+    FINAL_CLOSED = false;
+    $('app').classList.add('hidden');
+    $('lobby').classList.remove('hidden');
+    showModeSelect();
+  }
+
   // カード定義は state.cardMap から引く（異変ごとにキャラが変わるため）
   function defOf(key) {
     return STATE.cardMap[key];
@@ -91,6 +104,13 @@
   function nameOf(key) {
     const d = STATE.cardMap[key];
     return d ? d.name : key;
+  }
+
+  // 表示用のカード名。アリスのように 1 枚のカードが複数の種類に分かれる場合は
+  // 「アリス（蓬莱人形）」のようにカード名＋種類名で見分けられるようにする
+  function cardLabel(def) {
+    if (!def) return '';
+    return def.variant ? `${def.name}（${def.variant}）` : def.name;
   }
 
   // ゲーム末ボーナス（霊夢の通算ノルマ・魔理沙の通算最多）の説明文
@@ -115,17 +135,24 @@
         if (def.comboKeys) parts.push(`取った瞬間に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`);
         if (def.discardBonus) parts.push(`取得時・手元 1 枚を山札へ戻し +${def.discardBonus} 点`);
         if (def.intruderPenalty) parts.push(`自分が乱入者を取ったラウンドは所持 1 枚ごとに -${def.intruderPenalty} 点`);
+        if (def.zeroIfTaken) parts.push(`同じ手番に${nameOf(def.zeroIfTaken)}を取った人がいると 0 点`);
         if (def.hidden) {
           parts.push('取った番・他の全員の取得は「うどんげ」に見える');
           parts.push('免疫はその番の自分だけ。他の人が出した番では自分も影響を受ける');
         }
         return parts.join('／');
       }
+      case 'othersDiff': return `ラウンド末・(同じ手番に他の人が取った${nameOf(def.plusKey)}の枚数 − ${nameOf(def.minusKey)}の枚数) × ${def.mult} 点`;
+      case 'pairCond': return `ラウンド末・2 枚ごとに ${def.points} 点／2 枚ごとに自分の${nameOf('s_spring')}アイコン合計 -${def.reduceSpringIconsPerPair}（春の順位判定が下がる）`;
       case 'maki': return `このアイコンの合計を競う・最多 ${MAKI.first} 点／2 位 ${MAKI.second} 点`;
       case 'temaki': return `この枚数を競う・最多 +${def.most}／最少 ${def.least} 点`;
       case 'springMost': return `ラウンド末・春の獲得数が全員最多なら、所持 1 枚ごとに +${def.most} 点（このカードの所持が条件）`;
       case 'springSteal': return `取った瞬間・他の全員から春を ${def.steal} 個ずつ奪う。春を持っていない相手 1 人につき +${def.pointPer} 点（誰からも奪えないと失敗）`;
       case 'pair': return `2 枚で 1 ペア = ${def.points} 点${gameEndBonusText(def)}`;
+      case 'aliceSet': {
+        const tbl = def.table || [0, 1, 4, 9, 16];
+        return `集めた${def.name}の種類数で得点／1種 ${tbl[1]} 点・2種 ${tbl[2]} 点・3種 ${tbl[3]} 点・4種 ${tbl[4]} 点`;
+      }
       case 'set3': return `3 枚で 1 セット = ${def.points} 点${gameEndBonusText(def)}`;
       case 'collect': return `1/2/3/4/5+ 枚で ${def.table.join('/')} 点`;
       case 'roundComboCount': return `このラウンドに自分がデザートを取るたび +${def.per} 点`;
@@ -149,11 +176,14 @@
   function tinyDesc(def) {
     switch (def.kind) {
       case 'instant': return `${def.points}点${def.hidden ? '＋幻覚' : ''}${def.comboKeys ? '＋コンボ' : ''}`;
+      case 'othersDiff': return `(他${nameOf(def.plusKey)}−他${nameOf(def.minusKey)})×${def.mult}`;
+      case 'pairCond': return `2枚毎${def.points}点／春-${def.reduceSpringIconsPerPair || 1}個`;
       case 'maki': return '最多+6／2位+3';
       case 'temaki': return `最多+${def.most}／最少${def.least}`;
       case 'springMost': return `春の最多で+${def.most}×枚`;
       case 'springSteal': return `春を${def.steal}個ずつ強奪`;
       case 'pair': return `2枚で${def.points}点`;
+      case 'aliceSet': return '種類数で1/4/9/16点';
       case 'set3': return `3枚で${def.points}点`;
       case 'collect': return `枚数で加点`;
       case 'roundComboCount': return `デザート毎+${def.per}`;
@@ -444,7 +474,7 @@
       <div class="card-glyph">${def.icon}</div>
       ${countBadge(def, icons)}
       <div class="card-body">
-        <div class="card-name"><span class="card-title">${def.name}</span></div>
+        <div class="card-name"><span class="card-title">${def.name}</span>${def.variant ? `<span class="card-var">${def.variant}</span>` : ''}</div>
         <div class="card-desc">${tinyDesc(def)}</div>
       </div>`;
     // ホバーで右パネルに拡大表示する
@@ -471,8 +501,8 @@
       el.insertAdjacentHTML('beforeend', `<div class="card-tag tag-pts">${roundPts}点</div>`);
     }
     el.title = inst && inst.copied
-      ? `慧音のコピー・${def.name}：${descOf(def)}`
-      : `${def.name}：${descOf(def)}`;
+      ? `慧音のコピー・${cardLabel(def)}：${descOf(def)}`
+      : `${cardLabel(def)}：${descOf(def)}`;
     return el;
   }
 
@@ -518,7 +548,7 @@
     } else if (CHOPSTICKS_MODE) {
       statusEl.textContent = `早飲みモード：2枚選んでね（${CHOP_SELECTED.length}/2 枚選択）`;
     } else if (PICK_SELECTED !== null && p.hand[PICK_SELECTED]) {
-      statusEl.textContent = `「${defOf(p.hand[PICK_SELECTED].key).name}」を選択中。決定ボタンで確定`;
+      statusEl.textContent = `「${cardLabel(defOf(p.hand[PICK_SELECTED].key))}」を選択中。決定ボタンで確定`;
     } else if (STATE.hidden) {
       statusEl.textContent = STATE.hiddenOwner === 0
         ? '幻覚をかけている：出した番の全員のピックがうどんげに見えている'
@@ -788,7 +818,7 @@
         cards.appendChild(empty);
       } else {
         // 慧音のコピー（copied インスタンス）は慧音カードに重ねて表示するため独立カードとしては描かない
-        const shown = p.taken.filter((inst) => !inst.copied);
+        const shown = p.taken.filter((inst) => !inst.copied && !inst.peekedGain);
         // 今ピック分だけ .new を付ける: taken 末尾から lastPicks の keys と照合
         const lp = STATE.lastPicks && STATE.lastPicks.find((x) => x.pi === pi);
         const keys = lp ? [...lp.keys] : [];
@@ -804,22 +834,31 @@
           const k = keys.indexOf(shown[i].key);
           if (k >= 0) { els[i].classList.add('new'); keys.splice(k, 1); }
         }
-        // 慧音のコピー（copied インスタンス）は、コピー元カードの上に慧音を乗せて表示する
+        // 慧音のコピー・小悪魔の獲得カードは「獲得したカードの上に元カードを重ねる」
         const copiedInst = p.taken.find((inst) => inst.copied);
-        if (copiedInst) {
-          for (let i = 0; i < els.length; i++) {
-            const def = defOf(shown[i].key);
-            if (def && def.kind === 'copy' && !shown[i].discarded) {
-              // 本体＝コピー元カード（点数・状態はコピー元のもの）、上に慧音を重ねる
-              const base = cardEl(copiedInst.key, copiedInst.icons, 'mini copy-base', null);
-              base.classList.toggle('new', els[i].classList.contains('new'));
-              const overlay = cardEl(shown[i].key, null, 'mini copy-overlay', null);
-              base.appendChild(overlay);
-              base.title = `慧音が「${nameOf(copiedInst.key)}」の効果をコピー：${descOf(defOf(copiedInst.key))}`;
-              els[i] = base;
-              break;
-            }
+        for (let i = 0; i < els.length; i++) {
+          const inst = shown[i];
+          const def = defOf(inst.key);
+          if (!def || inst.discarded) continue;
+          let baseKey = null;
+          let baseIcons = null;
+          let verb = '';
+          if (def.kind === 'copy' && copiedInst) {
+            baseKey = copiedInst.key;
+            baseIcons = copiedInst.icons;
+            verb = 'コピー';
+          } else if (inst.peekedBy) {
+            baseKey = inst.peekedBy.key;
+            baseIcons = inst.peekedBy.icons;
+            verb = '獲得';
           }
+          if (!baseKey) continue;
+          const base = cardEl(baseKey, baseIcons, 'mini copy-base', null);
+          base.classList.toggle('new', els[i].classList.contains('new'));
+          base.appendChild(cardEl(inst.key, null, 'mini copy-overlay', null));
+          base.title = `${nameOf(inst.key)}が「${nameOf(baseKey)}」を${verb}：${descOf(defOf(baseKey))}`;
+          els[i] = base;
+          break;
         }
         els.forEach((el) => cards.appendChild(el));
       }
@@ -915,20 +954,116 @@
       const rankCounts = new Map();
       ranked.forEach((r) => rankCounts.set(r.rank, (rankCounts.get(r.rank) || 0) + 1));
       const rows = ranked
-        .map((r) => `<div class="${r.pi === 0 ? 'banner-me' : ''}">${r.rank}位${rankCounts.get(r.rank) > 1 ? '（同率）' : ''} ${r.pi === 0 ? 'あなた' : ''}${r.name}: ${r.total}点（デザート${r.desserts}）</div>`)
+        .map((r) => {
+          const p = STATE.players[r.pi];
+          const rounds = p.roundScores
+            .map((v, i) => `R${i + 1} ${v >= 0 ? '+' : ''}${v}`)
+            .join(' / ');
+          const ge = Engine.gameEndBreakdown(STATE, r.pi);
+          const geTotal = ge.reduce((a, x) => a + x.pts, 0);
+          const geList = ge
+            .map((x) => `<span class="bp-extra">${x.label} <b>${x.pts >= 0 ? '+' : ''}${x.pts}</b></span>`)
+            .join('');
+          const desserts = p.desserts
+            .map((d) => cardEl(d.key, null, 'mini banner-card').outerHTML)
+            .join('');
+          return `<div class="bp${r.pi === 0 ? ' banner-me' : ''}">
+            <div class="bp-head"><span>${r.rank}位${rankCounts.get(r.rank) > 1 ? '（同率）' : ''} ${r.pi === 0 ? 'あなた' : ''}${r.name}</span><span class="bp-total">${r.total}点</span></div>
+            <div class="bp-sub">デザート${r.desserts}枚 ／ ${rounds} ／ ゲーム末 ${geTotal >= 0 ? '+' : ''}${geTotal}</div>
+            ${geList ? `<div class="bp-extras">${geList}</div>` : ''}
+            ${desserts ? `<div class="bp-cards">${desserts}</div>` : ''}
+          </div>`;
+        })
         .join('');
-      el.innerHTML = `<h2>宴会が幕を閉じた</h2>${rows}<p class="banner-note">同点はデザート枚数で判定 ・ クリックで閉じる</p>`;
+      const actions = `<div class="banner-actions">
+        ${ONLINE ? '' : '<button data-act="again">もう一度遊ぶ</button>'}
+        <button class="secondary" data-act="lobby">ロビーへ戻る</button>
+        <button class="secondary" data-act="close">結果を閉じる</button>
+      </div>`;
+      el.innerHTML = `<h2>宴会が幕を閉じた</h2><div class="banner-players">${rows}</div>${actions}<p class="banner-note">同点はデザート枚数で判定 ・ クリックで閉じる</p>`;
       el.classList.remove('hidden');
-      el.onclick = () => { FINAL_CLOSED = true; renderAll(); };
+      el.onclick = (ev) => {
+        if (ev.target.closest('button')) return;
+        FINAL_CLOSED = true;
+        renderAll();
+      };
+      el.querySelectorAll('[data-act]').forEach((btn) => {
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const act = btn.dataset.act;
+          if (act === 'again') { startGame(); return; }
+          if (act === 'lobby') { backToLobby(); return; }
+          FINAL_CLOSED = true;
+          renderAll();
+        });
+      });
       return;
     }
     if (!STATE.roundBanner) { el.classList.add('hidden'); return; }
     const b = STATE.roundBanner;
     const rows = b.results
       .sort((a, x) => x.points - a.points)
-      .map((r) => `<div>${r.pi === 0 ? 'あなた' : ''}${r.name}: ${r.points >= 0 ? '+' : ''}${r.points}点</div>`)
+      .map((r) => {
+        const cards = (r.cards || [])
+          .map((c) =>
+            cardEl(
+              c.key,
+              c.icons > 1 ? c.icons : null,
+              'mini banner-card',
+              { flipped: c.flipped, discarded: c.discarded },
+              c.pts ? c.pts : null,
+            ).outerHTML,
+          )
+          .join('');
+        // 取得点数一覧: カード種別ごとに合算し、点が動いたものだけ並べる。
+        // アリスのように「カードとしては 1 種・手元では複数種」のカードは 1 行にまとめる
+        const byKey = new Map();
+        for (const c of r.cards || []) {
+          const d = defOf(c.key);
+          const id = d && d.group ? `group:${d.group}` : c.key;
+          const e = byKey.get(id) || { key: c.key, def: d, count: 0, icons: 0, pts: 0, types: new Set(), flags: new Set() };
+          e.count += 1;
+          e.icons += c.icons || 1;
+          e.pts += c.pts || 0;
+          e.types.add(c.key);
+          if (c.discarded) e.flags.add('破棄');
+          if (c.flipped) e.flags.add('裏返し');
+          byKey.set(id, e);
+        }
+        const pointRows = [];
+        for (const e of byKey.values()) {
+          if (!e.pts) continue;
+          const def = e.def || defOf(e.key);
+          const cnt = e.count > 1 ? `（${e.count}枚）` : '';
+          const icons = e.icons > e.count ? `（${e.icons}個）` : '';
+          const flag = e.flags.size ? `・${[...e.flags].join('・')}` : '';
+          const label = def && def.group
+            ? `${def.name}（${e.types.size}種・${e.count}枚）${flag}`
+            : `${def ? def.name : e.key}${cnt}${icons}${flag}`;
+          pointRows.push(`<div class="bp-point"><span>${label}</span><b>${e.pts >= 0 ? '+' : ''}${e.pts}</b></div>`);
+        }
+        for (const e of r.extras || []) {
+          if (!e.pts) continue;
+          pointRows.push(`<div class="bp-point"><span>${e.label}</span><b>${e.pts >= 0 ? '+' : ''}${e.pts}</b></div>`);
+        }
+        if (!pointRows.length) pointRows.push('<div class="bp-point"><span>なし</span><b>+0</b></div>');
+        pointRows.push(`<div class="bp-point bp-point-total"><span>合計</span><b>${r.points >= 0 ? '+' : ''}${r.points}</b></div>`);
+        return `<div class="bp${r.pi === 0 ? ' banner-me' : ''}">
+          <div class="bp-head"><span>${r.pi === 0 ? 'あなた' : r.name}</span><span class="bp-total">${r.points >= 0 ? '+' : ''}${r.points}点</span></div>
+          <div class="bp-body">
+            <div class="bp-col">
+              <div class="bp-col-title">取得カード</div>
+              <div class="bp-cards">${cards || '<span class="bp-empty">なし</span>'}</div>
+            </div>
+            <div class="bp-col bp-col-points">
+              <div class="bp-col-title">取得点数</div>
+              ${pointRows.join('')}
+            </div>
+          </div>
+        </div>`;
+      })
       .join('');
-    el.innerHTML = `<h2>ラウンド ${b.round + 1} 結果</h2>${rows}<p class="banner-note">${ONLINE ? 'クリックで次へ（全員の準備を待っています）' : 'カードをクリックで次のラウンド開始'}</p>`;
+    el.innerHTML = `<h2>ラウンド ${b.round + 1} 結果</h2><div class="banner-players">${rows}</div><p class="banner-note">${ONLINE ? 'クリックで次へ（全員の準備を待っています）' : 'カードをクリックで次のラウンド開始'}</p>`;
     el.classList.remove('hidden');
     el.onclick = () => {
       if (ONLINE) { Net.continueRound(); return; }
@@ -966,20 +1101,33 @@
       el.appendChild(h3);
       const grid = document.createElement('div');
       grid.className = 'ref-grid';
+      // アリスは 4 種で「1 枚のカード」なので 1 件にまとめて表示する
+      const emitted = new Set();
       for (const key of g.keys) {
         const def = STATE.cardMap[key];
-        const n = (STATE.initialCounts && STATE.initialCounts[key]) || 0;
+        if (def.group) {
+          if (emitted.has(def.group)) continue;
+          emitted.add(def.group);
+        }
+        const variants = def.group ? g.keys.map((k) => STATE.cardMap[k]).filter((d) => d.group === def.group) : [def];
+        const n = variants.reduce((sum, d) => sum + ((STATE.initialCounts && STATE.initialCounts[d.key]) || 0), 0);
         // ミニカード + 横に完全な説明文（カード面に長文を詰め込まない）
         const item = document.createElement('div');
-        item.className = 'ref-item';
-        item.appendChild(cardEl(key, null, 'mini'));
+        item.className = 'ref-item' + (variants.length > 1 ? ' ref-item-wide' : '');
+        const minis = document.createElement('div');
+        minis.className = 'ref-minis';
+        for (const d of variants) minis.appendChild(cardEl(d.key, null, 'mini'));
+        item.appendChild(minis);
         const txt = document.createElement('div');
         txt.className = 'ref-text';
         const kind = countIconKind(def);
         const compo = kind && def.iconCounts
           ? `<div class="ref-compo">${Object.entries(def.iconCounts).map(([c, num]) => `<span class="ref-compo-item">${COUNT_ICON_SVG[kind].repeat(Number(c))}<span>×${num}</span></span>`).join('')}</div>`
           : '';
-        txt.innerHTML = `<div class="ref-name">${def.name}<span class="ref-count">×${n}</span></div>${compo}<div class="ref-desc">${descOf(def)}</div>`;
+        const variantsHtml = variants.length > 1
+          ? `<div class="ref-variants">${variants.map((d) => `<span>${d.variant || d.name}</span>`).join('')}</div>`
+          : '';
+        txt.innerHTML = `<div class="ref-name">${def.name}<span class="ref-count">×${n}${variants.length > 1 ? `（${variants.length}種）` : ''}</span></div>${variantsHtml}${compo}<div class="ref-desc">${descOf(def)}</div>`;
         item.appendChild(txt);
         grid.appendChild(item);
       }
@@ -1020,7 +1168,7 @@
     if (target.inst && target.inst.copied) tags.push('慧音のコピー');
     el.innerHTML = `
       <div class="preview-card"><img src="assets/cards/${def.key}.webp" alt="" onerror="this.parentElement.classList.add('no-art')"></div>
-      <div class="preview-name">${def.name}${tags.length ? `<span class="preview-tag">${tags.join('・')}</span>` : ''}</div>
+      <div class="preview-name">${cardLabel(def)}${tags.length ? `<span class="preview-tag">${tags.join('・')}</span>` : ''}</div>
       ${iconHtml}
       <div class="preview-desc">${descOf(def)}</div>`;
   }

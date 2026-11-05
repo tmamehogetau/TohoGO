@@ -227,7 +227,8 @@ function printIncident(incident, cardStats, totals, games, top) {
     const withoutMean = st.withoutN ? st.withoutSum / st.withoutN : 0;
     rows.push({
       key,
-      name: def ? def.name : key,
+      // アリスのように 1 枚のカードが複数種に分かれる場合は「アリス・蓬莱」のように種類を添える
+      name: def ? (def.variant ? `${def.name}・${def.variant.replace(/人形$/, '')}` : def.name) : key,
       kind: def ? def.kind : '?',
       count: def ? def.count || 1 : 0,
       acquireRate: st.withN + st.withoutN ? st.withN / (st.withN + st.withoutN) : 0,

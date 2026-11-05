@@ -92,9 +92,15 @@
           const blocked = others.some((j) => def.absentKeys.some((k) => countKey(state.players[j], k) > 0));
           value = blocked ? 0.2 : value * 0.85;
         }
+        // zeroIfTaken（レティ）: 同じ手番に条件カードを取られると 0 点。期待値を割り引く
+        if (def.zeroIfTaken) value *= 0.5;
         // 取得時コンボ（美鈴・藍・橙）: 相方が既に手元なら加点される
         if (def.comboKeys && def.comboKeys.some((k) => countKey(p, k) > 0)) value += def.comboBonus || 0;
         return value;
+      }
+      case 'othersDiff': {
+        // 他人の取得数で決まるので、平均的には小さめ（自分1枚では点にならない）
+        return 1.2;
       }
       case 'temaki': {
         // 最多 +most / 最少 least。ただし実測では狙うと負けるので、他の札より低く見る
@@ -109,6 +115,22 @@
       case 'collect': {
         const at = (k) => (k <= 0 ? 0 : def.table[Math.min(k, def.table.length) - 1]);
         return Math.max(0.2, at(mine + 1) - at(mine));
+      }
+      case 'pairCond': {
+        const need = mine % 2 === 1 ? 1 : 2;
+        return def.points * (need === 1 ? 0.7 : 0.3);
+      }
+      case 'aliceSet': {
+        const group = def.group || def.key;
+        const types = new Set();
+        for (const inst of p.taken) {
+          if (inst.flipped || inst.discarded) continue;
+          const d = state.cardMap[inst.key];
+          if (d && d.kind === 'aliceSet' && (d.group || d.key) === group) types.add(inst.key);
+        }
+        const tbl = def.table || [0, 1, 4, 9, 16];
+        const next = types.has(key) ? types.size : types.size + 1;
+        return Math.max(0, (tbl[next] || 0) - (tbl[types.size] || 0));
       }
       case 'pair': {
         // 揃うまで得点にならない。あと 1 枚なら現実味があるが、2 枚必要なら宝くじに近い

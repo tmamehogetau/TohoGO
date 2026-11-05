@@ -74,11 +74,11 @@ const TARGETS = {
     ['s_yukari', '八雲紫 3点', (d) => { d.points = 0; }],
     ['s_ran', '八雲藍 2点', (d) => { d.points = 0; }],
     ['s_chen', '橙 1点', (d) => { d.points = 0; }],
-    ['s_alice', 'アリス ペア5点', (d) => { d.points = 0; }],
+    ['group:alice', 'アリス 人形の種類数', (d) => { d.table = [0, 0, 0, 0, 0]; }],
     ['s_prism', 'プリズム 3枚10点', (d) => { d.points = 0; }],
     ['s_yuyuko', '幽々子 春最多4点', (d) => { d.most = 0; }],
     ['s_youmu', '妖夢 春を奪う', (d) => { d.steal = 0; }],
-    ['s_letty', 'レティ 冬-春', (d) => { d.mult = 0; }],
+    ['s_letty', 'レティ 2枚毎6点/春-1', (d) => { d.points = 0; d.reduceSpringIconsPerPair = 0; }],
     ['s_lily', 'リリーホワイト 4枚12点', (d) => { d.points = 0; }],
     ['__maki', '春 マキ配点', null],
   ],
@@ -126,6 +126,18 @@ function main() {
         const v = avgTotal(incident, opts);
         Object.assign(Data.RULES.MAKI_POINTS, snap);
         rows.push({ label, count: null, contrib: base - v, linear: false });
+        continue;
+      }
+      const groupId = key.startsWith('group:') ? key.slice(6) : null;
+      if (groupId) {
+        // アリスのように 4 種で 1 枚のカードのものは、グループ全種をまとめて 0 点にして測る
+        const defs = incident.main.concat(incident.intruders || []).filter((d) => d.group === groupId);
+        if (!defs.length) { rows.push({ label: `${label}（未定義）`, count: null, contrib: NaN, linear: false }); continue; }
+        const snaps = defs.map((d) => JSON.parse(JSON.stringify(d)));
+        for (const d of defs) patch(d);
+        const v = avgTotal(incident, opts);
+        defs.forEach((d, i) => Object.assign(d, snaps[i]));
+        rows.push({ label, count: defs.reduce((s, d) => s + cardCount(d), 0), contrib: base - v, linear: false });
         continue;
       }
       const def = findDef(incident, key);
