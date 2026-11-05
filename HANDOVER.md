@@ -133,7 +133,7 @@ Windows の PowerShell 5.1 は node の UTF-8 出力を化けさせるので、`
 
 ## 4.6 カードイラスト（ComfyUI 単独ルート）
 
-- 全31種のカードに生成イラスト（512×768 WebP、`assets/cards/<key>.webp`）を配置
+- 全34枚（31キャラ＋アリス4種）のカードに生成イラスト（512×768 WebP、`assets/cards/<key>.webp`）を配置
 - 生成は **ComfyUI 単独**で行う（Strata は停止しておく）。`comfygen.ps1` の Strata ハンドオフは使わない
   - `tools/start-comfyui.ps1` … ComfyUI を `--disable-all-custom-nodes` で起動（管理バックグラウンドジョブで実行）
   - `tools/comfy-standalone.ps1` … ワークフロー投入・ポーリング・ダウンロード。
@@ -146,6 +146,10 @@ Windows の PowerShell 5.1 は node の UTF-8 出力を化けさせるので、`
   - `tools/card-art-candidates-sheet.py` … 候補をキャラごと横並びにした判定シート
   - `tools/card-art/assemble-final.py` … 採用案を WebP 化（採用表は `PICK`）
   - 生成時は `-Workflow` かマニフェストの `workflow` を必ず指定する。未指定だと Qwen ワークフローが動く
+- **アリスは4種**（`s_alice_hourai` / `s_alice_shanghai` / `s_alice_orleans` / `s_alice_french`）。
+  人物は同じアリスで、抱いている人形（中国風の姫人形／ミニ自分／メイド人形／陶器人形）で種類を描き分ける。
+  マニフェストは `tools/card-art/runs-alice.json`（採用案は `_picks`）。採用 PNG を `.tmp/alice-pick/<key>.png` に
+  置いて `py -3 tools/process-card-art.py .tmp/alice-pick assets/cards` で WebP 化する（2026-11-05 追加）
 - サンドボックス対策で ComfyUI の output/temp/input/user を `.tmp` 配下へ逃がしている
 - 画像が無い/読み込み失敗時は色＋字のフォールバック（`.card.no-art`）
 - カスタムノードを無効化すると起動が約3秒（有効時は数分かかった）

@@ -26,7 +26,10 @@
 | s_spring | （人物なし）桜のトンネル・石段・神社 | `cherry_blossoms scenery no_humans` | 風景カード |
 | s_yuyuko | 桃髪の短髪・青い着物（三角文様）・扇 | `saigyouji_yuyuko pink_hair blue_kimono triangle_pattern fan` | |
 | s_youmu | 銀髪の短髪・緑の服＋白シャツ・刀・半霊 | `konpaku_youmu silver_hair green_dress katana half_phantom` | |
-| s_alice | 金髪の短髪・青いドレス＋白エプロン・赤カチューシャ・人形 | `alice_margatroid blonde_hair blue_dress white_pinafore hairband dolls` | |
+| s_alice_hourai | アリス本人は共通（金髪の短髪・青いドレス＋白エプロン・赤カチューシャ）。抱いている**人形＝長い黒髪＋赤いチャイナ服＋金の刺繍** | `alice_margatroid blonde_hair blue_dress white_pinafore hairband doll black_hair red_chinese_dress` | 蓬莱＝中国風の姫人形で他3種と一番シルエットが違う（2026-11-05 追加） |
+| s_alice_shanghai | アリス本人＋**自分にそっくりな小さな人形**（金髪・青いドレス・白エプロン） | `alice_margatroid blonde_hair blue_dress white_pinafore hairband mini_me_doll twin_doll` | 上海＝アリスの相棒人形。ミニ自分なので「同じキャラ2人」に見えないよう、人形は手のひらサイズで明示（2026-11-05 追加） |
+| s_alice_orleans | アリス本人＋**茶髪の三つ編み＋白いボンネット＋紺のメイド服（白襟）の人形** | `alice_margatroid blonde_hair blue_dress white_pinafore hairband maid_doll brown_braid bonnet navy_dress` | オルレアン＝メイド風の人形（2026-11-05 追加） |
+| s_alice_french | アリス本人＋**金の縦ロール＋淡いピンクのフリルドレス＋レースのボンネットの陶器人形** | `alice_margatroid blonde_hair blue_dress white_pinafore hairband porcelain_doll ringlets pink_frilled_dress lace_bonnet` | 仏蘭西＝アンティークな陶器人形。アリスと髪色が同じなので**巻き毛＋ピンク**で必ず差をつける（2026-11-05 追加） |
 | s_prism | 三姉妹で髪も服も別：**ルナサ＝金髪＋黒帽（赤い三日月）＋白シャツ黒ベスト黒スカート＋バイオリン** / **メルラン＝淡い紫髪＋白帽＋白服（黒縁・大丸ボタン2つ）＋トランペット** / **リリカ＝淡い茶髪＋赤い円錐帽（緑の星）＋赤服（黒縁）＋キーボード** | `lunasa blonde_hair black_hat black_vest violin` / `merlin pale_purple_hair white_hat white_dress trumpet` / `lyrica light_brown_hair red_conical_hat red_dress keyboard` | THBWiki の外貌＋touhouwiki で確認。前回は3人とも金髪・赤水玉で潰れ、楽器も混線（全員トランペット等）。**担当楽器を各人に明示**（ルナサ＝バイオリン／メルラン＝トランペット／リリカ＝キーボード）（2026-11-04 修正） |
 | s_letty | 青の長髪・青いドレス・白いマントと白い帽子・冬 | `letty_whiterock blue_hair blue_dress white_cape white_hat` | |
 | s_lily | 金髪の短髪・白いドレス・羽・春告げ | `lily_white blonde_hair white_dress wings` | 白飛び注意 |

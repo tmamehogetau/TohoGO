@@ -1,0 +1,25 @@
+{
+  "_note": "アリス4種（カードとしては1枚の『アリス』）。アリス本人は共通で、抱いている人形で種類を見分ける。生成: 2026-11-05",
+  "_picks": {
+    "s_alice_hourai": "s_alice_hourai_1",
+    "s_alice_shanghai": "s_alice_shanghai_1",
+    "s_alice_orleans": "s_alice_orleans_2",
+    "s_alice_french": "s_alice_french_1"
+  },
+  "outdir": "C:\\Users\\kou-1\\Projects\\touhou-draft\\.tmp\\alice-variants\\raw",
+  "workflow": "C:\\Users\\kou-1\\comfyui-amd-rocm-kit\\workflows\\image\\moss_sft_4step_t2i.api.json",
+  "width": 832,
+  "height": 1216,
+  "timeout_sec": 300,
+  "negative": "lowres, bad anatomy, bad hands, extra fingers, missing fingers, fused fingers, watermark, text, letters, glyphs, signature, english text, worst quality, jpeg artifacts, expressionless, cleavage, panties, underwear, lingerie, navel, bare legs, thighs, short skirt, upskirt, revealing clothes, suggestive, spread legs, high kick, bare shoulders, two girls, duplicate character, extra doll, many dolls",
+  "runs": [
+    { "name": "s_alice_hourai_1", "seed": 9701, "prompt": "masterpiece, best quality, 1girl, alice margatroid, touhou, blonde short hair, red hairband, blue dress, white pinafore apron, long sleeves, modest clothes, long skirt, covered legs, holding one small doll in her arms, the doll has long straight black hair and a red chinese dress with gold trim, magic strings on her fingers, calm gentle smile, cowboy shot, centered, looking at viewer, doll workshop, shelves of dolls, soft window light, painterly" },
+    { "name": "s_alice_hourai_2", "seed": 9702, "prompt": "masterpiece, best quality, 1girl, alice margatroid, touhou, blonde short hair, red hairband, blue dress, white pinafore apron, modest clothes, long skirt, covered legs, cradling a small doll, the doll has long black hair in a bun and a red oriental robe with golden embroidery, glowing magic strings, focused expression, cowboy shot, centered, looking at viewer, dim doll workshop, warm lamp light, painterly" },
+    { "name": "s_alice_shanghai_1", "seed": 9711, "prompt": "masterpiece, best quality, 1girl, alice margatroid, touhou, blonde short hair, red hairband, blue dress, white pinafore apron, modest clothes, long skirt, covered legs, holding a tiny doll that looks just like her, the doll has blonde hair, a blue dress and a white apron, miniature twin doll, proud smile, magic strings, cowboy shot, centered, looking at viewer, sunlit doll workshop, wooden table, painterly" },
+    { "name": "s_alice_shanghai_2", "seed": 9712, "prompt": "masterpiece, best quality, 1girl, alice margatroid, touhou, blonde short hair, red hairband, blue dress, white pinafore apron, modest clothes, long skirt, covered legs, holding up a small doll shaped like a tiny version of herself, blonde hair, blue dress, white apron, the doll is clearly visible in her raised hand, thin magic strings, gentle smile, cowboy shot, centered, looking at viewer, doll workshop window, floating dust, soft light, painterly" },
+    { "name": "s_alice_orleans_1", "seed": 9721, "prompt": "masterpiece, best quality, 1girl, alice margatroid, touhou, blonde short hair, red hairband, blue dress, white pinafore apron, modest clothes, long skirt, covered legs, holding a small doll, the doll has brown braided hair, a white frilled bonnet and a dark navy dress with a white collar, maid doll, quiet smile, magic strings, cowboy shot, centered, looking at viewer, tidy doll workshop, lace and ribbons, soft daylight, painterly" },
+    { "name": "s_alice_orleans_2", "seed": 9722, "prompt": "masterpiece, best quality, 1girl, alice margatroid, touhou, blonde short hair, red hairband, blue dress, white pinafore apron, modest clothes, long skirt, covered legs, placing a small maid doll on a workbench, the doll has brown twin braids, a white bonnet, a navy dress with white trim, tea set nearby, calm expression, cowboy shot, centered, looking at the doll, doll workshop, afternoon light, painterly" },
+    { "name": "s_alice_french_1", "seed": 9731, "prompt": "masterpiece, best quality, 1girl, alice margatroid, touhou, blonde short hair, red hairband, blue dress, white pinafore apron, modest clothes, long skirt, covered legs, holding an antique french doll, the doll has golden ringlet curls, a pale pink frilled lolita dress, a lace bonnet, porcelain pale skin, delicate, magic strings, tender smile, cowboy shot, centered, looking at viewer, doll workshop, lace curtains, warm light, painterly" },
+    { "name": "s_alice_french_2", "seed": 9732, "prompt": "masterpiece, best quality, 1girl, alice margatroid, touhou, blonde short hair, red hairband, blue dress, white pinafore apron, modest clothes, long skirt, covered legs, seated, cradling a porcelain french doll with golden ringlets, pink ruffled dress, white lace bonnet, ribbons, magic strings between her fingers, soft smile, cowboy shot, centered, looking at viewer, antique doll workshop, velvet chair, warm lamp, painterly" }
+  ]
+}
