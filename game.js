@@ -136,6 +136,7 @@
         if (def.discardBonus) parts.push(`取得時・手元 1 枚を山札へ戻し +${def.discardBonus} 点`);
         if (def.intruderPenalty) parts.push(`自分が乱入者を取ったラウンドは所持 1 枚ごとに -${def.intruderPenalty} 点`);
         if (def.zeroIfTaken) parts.push(`同じ手番に${nameOf(def.zeroIfTaken)}を取った人がいると 0 点`);
+        if (def.swap) parts.push('取得時・手元のカード1枚を山札と交換できる（山札の上から1枚引く）');
         if (def.hidden) {
           parts.push('取った番・他の全員の取得は「うどんげ」に見える');
           parts.push('免疫はその番の自分だけ。他の人が出した番では自分も影響を受ける');
@@ -175,7 +176,7 @@
   // カード面用の極短テキスト（詳細は右の拡大表示とカード一覧で読む）
   function tinyDesc(def) {
     switch (def.kind) {
-      case 'instant': return `${def.points}点${def.hidden ? '＋幻覚' : ''}${def.comboKeys ? '＋コンボ' : ''}`;
+      case 'instant': return `${def.points}点${def.hidden ? '＋幻覚' : ''}${def.comboKeys ? '＋コンボ' : ''}${def.swap ? '＋交換' : ''}`;
       case 'othersDiff': return `(他${nameOf(def.plusKey)}−他${nameOf(def.minusKey)})×${def.mult}`;
       case 'pairCond': return `2枚毎${def.points}点／春-${def.reduceSpringIconsPerPair || 1}個`;
       case 'maki': return '最多+6／2位+3';
@@ -330,11 +331,12 @@
   function humanSelectNeeded() {
     // エンジンの selectionNeeded と同じ判定を UI 側で行う
     const p = STATE.players[0];
-    const need = { discard: false, flip: false, copy: false, peek: false };
+    const need = { discard: false, flip: false, copy: false, peek: false, swap: false };
     for (const inst of p.taken) {
       const def = defOf(inst.key);
       if (!def || inst.selectionDone) continue;
       if (def.kind === 'instant' && def.discardBonus) need.discard = true;
+      if (def.kind === 'instant' && def.swap) need.swap = true;
       if (def.kind === 'flip') need.flip = true;
       if (def.kind === 'copy') need.copy = true;
       if (def.kind === 'deckPeek') need.peek = true;
@@ -345,7 +347,7 @@
   function enterSelectMode() {
     const need = humanSelectNeeded();
     // 蓄積済み choice に含まれていないモードを優先順に選ぶ
-    const order = ['discard', 'copy', 'flip', 'peek'];
+    const order = ['discard', 'copy', 'swap', 'flip', 'peek'];
     SEL_MODE = order.find((m) => need[m] && !modeStaged(m)) || null;
     SEL_SELECTED = [];
     return SEL_MODE;
@@ -391,11 +393,12 @@
     if (mode === 'discard') return !def.discardBonus; // フラン自身は破棄できない
     if (mode === 'flip') return def.kind !== 'flip'; // ミスティア自身は裏返せない
     if (mode === 'copy') return def.kind !== 'copy'; // 慧音自身はコピーできない
+    if (mode === 'swap') return !def.swap && def.key !== STATE.dessert.key; // 永琳自身とデザートは交換できない
     return false;
   }
 
   // 選択モード → choice オブジェクトのキー（小悪魔の山札確認だけ pick になる）
-  const CHOICE_KEY = { discard: 'discard', copy: 'copy', flip: 'flip', peek: 'pick' };
+  const CHOICE_KEY = { discard: 'discard', copy: 'copy', swap: 'swap', flip: 'flip', peek: 'pick' };
 
   // select フェーズの決定ボタン: 現在のモードを確定して choice に積む。
   // 他に未選択の必要があれば次のモードへ移り、すべて揃ったら choose で一括送信する
@@ -408,6 +411,9 @@
     } else if (SEL_MODE === 'copy') {
       if (SEL_SELECTED.length !== 1) return;
       choice.copy = SEL_SELECTED[0];
+    } else if (SEL_MODE === 'swap') {
+      if (SEL_SELECTED.length !== 1) return;
+      choice.swap = SEL_SELECTED[0];
     } else if (SEL_MODE === 'flip') {
       choice.flip = [...SEL_SELECTED]; // 0 枚可
     } else if (SEL_MODE === 'peek') {
@@ -419,7 +425,7 @@
 
     // 残りの必要モードがあれば次へ進む
     const need = humanSelectNeeded();
-    const order = ['discard', 'copy', 'flip', 'peek'];
+    const order = ['discard', 'copy', 'swap', 'flip', 'peek'];
     const next = order.find((m) => need[m] && (m === 'flip' ? !Array.isArray(choice.flip) : choice[CHOICE_KEY[m]] === undefined));
     if (next) {
       STAGED_CHOICE = choice;
@@ -444,7 +450,7 @@
     if (SEL_MODE === 'flip') choice.flip = [];
     // discard/copy/peek は choice に含めない = 「使わない」扱い（エンジンは未指定を許容）
     const need = humanSelectNeeded();
-    const order = ['discard', 'copy', 'flip', 'peek'];
+    const order = ['discard', 'copy', 'swap', 'flip', 'peek'];
     const next = order.find((m) => need[m] && (m === 'flip' ? !Array.isArray(choice.flip) : choice[CHOICE_KEY[m]] === undefined) && m !== SEL_MODE);
     if (next) {
       STAGED_CHOICE = choice;
@@ -518,6 +524,7 @@
     if (def.intruderPenalty && STATE.roundStats && STATE.roundStats[pi] && STATE.roundStats[pi].intruderTaken) {
       pts -= def.intruderPenalty; // 輝夜・永琳の乱入者ペナルティ
     }
+    if (inst.extraPts) pts += inst.extraPts; // 永琳の調合など、取得時に確定した追加点
     return pts;
   }
 
@@ -596,6 +603,9 @@
     if (SEL_MODE === 'copy') return SEL_SELECTED.length === 1
       ? 'コピーするカードを選択中。決定ボタンで確定'
       : 'コピーするカードを 1 枚選んでね';
+    if (SEL_MODE === 'swap') return SEL_SELECTED.length === 1
+      ? '山札と交換するカードを選択中。決定ボタンで確定'
+      : '山札と交換するカードを 1 枚選んでね（永琳の薬）';
     if (SEL_MODE === 'peek') return SEL_SELECTED.length === 1
       ? '獲得するカードを選択中。決定ボタンで確定'
       : '山札の上 4 枚の中から獲得するカードを 1 枚選んでね';
@@ -685,6 +695,8 @@
         confirmBtn.textContent = `このカードを破棄する（+${bonus} 点）`;
       } else if (SEL_MODE === 'copy') {
         confirmBtn.textContent = 'この効果をコピーする';
+      } else if (SEL_MODE === 'swap') {
+        confirmBtn.textContent = 'このカードを山札と交換する';
       } else if (SEL_MODE === 'peek') {
         confirmBtn.textContent = 'このカードを獲得する';
       }
@@ -1347,3 +1359,5 @@
   // デバッグ・テスト用に公開（Game.state でヘッドレスエンジンの state を直接参照できる）
   window.Game = { startGame, renderAll, get state() { return STATE; } };
 })();
+
+

@@ -732,16 +732,37 @@ test('永夜: 輝夜=即時3点（乱入者ペナルティなし）', () => {
   assert.strictEqual(Engine.scorePlayer(s, 0), 12); // 霊夢1枚は0点
 });
 
-test('永夜: 永琳=即時3点・乱入者を取得したラウンドは−1', () => {
+test('永夜: 永琳=2点＋手元1枚を山札と交換できる（交換は0点）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
-  cycle(s, [['y_eirin', DY], [DY, DY]], [0, 0]); // 永琳1枚取得（乱入者なしラウンド）
-  cycle(s, [['y_eirin'], [DY]], [0, 0]); // 永琳2枚目・ラウンド終了 → 3×2枚 = 6点
-  assert.strictEqual(s.players[0].roundScores[0], 6);
-  cycle(s, [['y_reimu', DY], [DY, DY]], [0, 0]); // 乱入者霊夢取得
-  cycle(s, [['y_eirin', DY], [DY, DY]], [0, 0]); // 永琳1枚取得（乱入者ありラウンド）
-  cycle(s, [['y_eirin'], [DY]], [0, 0]); // 永琳2枚目・ラウンド終了 → (3−1)×2枚 = 4点
-  assert.strictEqual(s.players[0].roundScores[1], 4);
+  setHands(s, [['x_dummy', 'y_eirin'], ['x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0]); // p0 はダミー取得（こちらが交換の対象になる）
+  settleSelection(s);
+  setHands(s, [['y_eirin', 'x_dummy'], ['x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0]); // p0 が永琳を取得 → 交換の選択フェーズ
+  assert.strictEqual(s.phase, 'select', '永琳を取ると交換の選択が発生する');
+  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { swap: 0 } });
+  assert.ok(r.ok, `choose 失敗: ${r.error}`);
+  // 交換でダミーは山札へ戻り、山札の上から 1 枚引いて手元に加わる（順序で判定）
+  const taken = s.players[0].taken.map((i) => i.key);
+  assert.deepStrictEqual(taken, ['y_eirin', 'x_dummy'], 'ダミーを戻して山札から1枚引く');
+  pickAll(s, [0, 0]); // 残りの手札を消化してラウンド終了
+  assert.strictEqual(s.players[0].roundScores[0], 2, '永琳は2点（交換に加点はない）');
+});
+
+test('永夜: 永琳の交換はスキップできる（手元はそのまま）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  setHands(s, [['x_dummy', 'y_eirin'], ['x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0]);
+  settleSelection(s);
+  setHands(s, [['y_eirin', 'x_dummy'], ['x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0]);
+  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: {} });
+  assert.ok(r.ok, `choose 失敗: ${r.error}`);
+  assert.deepStrictEqual(s.players[0].taken.map((i) => i.key), ['x_dummy', 'y_eirin'], '交換しないと手元は変わらない');
+  pickAll(s, [0, 0]); // 残りの手札を消化してラウンド終了
+  assert.strictEqual(s.players[0].roundScores[0], 2, '交換しなくても永琳は2点');
 });
 
 test('永夜: てゐ=1枚2点', () => {

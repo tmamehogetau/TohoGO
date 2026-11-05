@@ -326,6 +326,23 @@
       if (best >= 0) choice.discard = best;
     }
 
+    if (need.swap) {
+      // 交換で山札の平均的な札が来るので、明らかに弱い札だけ交換する（交換そのものは 0 点）。
+      // 一番弱い札を 1 枚選んで交換する（永琳自身とデザートは対象外）
+      const dessertKey = state.dessert && state.dessert.key;
+      let best = -1;
+      let bestValue = Infinity;
+      p.taken.forEach((inst, idx) => {
+        const def = state.cardMap[inst.key];
+        if (!def || def.swap || inst.discarded) return;
+        if (def.key === dessertKey) return;
+        const value = ownValue(state, pi, inst);
+        const v = value === null ? 0 : value;
+        if (v < bestValue) { bestValue = v; best = idx; }
+      });
+      if (best >= 0 && bestValue < 2) choice.swap = best;
+    }
+
     return choice;
   }
 
@@ -335,3 +352,4 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = AI;
   if (typeof window !== 'undefined') window.AI = AI;
 })();
+

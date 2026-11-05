@@ -397,6 +397,7 @@
           }
           if (def.kind !== 'instant') continue;
           inst.roundPts = inst.absentBlocked ? 0 : def.points; // 咲夜の同席判定
+          inst.roundPts += inst.extraPts || 0; // 永琳の調合など、取得時に確定した追加点
           if (inst.instantCombo && def.comboBonus) inst.roundPts += def.comboBonus; // 取得時コンボ（美鈴・藍・橙）
           pts += inst.roundPts;
         }
@@ -422,11 +423,12 @@
 
     function selectionNeeded(state, pi) {
       const p = state.players[pi];
-      const need = { discard: false, flip: false, copy: false, peek: false };
+      const need = { discard: false, flip: false, copy: false, peek: false, swap: false };
       for (const inst of p.taken) {
         const def = state.cardMap[inst.key];
         if (!def || inst.selectionDone) continue;
         if (def.kind === 'instant' && def.discardBonus) need.discard = true;
+        if (def.kind === 'instant' && def.swap) need.swap = true;
         if (def.kind === 'flip') need.flip = true;
         if (def.kind === 'copy') need.copy = true;
         if (def.kind === 'deckPeek') need.peek = true;
@@ -449,7 +451,7 @@
           const n = (peekDef && peekDef.peek) || 4;
           state.peekCards[i] = state.deck.splice(0, Math.min(n, state.deck.length));
         }
-        if (need.discard || need.flip || need.copy || need.peek) needed.push(i);
+        if (need.discard || need.flip || need.copy || need.peek || need.swap) needed.push(i);
       }
       if (needed.length === 0) return;
       state.phase = 'select';
@@ -534,6 +536,32 @@
           }
         }
 
+        // 永琳の調合（交換）: 手元のカード1枚を山札の下へ戻し、山札の上から1枚引く。
+        // swapBonus があれば交換時に加点する（現行は 0 点＝交換そのものは点にならない）
+        if (need.swap && c.swap !== null && c.swap !== undefined && Number.isInteger(c.swap)) {
+          const target = p.taken[c.swap];
+          const tdef = target ? map[target.key] : null;
+          const source = [...p.taken].reverse().find((x) => {
+            const d = map[x.key];
+            return d && d.swap && !x.selectionDone && !x.discarded;
+          });
+          if (target && tdef && source && source !== target && !target.discarded && tdef.key !== state.dessert.key) {
+            p.taken.splice(c.swap, 1);
+            state.deck.push(target); // 戻したカードは山札の下へ
+            if (state.deck.length) {
+              const drawn = state.deck.shift(); // 山札の上から1枚
+              applyTake(state, i, drawn);
+              const ddef = map[drawn.key];
+              const bonus = map[source.key].swapBonus || 0;
+              if (bonus) source.extraPts = (source.extraPts || 0) + bonus;
+              addLog(
+                state,
+                `${p.name}: 薬師の調合で${cardName(tdef)}を山札へ戻し、${cardName(ddef) || drawn.key}を引いた${bonus ? `（+${bonus}点）` : ''}`,
+              );
+            }
+          }
+        }
+
         // ミスティア裏返し: 裏返されたカードは「2 点のみの効果を持つカード」になり、
         // 点数はラウンド末判定（endRoundIndividual の flippedPts×2）で一括加算される
         if (need.flip && Array.isArray(c.flip) && c.flip.length) {
@@ -588,7 +616,7 @@
         // 選択済みフラグ（次ラウンドで再選択しないよう taken をマーク）
         for (const inst of p.taken) {
           const idef = map[inst.key];
-          if (idef && (idef.discardBonus || idef.kind === 'flip' || idef.kind === 'copy' || idef.kind === 'deckPeek')) inst.selectionDone = true;
+          if (idef && (idef.discardBonus || idef.swap || idef.kind === 'flip' || idef.kind === 'copy' || idef.kind === 'deckPeek')) inst.selectionDone = true;
         }
       }
       state.phase = 'pick';
@@ -1056,3 +1084,4 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   if (typeof window !== 'undefined') window.Engine = Engine;
 })();
+
