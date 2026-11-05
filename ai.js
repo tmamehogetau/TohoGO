@@ -83,6 +83,10 @@
     switch (def.kind) {
       case 'instant': {
         let value = def.points;
+        // 条件付き点（永琳: 輝夜を持っていなければ点数が上がる）
+        if (def.pointsIfNoKey && countKey(p, def.pointsIfNoKey.key) === 0) {
+          value = def.pointsIfNoKey.points;
+        }
         // 乱入者ペナルティ: 既に取っていれば確定減点、まだなら確率ぶんだけ割り引く
         if (def.intruderPenalty) {
           value -= stats.intruderTaken ? def.intruderPenalty : def.intruderPenalty * 0.4;

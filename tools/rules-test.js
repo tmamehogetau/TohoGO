@@ -732,7 +732,7 @@ test('永夜: 輝夜=即時3点（乱入者ペナルティなし）', () => {
   assert.strictEqual(Engine.scorePlayer(s, 0), 12); // 霊夢1枚は0点
 });
 
-test('永夜: 永琳=2点＋手元1枚を山札と交換できる（交換は0点）', () => {
+test('永夜: 永琳=輝夜なしなら3点＋手元1枚を山札と交換できる（交換は0点）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
   setHands(s, [['x_dummy', 'y_eirin'], ['x_dummy', 'x_dummy']]);
@@ -747,10 +747,10 @@ test('永夜: 永琳=2点＋手元1枚を山札と交換できる（交換は0�
   const taken = s.players[0].taken.map((i) => i.key);
   assert.deepStrictEqual(taken, ['y_eirin', 'x_dummy'], 'ダミーを戻して山札から1枚引く');
   pickAll(s, [0, 0]); // 残りの手札を消化してラウンド終了
-  assert.strictEqual(s.players[0].roundScores[0], 2, '永琳は2点（交換に加点はない）');
+  assert.strictEqual(s.players[0].roundScores[0], 3, '輝夜なしなら3点（交換に加点はない）');
 });
 
-test('永夜: 永琳の交換はスキップできる（手元はそのまま）', () => {
+test('永夜: 永琳の交換はスキップできる（手元はそのまま・輝夜なしなら3点）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
   setHands(s, [['x_dummy', 'y_eirin'], ['x_dummy', 'x_dummy']]);
@@ -762,7 +762,21 @@ test('永夜: 永琳の交換はスキップできる（手元はそのまま）
   assert.ok(r.ok, `choose 失敗: ${r.error}`);
   assert.deepStrictEqual(s.players[0].taken.map((i) => i.key), ['x_dummy', 'y_eirin'], '交換しないと手元は変わらない');
   pickAll(s, [0, 0]); // 残りの手札を消化してラウンド終了
-  assert.strictEqual(s.players[0].roundScores[0], 2, '交換しなくても永琳は2点');
+  assert.strictEqual(s.players[0].roundScores[0], 3, '交換しなくても輝夜なしなら3点');
+});
+
+test('永夜: 永琳=同じラウンドに輝夜を持っていると2点', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  setHands(s, [['y_kaguya', 'y_eirin'], ['x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0]); // p0 が輝夜を取得
+  settleSelection(s);
+  setHands(s, [['y_eirin', 'x_dummy'], ['x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0]); // p0 が永琳を取得 → 交換の選択（ここではスキップ）
+  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: {} });
+  assert.ok(r.ok, `choose 失敗: ${r.error}`);
+  pickAll(s, [0, 0]); // 残りの手札を消化してラウンド終了
+  assert.strictEqual(s.players[0].roundScores[0], 5, '輝夜3点＋永琳2点');
 });
 
 test('永夜: てゐ=1枚2点', () => {
@@ -1212,3 +1226,4 @@ test('select フェーズ: 人間の選択は AI 解決で埋められない', (
 });
 
 console.log(`\n${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+

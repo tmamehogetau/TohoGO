@@ -136,6 +136,7 @@
         if (def.discardBonus) parts.push(`取得時・手元 1 枚を山札へ戻し +${def.discardBonus} 点`);
         if (def.intruderPenalty) parts.push(`自分が乱入者を取ったラウンドは所持 1 枚ごとに -${def.intruderPenalty} 点`);
         if (def.zeroIfTaken) parts.push(`同じ手番に${nameOf(def.zeroIfTaken)}を取った人がいると 0 点`);
+        if (def.pointsIfNoKey) parts.push(`同じラウンドに${nameOf(def.pointsIfNoKey.key)}を取っていなければ ${def.pointsIfNoKey.points} 点`);
         if (def.swap) parts.push('取得時・手元のカード1枚を山札と交換できる（山札の上から1枚引く）');
         if (def.hidden) {
           parts.push('取った番・他の全員の取得は「うどんげ」に見える');
@@ -520,7 +521,11 @@
     if (def.kind !== 'instant') return null;
     let pts = def.points;
     if (inst.instantCombo && def.comboBonus) pts += def.comboBonus; // 美鈴・藍・橙の取得時コンボ
-    if (inst.absentBlocked) pts = 0; // 咲夜の同席判定
+    if (def.absentBlocked) pts = 0; // 咲夜の同席判定
+    if (def.pointsIfNoKey && STATE.players[pi]) {
+      const hasKey = STATE.players[pi].taken.some((i) => i.key === def.pointsIfNoKey.key && !i.flipped && !i.discarded);
+      if (!hasKey) pts = def.pointsIfNoKey.points;
+    }
     if (def.intruderPenalty && STATE.roundStats && STATE.roundStats[pi] && STATE.roundStats[pi].intruderTaken) {
       pts -= def.intruderPenalty; // 輝夜・永琳の乱入者ペナルティ
     }
