@@ -732,37 +732,15 @@ test('永夜: 輝夜=即時3点（乱入者ペナルティなし）', () => {
   assert.strictEqual(Engine.scorePlayer(s, 0), 12); // 霊夢1枚は0点
 });
 
-test('永夜: 永琳=輝夜なしなら3点＋手元1枚を山札と交換できる（交換は0点）', () => {
+test('永夜: 永琳=輝夜なしなら3点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
-  setHands(s, [['x_dummy', 'y_eirin'], ['x_dummy', 'x_dummy']]);
-  pickAll(s, [0, 0]); // p0 はダミー取得（こちらが交換の対象になる）
-  settleSelection(s);
-  setHands(s, [['y_eirin', 'x_dummy'], ['x_dummy', 'x_dummy']]);
-  pickAll(s, [0, 0]); // p0 が永琳を取得 → 交換の選択フェーズ
-  assert.strictEqual(s.phase, 'select', '永琳を取ると交換の選択が発生する');
-  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { swap: 0 } });
-  assert.ok(r.ok, `choose 失敗: ${r.error}`);
-  // 交換でダミーは山札へ戻り、山札の上から 1 枚引いて手元に加わる（順序で判定）
-  const taken = s.players[0].taken.map((i) => i.key);
-  assert.deepStrictEqual(taken, ['y_eirin', 'x_dummy'], 'ダミーを戻して山札から1枚引く');
-  pickAll(s, [0, 0]); // 残りの手札を消化してラウンド終了
-  assert.strictEqual(s.players[0].roundScores[0], 3, '輝夜なしなら3点（交換に加点はない）');
-});
-
-test('永夜: 永琳の交換はスキップできる（手元はそのまま・輝夜なしなら3点）', () => {
-  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
-  fixPeek(s);
-  setHands(s, [['x_dummy', 'y_eirin'], ['x_dummy', 'x_dummy']]);
-  pickAll(s, [0, 0]);
-  settleSelection(s);
   setHands(s, [['y_eirin', 'x_dummy'], ['x_dummy', 'x_dummy']]);
   pickAll(s, [0, 0]);
-  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: {} });
-  assert.ok(r.ok, `choose 失敗: ${r.error}`);
-  assert.deepStrictEqual(s.players[0].taken.map((i) => i.key), ['x_dummy', 'y_eirin'], '交換しないと手元は変わらない');
+  setHands(s, [['y_eirin', 'x_dummy'], ['x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0]);
   pickAll(s, [0, 0]); // 残りの手札を消化してラウンド終了
-  assert.strictEqual(s.players[0].roundScores[0], 3, '交換しなくても輝夜なしなら3点');
+  assert.strictEqual(s.players[0].roundScores[0], 6, '輝夜なしの永琳2枚＝3点×2');
 });
 
 test('永夜: 永琳=同じラウンドに輝夜を持っていると2点', () => {
@@ -772,9 +750,7 @@ test('永夜: 永琳=同じラウンドに輝夜を持っていると2点', () =
   pickAll(s, [0, 0]); // p0 が輝夜を取得
   settleSelection(s);
   setHands(s, [['y_eirin', 'x_dummy'], ['x_dummy', 'x_dummy']]);
-  pickAll(s, [0, 0]); // p0 が永琳を取得 → 交換の選択（ここではスキップ）
-  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: {} });
-  assert.ok(r.ok, `choose 失敗: ${r.error}`);
+  pickAll(s, [0, 0]); // p0 が永琳を取得
   pickAll(s, [0, 0]); // 残りの手札を消化してラウンド終了
   assert.strictEqual(s.players[0].roundScores[0], 5, '輝夜3点＋永琳2点');
 });
