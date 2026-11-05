@@ -83,7 +83,7 @@ const TARGETS = {
     ['__maki', '春 マキ配点', null],
   ],
   eternal: [
-    ['y_kaguya', '蓬莱山輝夜 4点', (d) => { d.points = 0; }],
+    ['y_kaguya', '蓬莱山輝夜 3点', (d) => { d.points = 0; }],
     ['y_eirin', '八意永琳 3点', (d) => { d.points = 0; }],
     ['y_reisen', '鈴仙 1点', (d) => { d.points = 0; }],
     ['y_tewi', 'てゐ 2枚6点', (d) => { d.table = [0, 0, 0]; }],

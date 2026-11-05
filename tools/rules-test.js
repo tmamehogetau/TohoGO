@@ -719,17 +719,29 @@ test('リザルト: 獲得カード＋判定の内訳がラウンド点と一致
 
 // ================= 永夜メカニズム =================
 
-test('永夜: 輝夜=即時4点・乱入者を取得したラウンドは−2', () => {
+test('永夜: 輝夜=即時3点（乱入者ペナルティなし）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
   cycle(s, [['y_kaguya', DY], [DY, DY]], [0, 0]); // 輝夜1枚取得
-  cycle(s, [['y_kaguya'], [DY]], [0, 0]); // 輝夜2枚目・ラウンド終了 → 輝夜(4点)×2枚 = 8点
-  assert.strictEqual(s.players[0].roundScores[0], 8);
+  cycle(s, [['y_kaguya'], [DY]], [0, 0]); // 輝夜2枚目・ラウンド終了 → 輝夜(3点)×2枚 = 6点
+  assert.strictEqual(s.players[0].roundScores[0], 6);
   cycle(s, [['y_reimu', DY], [DY, DY]], [0, 0]); // 乱入者霊夢取得
   cycle(s, [['y_kaguya', DY], [DY, DY]], [0, 0]); // 輝夜1枚取得（乱入者ありラウンド）
-  cycle(s, [['y_kaguya'], [DY]], [0, 0]); // 輝夜2枚目・ラウンド終了 → 輝夜(4−2)×2枚 = 4点
-  assert.strictEqual(s.players[0].roundScores[1], 4);
+  cycle(s, [['y_kaguya'], [DY]], [0, 0]); // 輝夜2枚目・ラウンド終了 → 減点なしで 3×2枚 = 6点
+  assert.strictEqual(s.players[0].roundScores[1], 6);
   assert.strictEqual(Engine.scorePlayer(s, 0), 12); // 霊夢1枚は0点
+});
+
+test('永夜: 永琳=即時3点・乱入者を取得したラウンドは−1', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  cycle(s, [['y_eirin', DY], [DY, DY]], [0, 0]); // 永琳1枚取得（乱入者なしラウンド）
+  cycle(s, [['y_eirin'], [DY]], [0, 0]); // 永琳2枚目・ラウンド終了 → 3×2枚 = 6点
+  assert.strictEqual(s.players[0].roundScores[0], 6);
+  cycle(s, [['y_reimu', DY], [DY, DY]], [0, 0]); // 乱入者霊夢取得
+  cycle(s, [['y_eirin', DY], [DY, DY]], [0, 0]); // 永琳1枚取得（乱入者ありラウンド）
+  cycle(s, [['y_eirin'], [DY]], [0, 0]); // 永琳2枚目・ラウンド終了 → (3−1)×2枚 = 4点
+  assert.strictEqual(s.players[0].roundScores[1], 4);
 });
 
 test('永夜: てゐ=1枚2点', () => {
