@@ -147,7 +147,8 @@ Windows の PowerShell 5.1 は node の UTF-8 出力を化けさせるので、`
   - `tools/card-art/assemble-final.py` … 採用案を WebP 化（採用表は `PICK`）
   - 生成時は `-Workflow` かマニフェストの `workflow` を必ず指定する。未指定だと Qwen ワークフローが動く
 - **アリスは4種**（`s_alice_hourai` / `s_alice_shanghai` / `s_alice_orleans` / `s_alice_french`）。
-  人物は同じアリスで、抱いている人形（中国風の姫人形／ミニ自分／メイド人形／陶器人形）で種類を描き分ける。
+  人物は同じアリスで、抱いている人形で種類を描き分ける。**上海＝青／蓬莱＝赤**の同型人形（原作の色と二次の定番に合わせた）、
+  オルレアン＝メイド人形、仏蘭西＝フランス陶器人形。オルレアンと仏蘭西は原作ではスペカ名だけなので独自解釈。
   マニフェストは `tools/card-art/runs-alice.json`（採用案は `_picks`）。採用 PNG を `.tmp/alice-pick/<key>.png` に
   置いて `py -3 tools/process-card-art.py .tmp/alice-pick assets/cards` で WebP 化する（2026-11-05 追加）
 - サンドボックス対策で ComfyUI の output/temp/input/user を `.tmp` 配下へ逃がしている
