@@ -229,20 +229,20 @@ test('紅霧: 破棄されたカードは収集判定から除外される', () 
   assert.strictEqual(s.players[0].roundScores[0], 4);
 });
 
-test('紅霧: 咲夜=同ピックで他プレイヤーがレミリア/フランを出したら0点', () => {
+test('紅霧: 咲夜=同ピックで他プレイヤーも咲夜を出したら0点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
   fixPeek(s);
-  setHands(s, [['k_sakuya', 'k_kozue'], ['k_remi', 'k_kozue']]);
-  pickAll(s, [0, 0]); // 咲夜取得（同ピックで相手がレミリア）
+  setHands(s, [['k_sakuya', 'k_kozue'], ['k_sakuya', 'k_kozue']]);
+  pickAll(s, [0, 0]); // 互いに咲夜を取得（同手番で咲夜が2枚）
   settleSelection(s); // 小悪魔の選択フェーズを解決
   setHands(s, [['k_kozue'], ['k_kozue']]);
   pickAll(s, [0, 0]); // ラウンド終了・集計
   settleSelection(s); // 小悪魔の選択を解決
-  assert.strictEqual(s.players[0].roundScores[0], 0, '同席したので 0 点');
-  assert.strictEqual(s.players[1].roundScores[0], 3, 'レミリアは 3 点');
+  assert.strictEqual(s.players[0].roundScores[0], 0, '被ったので 0 点');
+  assert.strictEqual(s.players[1].roundScores[0], 0, '被ったので 0 点');
 });
 
-test('紅霧: 咲夜=相手がレミリア/フランなしのピックなら3点', () => {
+test('紅霧: 咲夜=同手番で咲夜が1枚だけなら3点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
   fixPeek(s);
   setHands(s, [['k_sakuya', 'k_kozue'], ['k_kozue', 'k_kozue']]);
@@ -252,6 +252,19 @@ test('紅霧: 咲夜=相手がレミリア/フランなしのピックなら3点
   pickAll(s, [0, 0]); // ラウンド終了・集計
   settleSelection(s); // 小悪魔の選択を解決
   assert.strictEqual(s.players[0].roundScores[0], 3);
+});
+
+test('紅霧: 咲夜=早飲みで同じ手番に2枚出したら0点', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  s.players[0].chopsticks = 1;
+  setHands(s, [['k_sakuya', 'k_sakuya'], ['k_kozue', 'k_kozue']]);
+  pickAll(s, [[0, 1], [0]]); // 早飲みで咲夜を2枚
+  settleSelection(s); // 小悪魔の選択フェーズを解決
+  setHands(s, [['k_kozue'], ['k_kozue']]);
+  pickAll(s, [0, 0]); // ラウンド終了・集計
+  settleSelection(s); // 小悪魔の選択を解決
+  assert.strictEqual(s.players[0].roundScores[0], 0, '1枚だけではないので 0 点');
 });
 
 test('紅霧: 美鈴=同ラウンドに咲夜を獲得していたら+1点', () => {

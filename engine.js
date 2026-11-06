@@ -373,6 +373,11 @@
           const others = state.lastPicks.filter((x) => x.pi !== pi).flatMap((x) => x.keys);
           const allKeys = state.lastPicks.flatMap((x) => x.keys);
           let blocked = def.absentKeys ? others.some((k) => def.absentKeys.includes(k)) : false;
+          // 自分自身を条件にしている札（咲夜）: 「この手番に1枚だけ」なので、
+          // 同じプレイヤーが早飲みで2枚出した場合も0点にする
+          if (def.absentKeys && def.absentKeys.includes(def.key)) {
+            blocked = allKeys.filter((k) => k === def.key).length > 1;
+          }
           // zeroIfTaken: 同じ手番に誰か（自分含む）が指定カードを取ったら 0 点
           if (def.zeroIfTaken && allKeys.includes(def.zeroIfTaken)) blocked = true;
           if (blocked) {

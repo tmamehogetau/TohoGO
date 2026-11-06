@@ -98,7 +98,8 @@
         if (def.intruderPenalty) {
           value -= stats.intruderTaken ? def.intruderPenalty : def.intruderPenalty * 0.4;
         }
-        // 同席条件（咲夜）: 誰かが条件カードを取っていれば、このラウンドは 0 点
+        // 同席条件（咲夜）: 同じ手番に他プレイヤーも同じ札を出すと 0 点。
+        // 同時性は読めないので、このラウンドに他の人が咲夜を持っているかで大きく割り引く
         if (def.absentKeys) {
           const blocked = others.some((j) => def.absentKeys.some((k) => countKey(state.players[j], k) > 0));
           value = blocked ? 0.2 : value * 0.85;

@@ -131,7 +131,9 @@
     switch (def.kind) {
       case 'instant': {
         const parts = [`${def.points} 点`];
-        if (def.absentKeys) parts.push(`誰かが同時に${def.absentKeys.map(nameOf).join('か')}を取ると 0 点`);
+        if (def.absentKeys) parts.push(def.absentKeys.includes(def.key)
+          ? '他の人も同じ手番に同じ札を取ると 0 点（単独なら満点）'
+          : `誰かが同時に${def.absentKeys.map(nameOf).join('か')}を取ると 0 点`);
         if (def.comboKeys) parts.push(def.comboAtEnd
           ? `ラウンド末に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`
           : `取った瞬間に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`);
