@@ -70,6 +70,13 @@
   // 手札 1 枚を取ったときの「今ラウンドの得点」増分の見積もり。
   // engine.js のラウンド末・ゲーム末判定と同じ式をなぞり、増えるぶんだけを返す近似。
   // 条件系（同席・乱入者・ペナルティ）は「今の自分の場」で満たしているかで価値を変える。
+  // 理想重視モード（開発用）: DRAFT_AI_IDEAL=1 で全席、DRAFT_AI_IDEAL_SEAT=<席番号> でその席だけ
+  function idealMode(pi) {
+    const seat = process.env.DRAFT_AI_IDEAL_SEAT;
+    if (seat !== undefined && seat !== '' && String(pi) === String(seat)) return true;
+    return process.env.DRAFT_AI_IDEAL === '1';
+  }
+
   function baseCardValue(state, pi, card) {
     const key = typeof card === 'string' ? card : card.key;
     const def = state.cardMap[key];
@@ -118,6 +125,12 @@
       }
       case 'collect': {
         const at = (k) => (k <= 0 ? 0 : def.table[Math.min(k, def.table.length) - 1]);
+        // 理想重視モード（DSH_AI_IDEAL=1）: 完成まで取り切れたと仮定した「残りの平均ゲイン」で評価する。
+        // 現実モードは次の 1 枚の限界だけを見るので、1 枚目が 0 点の札（魔理沙など）を避ける。
+        if (idealMode(pi)) {
+          const remain = Math.max(1, def.table.length - mine);
+          return Math.max(0.2, (at(def.table.length) - at(mine)) / remain);
+        }
         return Math.max(0.2, at(mine + 1) - at(mine));
       }
       case 'pairCond': {
@@ -368,4 +381,5 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = AI;
   if (typeof window !== 'undefined') window.AI = AI;
 })();
+
 
