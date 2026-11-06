@@ -404,6 +404,33 @@ test('紅霧: 妖精メイド=多数決 最多4/最少−4', () => {
   assert.strictEqual(s.players[2].roundScores[0], -4);
 });
 
+test('紅霧: 妖精メイド=最多が同点なら等分（4÷人数）', () => {
+  const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'scarlet' });
+  fixPeek(s);
+  fixPeek(s);
+  cycle(s, [['k_maid', 'k_maid'], ['k_maid', 'k_maid'], [D, D]], [0, 0, 0]);
+  cycle(s, [['k_maid'], ['k_maid'], [D]], [0, 0, 0]); // ラウンド終了
+  // p0: 2枚 / p1: 2枚 最多同点 → 4÷2 = 2点ずつ、p2: 0枚 最少 −4
+  assert.strictEqual(s.players[0].roundScores[0], 2);
+  assert.strictEqual(s.players[1].roundScores[0], 2);
+  assert.strictEqual(s.players[2].roundScores[0], -4);
+});
+
+test('紅霧: チルノ=最少が同点なら等分（−9÷人数・端数切り捨て）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  fixPeek(s);
+  s.players[0].desserts.push(inst('k_cirno'));
+  s.players[1].desserts.push(inst('k_cirno'));
+  for (let r = 0; r < 3; r++) {
+    cycle(s, [['k_remi', D], [D, D]], [0, 0]);
+    cycle(s, [['k_remi'], [D]], [0, 0]);
+  }
+  assert.strictEqual(s.phase, 'over');
+  assert.strictEqual(Engine.charmBonus(s, 0), -4); // −9÷2 = −4.5 → −4
+  assert.strictEqual(Engine.charmBonus(s, 1), -4);
+});
+
 test('紅霧: チルノ=デザート蓄積・ゲーム末に最少 −9', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
   fixPeek(s);
@@ -434,6 +461,20 @@ test('春雪: 春=マキ準拠多数決（アイコン合計で順位）', () =>
   assert.strictEqual(s.players[1].roundScores[0], 6);
   assert.strictEqual(s.players[2].roundScores[0], 3);
 });
+
+test('春雪: 春=3人で同点なら等分（6÷3 = 2点ずつ）', () => {
+  const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'spring' });
+  fixPeek(s);
+  cycle(s, [
+    [inst('s_spring', 2), DS],
+    [inst('s_spring', 2), DS],
+    [inst('s_spring', 2), DS],
+  ], [0, 0, 0]);
+  cycle(s, [[DS], [DS], [DS]], [0, 0, 0]); // ラウンド終了
+  // 全員 2 アイコンで同点1位 → 6÷3 = 2点ずつ（+ ダミー紫の3点）
+  [0, 1, 2].forEach((pi) => assert.strictEqual(s.players[pi].roundScores[0], 3 + 2));
+});
+
 
 test('春雪: 春=2人配点（1位4点・同点は各2点・DESIGN 2-4）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
@@ -886,9 +927,14 @@ test('永夜: 妹紅=ゲーム末に最多 +6・最少 −6', () => {
   assert.deepStrictEqual([0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30), [6, 0, 0, -6]);
 });
 
-test('永夜: 妹紅=最多同点は全員 +6・最少も同点なら全員 −6', () => {
+test('永夜: 妹紅=最多同点は等分（+6÷人数）・最少同点も等分（−6÷人数）', () => {
   const s = eternalOver([2, 2, 0, 1]);
-  assert.deepStrictEqual([0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30), [6, 6, -6, 0]);
+  assert.deepStrictEqual([0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30), [3, 3, -6, 0]);
+});
+
+test('永夜: 妹紅=3人で最多同点なら +2 ずつ', () => {
+  const s = eternalOver([3, 3, 3, 0]);
+  assert.deepStrictEqual([0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30), [2, 2, 2, -6]);
 });
 
 test('永夜: 妹紅=全員同数なら判定なし（0点）', () => {

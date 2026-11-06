@@ -789,6 +789,11 @@
       }
     }
 
+    // 同点の扱い: 同数のプレイヤー全員で等分する（端数は 0 方向に切り捨て）
+    function splitPts(pts, count) {
+      return count > 1 ? Math.trunc(pts / count) : pts;
+    }
+
     // 全体判定（多数決系）→ 各プレイヤーの点数配列
     function endRoundGlobal(state, detail) {
       const n = state.playerCount;
@@ -819,25 +824,31 @@
             const restMax = Math.max(...counts.map((c, i) => (i === topIdx[0] ? -1 : c)));
             if (restMax > 0) {
               const secondIdx = counts.map((c, i) => (c === restMax ? i : -1)).filter((i) => i >= 0);
-              if (secondIdx.length === 1) scores[secondIdx[0]] += RULES.MAKI_POINTS.second;
+              const share = splitPts(RULES.MAKI_POINTS.second, secondIdx.length);
+              secondIdx.forEach((i) => { scores[i] += share; });
             }
           } else {
-            topIdx.forEach((i) => { scores[i] += RULES.MAKI_POINTS.first; });
+            const share = splitPts(RULES.MAKI_POINTS.first, topIdx.length);
+            topIdx.forEach((i) => { scores[i] += share; });
           }
         });
       }
-      // temaki（妖精メイド・紅霧）: 最多と最少は独立に判定（同点はフル得点・スシGOのマキ同点ルール準拠）
+      // temaki（妖精メイド・紅霧）: 最多と最少は独立に判定（同点は等分・端数切り捨て）
       const temakiDefs = Object.values(state.cardMap).filter((d) => d.kind === 'temaki');
       for (const def of temakiDefs) {
         const counts = state.players.map((p) => countKey(p, def.key));
         const max = Math.max(...counts);
         const min = Math.min(...counts);
         if (max === 0 || max === min) continue;
+        const mostIdx = counts.map((c, i) => (c === max ? i : -1)).filter((i) => i >= 0);
+        const leastIdx = counts.map((c, i) => (c === min ? i : -1)).filter((i) => i >= 0);
+        const mostShare = splitPts(def.most, mostIdx.length);
+        const leastShare = splitPts(def.least, leastIdx.length);
         award(def.key, `${def.name}（最多）`, () => {
-          counts.forEach((c, i) => { if (c === max) scores[i] += def.most; });
+          mostIdx.forEach((i) => { scores[i] += mostShare; });
         });
         award(def.key, `${def.name}（最少）`, () => {
-          counts.forEach((c, i) => { if (c === min) scores[i] += def.least; });
+          leastIdx.forEach((i) => { scores[i] += leastShare; });
         });
       }
       // springMost（幽々子）: 春アイコンが最多のラウンドだけ、所持 1 枚ごとに加点
@@ -1039,7 +1050,7 @@
         const counts = state.players.map((q) => q.desserts.filter((i) => i.key === def.key).length);
         const min = Math.min(...counts);
         const minIdx = counts.map((c, i) => (c === min ? i : -1)).filter((i) => i >= 0);
-        if (minIdx.includes(pi)) out.push({ key: def.key, label: `${def.name}（最少）`, pts: def.least });
+        if (minIdx.includes(pi)) out.push({ key: def.key, label: `${def.name}（最少）`, pts: splitPts(def.least, minIdx.length) });
       }
       const iceDefs = Object.values(state.cardMap).filter((d) => d.kind === 'dessertIce');
       for (const def of iceDefs) {
@@ -1065,8 +1076,10 @@
         const min = Math.min(...counts);
         if (max === min) continue; // 全員同数なら判定しない
         const cnt = counts[pi];
-        if (cnt === max && def.most) out.push({ key: def.key, label: `${def.name}（最多${cnt}枚）`, pts: def.most });
-        if (cnt === min && def.least) out.push({ key: def.key, label: `${def.name}（最少${cnt}枚）`, pts: def.least });
+        const mostN = counts.filter((c) => c === max).length;
+        const leastN = counts.filter((c) => c === min).length;
+        if (cnt === max && def.most) out.push({ key: def.key, label: `${def.name}（最多${cnt}枚）`, pts: splitPts(def.most, mostN) });
+        if (cnt === min && def.least) out.push({ key: def.key, label: `${def.name}（最少${cnt}枚）`, pts: splitPts(def.least, leastN) });
       }
       // ゲーム末判定（霊夢・魔理沙）
       for (const def of Object.values(state.cardMap)) {
