@@ -1002,6 +1002,16 @@
         const v = def.endMost !== undefined ? def.endMost : def.endMostPer * cnt;
         if (v) out.push({ key: def.key, label: `${def.name}（最多${cnt}枚）`, pts: v });
       }
+      const mostLeastDefs = Object.values(state.cardMap).filter((d) => d.kind === 'dessertMostLeast');
+      for (const def of mostLeastDefs) {
+        const counts = state.players.map((q) => q.desserts.filter((i) => i.key === def.key).length);
+        const max = Math.max(...counts);
+        const min = Math.min(...counts);
+        if (max === min) continue; // 全員同数なら判定しない
+        const cnt = counts[pi];
+        if (cnt === max && def.most) out.push({ key: def.key, label: `${def.name}（最多${cnt}枚）`, pts: def.most });
+        if (cnt === min && def.least) out.push({ key: def.key, label: `${def.name}（最少${cnt}枚）`, pts: def.least });
+      }
       // ゲーム末判定（霊夢・魔理沙）
       for (const def of Object.values(state.cardMap)) {
         if (!def.gameEnd) continue;

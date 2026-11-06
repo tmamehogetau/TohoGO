@@ -188,6 +188,18 @@
         return dessertCount(state, pi, key) === 0 ? Math.min(4.5, Math.abs(def.least) / 2) : 1.2;
       case 'dessertIce':
         return def.points / def.per;
+      case 'dessertMostLeast': {
+        // ゲーム末に最多 +most / 最少 −least。序盤は様子見、終盤は最少脱出を優先
+        const mine = dessertCount(state, pi, key);
+        const others = state.players.map((q, i) => (i === pi ? mine : dessertCount(state, i, key)));
+        const othersMax = Math.max(...state.players.map((q, i) => (i === pi ? -1 : dessertCount(state, i, key))));
+        const othersMin = Math.min(...state.players.map((q, i) => (i === pi ? 99 : dessertCount(state, i, key))));
+        const isFinal = state.round >= RULES.ROUNDS - 1;
+        let v = 0.25;
+        if (mine + 1 >= othersMax) v += 0.9; // 最多を狙える
+        if (mine <= othersMin) v += isFinal ? 1.6 : 0.6; // 最少だと終盤に刺さる
+        return v;
+      }
       case 'dessertRound': {
         // ラウンド内は 1 枚ごとに -1。ゲーム末は最多に「固定 endMost」または「枚数 × endMostPer」
         const mine = dessertCount(state, pi, key);

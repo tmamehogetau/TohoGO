@@ -926,29 +926,13 @@ test('永夜: 魔理沙=通算枚数が最多でも加点なし（旧+9の撤去
   assert.strictEqual(Engine.charmBonus(s, 1), 0);
 });
 
-test('永夜: 妹紅=ラウンド末に取った1枚ごと−1・ゲーム末に最多の枚数×2点', () => {
+test('永夜: 妹紅=ラウンド中のペナルティは無い', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
-  for (let r = 0; r < 3; r++) {
-    cycle(s, [['y_moko', DY], [DY, DY]], [0, 0]); // 席0だけ妹紅1枚、席1は鈴仙
-    cycle(s, [[DY], [DY]], [0, 0]);
-  }
-  assert.strictEqual(s.phase, 'over');
-  // ラウンド点: 席0 = 鈴仙1点 − 妹紅1枚 = 0 / 席1 = 鈴仙2点 = 2
-  assert.deepStrictEqual(s.players[0].roundScores, [0, 0, 0]);
-  assert.deepStrictEqual(s.players[1].roundScores, [2, 2, 2]);
-  // ゲーム末: 席0 最多 3枚 × 2 = +6 / 席1 は最多少なくペナルティなし
-  assert.strictEqual(Engine.scorePlayer(s, 0), 6);
-  assert.strictEqual(Engine.scorePlayer(s, 1), 6);
-});
-
-test('永夜: 妹紅のラウンドペナルティは「そのラウンドに取った分」だけ', () => {
-  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
-  fixPeek(s);
-  for (let i = 0; i < 3; i++) s.players[0].desserts.push(inst('y_moko')); // 過去ラウンドの蓄積
-  cycle(s, [[DY, DY], [DY, DY]], [0, 0]);
-  cycle(s, [[DY], [DY]], [0, 0]);
-  assert.strictEqual(s.players[0].roundScores[0], 2, 'このラウンドは妹紅を取っていないので鈴仙2点のみ');
+  cycle(s, [['y_moko', DY], [DY, DY]], [0, 0]); // 席0だけ妹紅1枚、席1は鈴仙
+  cycle(s, [[DY], [DY]], [0, 0]); // ラウンド終了
+  assert.strictEqual(s.players[0].roundScores[0], 1, '鈴仙1点のみ（妹紅のラウンド罰は無い）');
+  assert.strictEqual(s.players[1].roundScores[0], 2, '鈴仙2点');
 });
 
 // ゲーム終了状態を直接作って妹紅のゲーム末判定だけを見る
@@ -964,35 +948,20 @@ function eternalOver(dessertsPerPlayer) {
   return s;
 }
 
-test('永夜: 妹紅=最多同点は全員に「枚数×2」・最少ペナルティはなし', () => {
-  const s = eternalOver([2, 2, 1, 1]);
-  assert.deepStrictEqual(
-    [0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30),
-    [4, 4, 0, 0]
-  );
+test('永夜: 妹紅=ゲーム末に最多 +6・最少 −6', () => {
+  const s = eternalOver([3, 2, 1, 0]);
+  assert.deepStrictEqual([0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30), [6, 0, 0, -6]);
 });
 
-test('永夜: 妹紅=全員同数でも全員が最多として「枚数×2」', () => {
+test('永夜: 妹紅=最多同点は全員 +6・最少も同点なら全員 −6', () => {
+  const s = eternalOver([2, 2, 0, 1]);
+  assert.deepStrictEqual([0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30), [6, 6, -6, 0]);
+});
+
+test('永夜: 妹紅=全員同数なら判定なし（0点）', () => {
   const s = eternalOver([2, 2, 2, 2]);
-  assert.deepStrictEqual([0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30), [4, 4, 4, 4]);
+  assert.deepStrictEqual([0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30), [0, 0, 0, 0]);
 });
-
-test('永夜: 妹紅=固定加点モード（endMost）でも最多に加点される', () => {
-  const s = eternalOver([3, 2, 1, 1]);
-  s.cardMap['y_moko'] = { ...s.cardMap['y_moko'], endMostPer: undefined, endMost: 10 };
-  assert.deepStrictEqual([0, 1, 2, 3].map((pi) => Engine.scorePlayer(s, pi) - 30), [10, 0, 0, 0]);
-});
-
-test('永夜: 妹紅=累計ペナルティモードだと保有枚数ぶん毎ラウンド減る', () => {
-  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
-  fixPeek(s);
-  s.dessert = { ...s.dessert, roundPenaltyCumulative: true };
-  s.players[0].desserts.push(inst('y_moko'), inst('y_moko'));
-  cycle(s, [[DY, DY], [DY, DY]], [0, 0]);
-  cycle(s, [[DY], [DY]], [0, 0]);
-  assert.strictEqual(s.players[0].roundScores[0], 0, '鈴仙2点 − 累計2枚ぶんの2点');
-});
-
 test('永夜: ミスティア=取得時にカードを任意枚数裏返して2点化', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
@@ -1190,6 +1159,7 @@ test('select フェーズ: 人間の選択は AI 解決で埋められない', (
 });
 
 console.log(`\n${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+
 
 
 
