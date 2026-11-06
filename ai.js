@@ -188,7 +188,18 @@
         // 次の春でアイコン数ぶんの春と点。春がまだ手元/山に残っていそうなら強め
         return p.taken.some((i) => i.key === 's_spring') ? 2.4 : 1.6;
       case 'roundComboCount':
-        return def.per * 0.7;
+        // 固定点（base）＋チルノなど対象デザート1枚ごとの点
+        return (def.base || 0) * 0.7 + def.per * (def.cumulative ? 1.2 : 0.7);
+      case 'socialJoin': {
+        // 自分以外で大妖精かチルノを取っている人数ぶんもらえる（ラウンド末）
+        const keys = def.joinKeys || [];
+        let others = 0;
+        for (let j = 0; j < state.players.length; j++) {
+          if (j === pi) continue;
+          if (state.players[j].taken.some((i) => keys.includes(i.key) && !i.discarded && !i.flipped)) others++;
+        }
+        return (def.perCopy ? Math.max(1, countKey(p, def.key)) : 1) * (others + 0.5) * (def.per || 1);
+      }
       case 'tofu': {
         const at = (k) => (k <= 0 ? 0 : def.table[Math.min(k, def.table.length) - 1]);
         return at(mine + 1) - at(mine); // 3 枚目は負になるので取らなくなる
@@ -448,6 +459,9 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = AI;
   if (typeof window !== 'undefined') window.AI = AI;
 })();
+
+
+
 
 
 

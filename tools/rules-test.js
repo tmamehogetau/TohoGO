@@ -349,16 +349,21 @@ test('紅霧: フランをスキップ後の小悪魔選択に古い破棄キー
   assert.strictEqual(s.phase, 'pick');
 });
 
-test('紅霧: 大妖精=今ラウンドのチルノ1枚ごとに1点', () => {
-  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+test('紅霧: 大妖精=自分以外でチルノを取った人数ぶん +1点', () => {
+  const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'scarlet' });
   fixPeek(s);
-  fixPeek(s);
-  cycle(s, [['k_daiyousei', D, D], [D, D]], [0, 0]); // 大妖精取得
-  cycle(s, [['k_cirno', D], [D, D]], [0, 0]); // チルノ1枚取得
-  cycle(s, [['k_cirno'], [D]], [0, 0]); // チルノ2枚目・ラウンド終了 → 2点
-  assert.strictEqual(s.players[0].roundScores[0], 2);
+  cycle(s, [['k_daiyousei', 'x_dummy'], ['k_cirno', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0, 0]); // B がチルノ
+  cycle(s, [['x_dummy'], ['x_dummy'], ['x_dummy']], [0, 0, 0]); // ラウンド終了
+  assert.strictEqual(s.players[0].roundScores[0], 1, 'チルノを取った B の1人ぶん');
 });
 
+test('紅霧: 大妖精=自分だけでは0点', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  cycle(s, [['k_daiyousei', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]);
+  cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]);
+  assert.strictEqual(s.players[0].roundScores[0], 0);
+});
 test('紅霧: 大妖精=フランで破棄したチルノは数えない', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
   fixPeek(s);
@@ -370,7 +375,7 @@ test('紅霧: 大妖精=フランで破棄したチルノは数えない', () =>
   assert.ok(r.ok, r.error);
   cycle(s, [['k_daiyousei', F], [F, F]], [0, 0]); // 大妖精取得
   cycle(s, [['k_sakuya'], [F]], [0, 0]); // ラウンド終了
-  // フラン2 + 破棄2 + 咲夜3 + 大妖精0（破棄したチルノは数えない）= 7
+  // フラン2 + 破棄2 + 咲夜3 + 大妖精0（自分以外に大妖精/チルノを取った人がいない）= 7
   assert.strictEqual(s.players[0].roundScores[0], 7);
 });
 
@@ -1080,6 +1085,12 @@ test('select フェーズ: 人間の選択は AI 解決で埋められない', (
 });
 
 console.log(`\n${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+
+
+
+
+
+
 
 
 

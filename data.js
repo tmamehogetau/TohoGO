@@ -25,7 +25,7 @@
     { key: 'k_sakuya', kind: 'instant', points: 3, absentKeys: ['k_remi', 'k_fran'], name: '十六夜咲夜', icon: 'メ', color: '#9aa5b1', count: 8 },
     { key: 'k_patch', kind: 'kindCount', offset: -3, name: 'パチュリー', icon: '図', color: '#8e3b8e', count: 3 },
     { key: 'k_rumia', kind: 'collect', table: [1, 3, 6, 10, 15], name: 'ルーミア', icon: '闇', color: '#3a3a42', count: 8 },
-    { key: 'k_daiyousei', kind: 'roundComboCount', targetKey: 'k_cirno', per: 1, name: '大妖精', icon: '精', color: '#b8d8e8', count: 8 },
+    { key: 'k_daiyousei', kind: 'socialJoin', joinKeys: ['k_cirno'], per: 1, name: '大妖精', icon: '精', color: '#b8d8e8', count: 8 },
     { key: 'k_maid', kind: 'temaki', most: 4, least: -4, name: '妖精メイド', icon: '奉', color: '#5f8f3e', count: 12 },
     { key: 'k_kozue', kind: 'deckPeek', peek: 4, name: '小悪魔', icon: '悪', color: '#3d7ea6', count: 3 },
   ];
@@ -148,6 +148,11 @@
     window.Data = { RULES, INCIDENTS, INCIDENT_IDS, incidentById, buildCardMap, buildMainDeck, buildDessertPool };
   }
 })();
+
+
+
+
+
 
 
 

@@ -869,7 +869,7 @@
         if (inst.flipped || inst.discarded) continue;
         const def = state.cardMap[inst.key];
         if (!def) continue;
-        if (['pair', 'pairCond', 'set3', 'collect', 'tofu', 'kindCount', 'letty', 'roundComboCount', 'aliceSet'].includes(def.kind)) {
+        if (['pair', 'pairCond', 'set3', 'collect', 'tofu', 'kindCount', 'letty', 'roundComboCount', 'socialJoin', 'aliceSet'].includes(def.kind)) {
           seenKinds[def.key] = true;
         }
       }
@@ -938,14 +938,29 @@
             kindLabel = `${def.groupLabel || def.name}（${types.size}種）`;
             break;
           }
+          case 'socialJoin': {
+            // 自分以外で「大妖精かチルノ」を取ったプレイヤー1人につき +per 点（同じラウンド）
+            const keys = def.joinKeys || [];
+            let others = 0;
+            for (let j = 0; j < state.players.length; j++) {
+              if (j === pi) continue;
+              const q = state.players[j];
+              if (q.taken.some((inst) => keys.includes(inst.key) && !inst.discarded && !inst.flipped)) others++;
+            }
+            const n = countKey(p, def.key);
+            kindPts = (def.perCopy ? n : 1) * others * (def.per || 1);
+            break;
+          }
           case 'roundComboCount': {
             // そのラウンドに取ったデザート。破棄・裏返し・コピーは判定から外れる
             // （フランで破棄したチルノを大妖精が数えてしまう不具合の修正）
             const target = def.targetKey || state.dessert.key;
-            const cnt = p.taken.filter(
+            let cnt = p.taken.filter(
               (inst) => inst.key === target && !inst.discarded && !inst.flipped && !inst.copied
             ).length;
-            kindPts = cnt * def.per;
+            // cumulative: 過去ラウンドぶんも数える（大妖精のチルノ累計など）
+            if (def.cumulative) cnt += p.desserts.filter((inst) => inst.key === target).length;
+            kindPts = (def.base || 0) + cnt * def.per;
             break;
           }
           default:
@@ -1127,6 +1142,11 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   if (typeof window !== 'undefined') window.Engine = Engine;
 })();
+
+
+
+
+
 
 
 
