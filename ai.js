@@ -134,7 +134,7 @@
         const step = (k) => Math.max(0, at(k + 1) - at(k));
         let v = Math.max(0.2, step(mine));
         // 先読みモード（DRAFT_AI_LOOKAHEAD=1）: 2枚先の限界を半額で足す。閾値の白黒を避ける
-        if (process.env.DRAFT_AI_LOOKAHEAD === '1') v = Math.max(0.2, step(mine) + 0.5 * step(mine + 1));
+        if (process.env.DRAFT_AI_LOOKAHEAD === '1' || policyOf(pi) === 'adaptive') v = Math.max(0.2, step(mine) + 0.5 * step(mine + 1));
         // 妨害モード（DRAFT_AI_BLOCK=1）: 相手が完成に近いほど「取って潰す」価値を足す。
         // 重み 0.4 = 相手の損の4割ぶんを自分の得に換算（損して得取る思考の近似）
         if (process.env.DRAFT_AI_BLOCK === '1') {
@@ -273,10 +273,55 @@
     return mult === undefined ? base : base * mult;
   }
 
+  // 性格（検証用）: DRAFT_AI_POLICY_SEATS="0:greedy,1:adaptive,2:denial"
+  //   greedy   = 自分の点だけを最大化（相手を見ない）
+  //   adaptive = 状況適応（完成確率の先読み＋軽い妨害）
+  //   denial   = 相手の得を潰すことを重視しつつ勝ちを狙う
+  function policyOf(pi) {
+    const s = process.env.DRAFT_AI_POLICY_SEATS;
+    if (!s) return null;
+    for (const part of s.split(',')) {
+      const bits = part.split(':');
+      if (Number(bits[0]) === pi) return bits[1];
+    }
+    return null;
+  }
+
+  // 相手がこのカードを取ったときに得する点（妨害価値の近似）
+  function opponentGain(state, pi, key) {
+    const def = state.cardMap[key];
+    if (!def) return 0;
+    let best = 0;
+    for (let j = 0; j < state.players.length; j++) {
+      if (j === pi) continue;
+      const n = countKey(state.players[j], key);
+      let g = 0;
+      if (def.kind === 'collect') {
+        const at = (k) => (k <= 0 ? 0 : def.table[Math.min(k, def.table.length) - 1]);
+        g = Math.max(0, at(n + 1) - at(n));
+      } else if (def.kind === 'pair') {
+        g = (n + 1) % 2 === 0 ? def.points : 0;
+      } else if (def.kind === 'set3') {
+        g = (n + 1) % 3 === 0 ? def.points : 0;
+      } else if (def.kind === 'instant') {
+        g = def.points || 0;
+      }
+      if (g > best) best = g;
+    }
+    return best;
+  }
+
   function rankedHand(state, pi, style) {
     const hand = state.players[pi].hand;
+    const pol = policyOf(pi);
     return hand
-      .map((card, idx) => ({ idx, value: cardValue(state, pi, card, style) + Math.random() * 0.5 }))
+      .map((card, idx) => {
+        let value = cardValue(state, pi, card, style);
+        const key = typeof card === 'string' ? card : card.key;
+        if (pol === 'denial') value += 0.45 * opponentGain(state, pi, key);
+        else if (pol === 'adaptive') value += 0.15 * opponentGain(state, pi, key);
+        return { idx, value: value + Math.random() * 0.5 };
+      })
       .sort((a, b) => b.value - a.value);
   }
 
@@ -396,6 +441,8 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = AI;
   if (typeof window !== 'undefined') window.AI = AI;
 })();
+
+
 
 
 
