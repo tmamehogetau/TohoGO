@@ -779,7 +779,7 @@ test('永夜: 霊夢=通算で溜めても追加点はない（ラウンド単�
   cycle(s, [['y_reimu'], [DY]], [0, 0]);
   cycle(s, [['y_mystia'], [DY]], [0, 0]);
   const roundTotal = s.players[0].roundScores.reduce((a, b) => a + b, 0);
-  assert.strictEqual(roundTotal, 8, '2 枚 × 2 ラウンド = 4 点 ×2');
+  assert.strictEqual(roundTotal, 12, '2 枚 × 2 ラウンド = 6 点 ×2');
   assert.strictEqual(Engine.scorePlayer(s, 0) - roundTotal, 0, 'ゲーム末の追加点はない');
 });
 
@@ -796,12 +796,12 @@ test('永夜: 玉兎=兎アイコンマキ準拠多数決（2人配点 1位4点�
   assert.strictEqual(s.players[1].roundScores[0], 1);
 });
 
-test('永夜: 霊夢=ラウンド内2枚ごとに4点（1枚では0点）', () => {
+test('永夜: 霊夢=ラウンド内2枚ごとに6点（1枚では0点）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
   cycle(s, [['y_reimu', 'y_reimu'], [DY, DY]], [0, 0]);
-  cycle(s, [['y_reimu'], [DY]], [0, 0]); // 2枚でラウンド終了 → 4点
-  assert.strictEqual(s.players[0].roundScores[0], 4);
+  cycle(s, [['y_reimu'], [DY]], [0, 0]); // 2枚でラウンド終了 → 6点
+  assert.strictEqual(s.players[0].roundScores[0], 6);
   cycle(s, [['y_reimu', 'y_reimu'], [DY, DY]], [0, 0]);
   cycle(s, [['y_mystia'], [DY]], [0, 0]); // 1枚だけ → 0点
   assert.strictEqual(s.players[0].roundScores[1], 0);
@@ -1085,6 +1085,7 @@ test('select フェーズ: 人間の選択は AI 解決で埋められない', (
 });
 
 console.log(`\n${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+
 
 
 
