@@ -131,7 +131,12 @@
           const remain = Math.max(1, def.table.length - mine);
           return Math.max(0.2, (at(def.table.length) - at(mine)) / remain);
         }
-        return Math.max(0.2, at(mine + 1) - at(mine));
+        const step = (k) => Math.max(0, at(k + 1) - at(k));
+        // 先読みモード（DRAFT_AI_LOOKAHEAD=1）: 2枚先の限界を半額で足す。閾値の白黒を避ける
+        if (process.env.DRAFT_AI_LOOKAHEAD === '1') {
+          return Math.max(0.2, step(mine) + 0.5 * step(mine + 1));
+        }
+        return Math.max(0.2, step(mine));
       }
       case 'pairCond': {
         const need = mine % 2 === 1 ? 1 : 2;
@@ -381,5 +386,6 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = AI;
   if (typeof window !== 'undefined') window.AI = AI;
 })();
+
 
 
