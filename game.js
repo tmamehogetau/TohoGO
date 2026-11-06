@@ -149,7 +149,7 @@
       case 'maki': return `このアイコンの合計を競う・最多 ${MAKI.first} 点／2 位 ${MAKI.second} 点`;
       case 'temaki': return `この枚数を競う・最多 +${def.most}／最少 ${def.least} 点`;
       case 'springMost': return `ラウンド末・春の獲得数が全員最多なら、所持 1 枚ごとに +${def.most} 点（このカードの所持が条件）`;
-      case 'springSteal': return `取った瞬間・他の全員から春を ${def.steal} 個ずつ奪う。春を持っていない相手 1 人につき +${def.pointPer} 点（誰からも奪えないと失敗）`;
+      case 'springBoost': return '取った後、次に春を取るとそのアイコン数ぶんの春と点を追加で獲得（同じラウンド内）';
       case 'pair': return `2 枚で 1 ペア = ${def.points} 点${gameEndBonusText(def)}`;
       case 'aliceSet': {
         const tbl = def.table || [0, 1, 4, 9, 16];
@@ -184,7 +184,7 @@
       case 'maki': return '最多+6／2位+3';
       case 'temaki': return `最多+${def.most}／最少${def.least}`;
       case 'springMost': return `春の最多で+${def.most}×枚`;
-      case 'springSteal': return `春を${def.steal}個ずつ強奪`;
+      case 'springBoost': return '次の春で春と点を追加';
       case 'pair': return `2枚で${def.points}点`;
       case 'aliceSet': return '種類数で1/4/9/16点';
       case 'set3': return `3枚で${def.points}点`;
@@ -1363,6 +1363,7 @@
   // デバッグ・テスト用に公開（Game.state でヘッドレスエンジンの state を直接参照できる）
   window.Game = { startGame, renderAll, get state() { return STATE; } };
 })();
+
 
 
 

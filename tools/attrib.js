@@ -77,7 +77,7 @@ const TARGETS = {
     ['group:alice', 'アリス 人形の種類数', (d) => { d.table = [0, 0, 0, 0, 0]; }],
     ['s_prism', 'プリズム 3枚10点', (d) => { d.points = 0; }],
     ['s_yuyuko', '幽々子 春最多4点', (d) => { d.most = 0; }],
-    ['s_youmu', '妖夢 春を奪う', (d) => { d.steal = 0; }],
+    ['s_youmu', '妖夢 次の春を強化', (d) => { d.kind = 'none'; }],
     ['s_letty', 'レティ 2枚毎6点/春-1', (d) => { d.points = 0; d.reduceSpringIconsPerPair = 0; }],
     ['s_lily', 'リリーホワイト 4枚12点', (d) => { d.points = 0; }],
     ['__maki', '春 マキ配点', null],
@@ -178,4 +178,5 @@ function main() {
 }
 
 main();
+
 

@@ -114,6 +114,9 @@
       for (const p of state.players) {
         p.taken = [];
         p.hand = state.deck.splice(0, state.handSize);
+        p.springBuff = 0;
+        p.youmuPts = 0;
+        p.youmuSpring = 0;
       }
       state.passDir = PASS_DIRS[state.round];
       state.picks = new Array(state.playerCount).fill(null);
@@ -327,8 +330,20 @@
         p.gameEndCounts[inst.key] = (p.gameEndCounts[inst.key] || 0) + 1;
       }
 
-      // 妖夢の効果は手番解決時に一括処理する（席順で結果が変わらないように）。
-      // ここでは何もしない。
+      // 妖夢（springBoost）: このカードを取ると「次の春カード」に効果が付く。
+      // 次に春を取ったとき、そのアイコン数ぶんの春と点を追加で得る（同ラウンド内で消費）。
+      if (def.kind === 'springBoost') {
+        p.springBuff = (p.springBuff || 0) + 1;
+        addLog(state, `${p.name}: 妖夢が次の春に備えた`);
+      } else if (inst.key === 's_spring' && (p.springBuff || 0) > 0) {
+        p.springBuff -= 1;
+        const icons = inst.icons || 1;
+        p.youmuSpring = (p.youmuSpring || 0) + icons;
+        stats.springIcons += icons;
+        p.youmuPts = (p.youmuPts || 0) + icons;
+        inst.youmuBoost = icons;
+        addLog(state, `${p.name}: 妖夢の加護で春${icons}個と +${icons} 点`);
+      }
 
 
       // 即時点数はラウンド末に一括集計する（ここでは加点しない）。
@@ -668,7 +683,7 @@
 
     // 春アイコンの実効値（ラウンド末の順位判定用）
     function springIconTotal(state, p) {
-      return Math.max(0, countKey(p, 's_spring') - lettyPairReduction(state, p));
+      return Math.max(0, countKey(p, 's_spring') + (p.youmuSpring || 0) - lettyPairReduction(state, p));
     }
 
     // UI 用ユーティリティ: taken 内の key → 枚数マップ（裏返しカードも所持としては数える）
@@ -940,6 +955,11 @@
           });
         }
       }
+      // 妖夢の加護: 次の春で得た追加点（ラウンド末にまとめて計上）
+      if (p.youmuPts) {
+        pts += p.youmuPts;
+        detail.push({ key: 's_youmu', label: '妖夢（次の春）', pts: p.youmuPts });
+      }
       return pts;
     }
 
@@ -1102,5 +1122,6 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   if (typeof window !== 'undefined') window.Engine = Engine;
 })();
+
 
 

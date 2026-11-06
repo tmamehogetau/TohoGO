@@ -38,7 +38,7 @@
     { key: 's_chen', kind: 'instant', points: 1, comboKeys: ['s_yukari', 's_ran'], comboBonus: 1, name: '橙', icon: '橙', color: '#d97e30', count: 5 },
     { key: 's_spring', kind: 'maki', iconCounts: { 1: 4, 2: 5, 3: 3 }, name: '春', icon: '春', color: '#e88ab8', count: 12 },
     { key: 's_yuyuko', kind: 'springMost', most: 4, name: '西行寺幽々子', icon: '姫', color: '#d8cfe8', count: 3 },
-    { key: 's_youmu', kind: 'springSteal', steal: 1, pointPer: 1, name: '魂魄妖夢', icon: '庭', color: '#8fb8a0', count: 3 },
+    { key: 's_youmu', kind: 'springBoost', name: '魂魄妖夢', icon: '庭', color: '#8fb8a0', count: 3 },
     // アリスは「1 枚のカード」だが、手元では 4 種の人形（各 2 枚）に分かれる。
     // カードとしては 4 種とも「アリス」（name は共通・variant で人形を見分ける）。
     // 得点は集めた種類数（1種1点/2種4点/3種9点/4種16点）
@@ -148,6 +148,7 @@
     window.Data = { RULES, INCIDENTS, INCIDENT_IDS, incidentById, buildCardMap, buildMainDeck, buildDessertPool };
   }
 })();
+
 
 
 

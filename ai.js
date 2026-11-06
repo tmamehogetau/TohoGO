@@ -121,7 +121,9 @@
       }
       case 'maki': {
         // 最多 6 点 / 2 位 3 点は 1 ラウンドに 1 回だけ。実測では即時 1 枚に負ける
-        return 0.6 * icons;
+        // 妖夢の加護が残っていれば、次の春はアイコン数ぶんの点と春が付くので強めに見る
+        const buff = (p.springBuff || 0) > 0 ? 1.2 : 0;
+        return 0.6 * icons + buff;
       }
       case 'collect': {
         const at = (k) => (k <= 0 ? 0 : def.table[Math.min(k, def.table.length) - 1]);
@@ -177,13 +179,9 @@
         const othersMax = Math.max(0, ...others.map((j) => state.roundStats[j].springIcons));
         return stats.springIcons > othersMax ? def.most * 0.45 : def.most * 0.18;
       }
-      case 'springSteal': {
-        // 春を持っていない相手 1 人につき 1 点。誰も春を持っていなければ失敗（0 点）
-        const holders = others.filter((j) => state.roundStats[j].springIcons > 0).length;
-        if (holders === 0) return 0.1;
-        const springless = others.length - holders;
-        return springless * 0.8 + holders * 0.3; // 点＋春を奪う価値
-      }
+      case 'springBoost':
+        // 次の春でアイコン数ぶんの春と点。春がまだ手元/山に残っていそうなら強め
+        return p.taken.some((i) => i.key === 's_spring') ? 2.4 : 1.6;
       case 'roundComboCount':
         return def.per * 0.7;
       case 'tofu': {
