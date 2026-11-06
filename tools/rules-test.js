@@ -881,7 +881,7 @@ test('永夜: 霊夢=ラウンド内2枚ごとに4点（1枚では0点）', () =
   assert.strictEqual(s.players[0].roundScores[1], 0);
 });
 
-test('永夜: 魔理沙=ラウンド内3枚ごとに9点', () => {
+test('永夜: 魔理沙=ラウンド末に所持枚数の2乗点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_marisa' });
   fixPeek(s);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
@@ -890,8 +890,8 @@ test('永夜: 魔理沙=ラウンド内3枚ごとに9点', () => {
   assert.strictEqual(s.players[0].roundScores[0], 9);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
-  cycle(s, [['y_mystia'], [DY]], [0, 0]); // 2枚 → 0点
-  assert.strictEqual(s.players[0].roundScores[1], 0);
+  cycle(s, [['y_mystia'], [DY]], [0, 0]); // 2枚 → 4点
+  assert.strictEqual(s.players[0].roundScores[1], 4);
 });
 
 test('永夜: 魔理沙=通算最多でないと +9 は入らない', () => {
@@ -1196,6 +1196,7 @@ test('select フェーズ: 人間の選択は AI 解決で埋められない', (
 });
 
 console.log(`\n${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+
 
 
 

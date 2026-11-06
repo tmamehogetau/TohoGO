@@ -156,7 +156,9 @@
         return `集めた${def.name}の種類数で得点／1種 ${tbl[1]} 点・2種 ${tbl[2]} 点・3種 ${tbl[3]} 点・4種 ${tbl[4]} 点`;
       }
       case 'set3': return `3 枚で 1 セット = ${def.points} 点${gameEndBonusText(def)}`;
-      case 'collect': return `1/2/3/4/5+ 枚で ${def.table.join('/')} 点`;
+      case 'collect': return def.square
+        ? 'ラウンド末・所持枚数の2乗点（1枚 1 点／2枚 4 点／3枚 9 点／4枚 16 点…）'
+        : `1/2/3/4/5+ 枚で ${def.table.join('/')} 点`;
       case 'roundComboCount': return `このラウンドに自分がデザートを取るたび +${def.per} 点`;
       case 'tofu': return `1 枚 ${def.table[0]} 点・2 枚 ${def.table[1]} 点・3 枚以上 ${def.table[def.table.length - 1]} 点`;
       case 'kindCount': return `ラウンド末・「取ったカードの種類数 ${def.offset >= 0 ? '+' : ''}${def.offset}」点`;
@@ -187,7 +189,7 @@
       case 'pair': return `2枚で${def.points}点`;
       case 'aliceSet': return '種類数で1/4/9/16点';
       case 'set3': return `3枚で${def.points}点`;
-      case 'collect': return `枚数で加点`;
+      case 'collect': return def.square ? '枚数の2乗' : '枚数で加点';
       case 'roundComboCount': return `デザート毎+${def.per}`;
       case 'tofu': return `${def.table.join('/')}点`;
       case 'kindCount': return `種類数${def.offset >= 0 ? '+' : ''}${def.offset}`;
@@ -1361,5 +1363,6 @@
   // デバッグ・テスト用に公開（Game.state でヘッドレスエンジンの state を直接参照できる）
   window.Game = { startGame, renderAll, get state() { return STATE; } };
 })();
+
 
 

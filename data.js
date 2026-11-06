@@ -66,7 +66,7 @@
   ];
   const ETERNAL_INTRUDERS = [
     { key: 'y_reimu', kind: 'pair', points: 4, gameEnd: true, gameEndTotalAtLeast: { count: 7, points: 7 }, name: '博麗霊夢', icon: '夢', color: '#c22a4e', count: 8 },
-    { key: 'y_marisa', kind: 'set3', points: 9, gameEnd: true, gameEndMost: { points: 9 }, name: '霧雨魔理沙', icon: '星', color: '#4a4a52', count: 8 },
+    { key: 'y_marisa', kind: 'collect', table: [1, 4, 9, 16, 25, 36, 49, 64], square: true, gameEnd: true, gameEndMost: { points: 9 }, name: '霧雨魔理沙', icon: '星', color: '#4a4a52', count: 8 },
   ];
   const ETERNAL_DESSERT = { key: 'y_moko', kind: 'dessertRound', roundPenalty: -1, endMostPer: 2, name: '藤原妹紅', icon: '火', color: '#d15a32', pool: 15 };
 
@@ -148,4 +148,5 @@
     window.Data = { RULES, INCIDENTS, INCIDENT_IDS, incidentById, buildCardMap, buildMainDeck, buildDessertPool };
   }
 })();
+
 
