@@ -66,7 +66,7 @@ const TARGETS = {
     ['k_meirin', '紅美鈴 1点', (d) => { d.points = 0; }],
     ['k_rumia', 'ルーミア 収集', (d) => { d.table = [0, 0, 0, 0, 0]; }],
     ['k_maid', '妖精メイド 最多/最少', (d) => { d.most = 0; d.least = 0; }],
-    ['k_daiyousei', '大妖精 デザート毎', (d) => { d.per = 0; }],
+    ['k_daiyousei', '大妖精 デザート毎', (d) => { d.joinKeys = []; }],
     ['k_patch', 'パチュリー 種類数', (d) => { d.offset = -99; }],
     ['k_cirno', 'チルノ 最少に減点', (d) => { d.least = 0; }],
   ],
@@ -89,7 +89,7 @@ const TARGETS = {
     ['y_tewi', 'てゐ 2枚6点', (d) => { d.table = [0, 0, 0]; }],
     ['y_moko', '妹紅 最多+6/最少-6', (d) => { d.most = 0; d.least = 0; }],
     ['y_riggle', 'リグル 同時取得', (d) => { d.points = 0; }],
-    ['y_reimu', '霊夢 2枚毎4点/通算7枚+7', (d) => { d.points = 0; d.gameEndTotalAtLeast = null; }],
+    ['y_reimu', '霊夢 累計ペア 4/5/6…', (d) => { d.kind = 'none'; }],
     ['y_marisa', '魔理沙 0/2/8/13/21', (d) => { d.table = [0, 0, 0, 0, 0]; }],
     ['__maki', '玉兎 マキ配点', null],
   ],
@@ -178,5 +178,6 @@ function main() {
 }
 
 main();
+
 
 

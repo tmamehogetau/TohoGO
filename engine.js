@@ -964,7 +964,7 @@
               if (q.taken.some((inst) => keys.includes(inst.key) && !inst.discarded && !inst.flipped)) others++;
             }
             const n = countKey(p, def.key);
-            kindPts = (def.perCopy ? n : 1) * others * (def.per || 1);
+            kindPts = (def.perCopy ? n : 1) * others * (def.per === undefined ? 1 : def.per);
             break;
           }
           case 'roundComboCount': {
