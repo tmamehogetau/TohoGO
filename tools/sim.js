@@ -121,6 +121,7 @@ function playGame(incident, opts) {
     totals: s.players.map((_, pi) => Engine.scorePlayer(s, pi)),
     ranking: Engine.finalRanking(s),
     cardMap: s.cardMap,
+    desserts: s.players.map((p) => p.desserts.map((i) => i.key)), // ゲーム末のデザート置き場（累計枚数の判定用）
   };
 }
 
@@ -494,4 +495,5 @@ function main() {
 module.exports = { run, playGame, runWithSeed, mean, fmt, parseArgs };
 
 if (require.main === module) main();
+
 
