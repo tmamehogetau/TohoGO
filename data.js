@@ -56,7 +56,7 @@
   // 乱入者（霊夢/魔理沙）はランダムでいずれか 1 種のみデッキに組み込まれる
   const ETERNAL_MAIN = [
     { key: 'y_kaguya', kind: 'instant', points: 3, name: '蓬莱山輝夜', icon: '夜', color: '#c9a84c', count: 3 },
-    { key: 'y_eirin', kind: 'instant', points: 2, pointsIfNoKey: { key: 'y_kaguya', points: 3 }, name: '八意永琳', icon: '薬', color: '#6a8fb8', count: 4 },
+    { key: 'y_eirin', kind: 'instant', points: 2, pointsIfKey: { key: 'y_kaguya', points: 3 }, name: '八意永琳', icon: '薬', color: '#6a8fb8', count: 4 },
     { key: 'y_reisen', kind: 'instant', points: 1, hidden: true, name: '鈴仙', icon: '幻', color: '#b85a7a', count: 5 },
     { key: 'y_tewi', kind: 'tofu', table: [2, 6, 0], name: '因幡てゐ', icon: '幸', color: '#6a9955', count: 8 },
     { key: 'y_mystia', kind: 'flip', flipPoints: 2, name: 'ミスティア', icon: '歌', color: '#a67c52', count: 3 },

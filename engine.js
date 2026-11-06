@@ -397,9 +397,9 @@
           }
           if (def.kind !== 'instant') continue;
           inst.roundPts = inst.absentBlocked ? 0 : def.points; // 咲夜の同席判定
-          // 条件付き点（永琳: 同じラウンドに輝夜を取っていなければ点数が上がる）
-          if (def.pointsIfNoKey && !p.taken.some((x) => x.key === def.pointsIfNoKey.key && !x.flipped && !x.discarded)) {
-            inst.roundPts = def.pointsIfNoKey.points;
+          // 条件付き点（永琳: 同じラウンドに輝夜を取っていれば点数が上がる）
+          if (def.pointsIfKey && p.taken.some((x) => x.key === def.pointsIfKey.key && !x.flipped && !x.discarded)) {
+            inst.roundPts = def.pointsIfKey.points;
           }
           inst.roundPts += inst.extraPts || 0; // 永琳の調合など、取得時に確定した追加点
           if (inst.instantCombo && def.comboBonus) inst.roundPts += def.comboBonus; // 取得時コンボ（美鈴・藍・橙）
@@ -1088,4 +1088,5 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   if (typeof window !== 'undefined') window.Engine = Engine;
 })();
+
 
