@@ -881,17 +881,17 @@ test('永夜: 霊夢=ラウンド内2枚ごとに4点（1枚では0点）', () =
   assert.strictEqual(s.players[0].roundScores[1], 0);
 });
 
-test('永夜: 魔理沙=ラウンド末に所持枚数の2乗点', () => {
+test('永夜: 魔理沙=ラウンド末に 0/2/8/13/21 点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_marisa' });
   fixPeek(s);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
-  cycle(s, [['y_marisa'], [DY]], [0, 0]); // 3枚 → 9点
-  assert.strictEqual(s.players[0].roundScores[0], 9);
+  cycle(s, [['y_marisa'], [DY]], [0, 0]); // 3枚 → 8点
+  assert.strictEqual(s.players[0].roundScores[0], 8);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
   cycle(s, [['y_marisa', 'y_marisa'], [DY, DY]], [0, 0]);
-  cycle(s, [['y_mystia'], [DY]], [0, 0]); // 2枚 → 4点
-  assert.strictEqual(s.players[0].roundScores[1], 4);
+  cycle(s, [['y_mystia'], [DY]], [0, 0]); // 2枚 → 2点
+  assert.strictEqual(s.players[0].roundScores[1], 2);
 });
 
 test('永夜: 魔理沙=ゲーム末の通算ボーナスは無い', () => {
