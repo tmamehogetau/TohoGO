@@ -732,27 +732,21 @@ test('永夜: 輝夜=即時3点（乱入者ペナルティなし）', () => {
   assert.strictEqual(Engine.scorePlayer(s, 0), 12); // 霊夢1枚は0点
 });
 
-test('永夜: 永琳=輝夜なしなら2点', () => {
+test('永夜: 永琳=2点（同じ手番に輝夜がいなければ）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
-  setHands(s, [['y_eirin', 'x_dummy'], ['x_dummy', 'x_dummy']]);
-  pickAll(s, [0, 0]);
-  setHands(s, [['y_eirin', 'x_dummy'], ['x_dummy', 'x_dummy']]);
-  pickAll(s, [0, 0]);
+  cycle(s, [['y_eirin', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]);
   pickAll(s, [0, 0]); // 残りの手札を消化してラウンド終了
-  assert.strictEqual(s.players[0].roundScores[0], 4, '輝夜なしの永琳2枚＝2点×2');
+  assert.strictEqual(s.players[0].roundScores[0], 2);
 });
 
-test('永夜: 永琳=同じラウンドに輝夜を持っていると3点', () => {
+test('永夜: 永琳=同じ手番に他の人が輝夜を取ると+1点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
-  setHands(s, [['y_kaguya', 'y_eirin'], ['x_dummy', 'x_dummy']]);
-  pickAll(s, [0, 0]); // p0 が輝夜を取得
-  settleSelection(s);
-  setHands(s, [['y_eirin', 'x_dummy'], ['x_dummy', 'x_dummy']]);
-  pickAll(s, [0, 0]); // p0 が永琳を取得
+  cycle(s, [['y_eirin', 'x_dummy'], ['y_kaguya', 'x_dummy']], [0, 0]); // 同じ手番に B が輝夜
   pickAll(s, [0, 0]); // 残りの手札を消化してラウンド終了
-  assert.strictEqual(s.players[0].roundScores[0], 6, '輝夜3点＋永琳3点');
+  assert.strictEqual(s.players[0].roundScores[0], 3, '永琳2点＋同時手番1点');
+  assert.strictEqual(s.players[1].roundScores[0], 3, '相手の輝夜は3点');
 });
 
 test('永夜: てゐ=1枚2点', () => {
@@ -1202,5 +1196,6 @@ test('select フェーズ: 人間の選択は AI 解決で埋められない', (
 });
 
 console.log(`\n${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+
 
 

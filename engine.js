@@ -351,7 +351,7 @@
         const p = state.players[pi];
         for (const inst of p.taken) {
           const def = state.cardMap[inst.key];
-          if (!def || def.kind !== 'instant' || (!def.absentKeys && !def.zeroIfTaken)) continue;
+          if (!def || def.kind !== 'instant' || (!def.absentKeys && !def.zeroIfTaken && !def.pointsIfPicked)) continue;
           if (inst.absentChecked) continue;
           inst.absentChecked = true;
           const others = state.lastPicks.filter((x) => x.pi !== pi).flatMap((x) => x.keys);
@@ -363,6 +363,12 @@
             // 点数はラウンド末集計で 0 点として計上される
             inst.absentBlocked = true;
             addLog(state, `${p.name}: ${def.name}は条件を満たしたため 0 点`);
+          }
+          // pointsIfPicked: 同じ手番に誰か（自分含む）が指定カードを取っていれば加点
+          if (def.pointsIfPicked && allKeys.includes(def.pointsIfPicked.key)) {
+            const bonus = def.pointsIfPicked.bonus || 1;
+            inst.turnBonus = (inst.turnBonus || 0) + bonus;
+            addLog(state, `${p.name}: ${def.name}は同じ手番の${cardName(state.cardMap[def.pointsIfPicked.key])}に合わせて +${bonus} 点`);
           }
         }
       }
@@ -397,11 +403,9 @@
           }
           if (def.kind !== 'instant') continue;
           inst.roundPts = inst.absentBlocked ? 0 : def.points; // 咲夜の同席判定
-          // 条件付き点（永琳: 同じラウンドに輝夜を取っていれば点数が上がる）
-          if (def.pointsIfKey && p.taken.some((x) => x.key === def.pointsIfKey.key && !x.flipped && !x.discarded)) {
-            inst.roundPts = def.pointsIfKey.points;
-          }
-          inst.roundPts += inst.extraPts || 0; // 永琳の調合など、取得時に確定した追加点
+          // 同じ手番の条件（永琳: 誰かが同じ手番に輝夜を取っていれば加点）
+          inst.roundPts += inst.turnBonus || 0;
+          inst.roundPts += inst.extraPts || 0; // 取得時に確定した追加点
           if (inst.instantCombo && def.comboBonus) inst.roundPts += def.comboBonus; // 取得時コンボ（美鈴・藍・橙）
           pts += inst.roundPts;
         }

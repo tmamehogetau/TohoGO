@@ -83,9 +83,9 @@
     switch (def.kind) {
       case 'instant': {
         let value = def.points;
-        // 条件付き点（永琳: 輝夜を持っていれば点数が上がる）
-        if (def.pointsIfKey && countKey(p, def.pointsIfKey.key) > 0) {
-          value = def.pointsIfKey.points;
+        // 同じ手番の条件（永琳: 誰かが輝夜を出していれば加点）。確率は控えめに 0.5 で見積もる
+        if (def.pointsIfPicked) {
+          value += (def.pointsIfPicked.bonus || 1) * 0.5;
         }
         // 乱入者ペナルティ: 既に取っていれば確定減点、まだなら確率ぶんだけ割り引く
         if (def.intruderPenalty) {
