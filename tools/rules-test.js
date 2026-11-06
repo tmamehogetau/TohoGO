@@ -769,17 +769,17 @@ test('永夜: リグル=裏返すと取得点が消えて2点になる', () => {
   assert.strictEqual(s.players[0].roundScores[0], 2, '裏返した 1 枚は 2 点');
 });
 
-test('永夜: 霊夢=通算で溜めても追加点はない（ラウンド単位のみ）', () => {
+test('永夜: 霊夢=ペアの点数はゲーム通算で増える（4→5点）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
-  // R1: 霊夢2枚 / R2: 霊夢2枚 / R3: なし → 通算4枚。ラウンド点だけが入る
+  // R1: 2枚=1ペア目4点 / R2: 2枚=2ペア目5点
   cycle(s, [['y_reimu', 'y_reimu'], [DY, DY]], [0, 0]);
   cycle(s, [['y_reimu'], [DY]], [0, 0]);
   cycle(s, [['y_reimu', 'y_reimu'], [DY, DY]], [0, 0]);
   cycle(s, [['y_reimu'], [DY]], [0, 0]);
   cycle(s, [['y_mystia'], [DY]], [0, 0]);
   const roundTotal = s.players[0].roundScores.reduce((a, b) => a + b, 0);
-  assert.strictEqual(roundTotal, 12, '2 枚 × 2 ラウンド = 6 点 ×2');
+  assert.strictEqual(roundTotal, 9, '1ペア目4点＋2ペア目5点');
   assert.strictEqual(Engine.scorePlayer(s, 0) - roundTotal, 0, 'ゲーム末の追加点はない');
 });
 
@@ -796,12 +796,12 @@ test('永夜: 玉兎=兎アイコンマキ準拠多数決（2人配点 1位4点�
   assert.strictEqual(s.players[1].roundScores[0], 1);
 });
 
-test('永夜: 霊夢=ラウンド内2枚ごとに6点（1枚では0点）', () => {
+test('永夜: 霊夢=2枚で1ペア4点（1枚では0点）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
   cycle(s, [['y_reimu', 'y_reimu'], [DY, DY]], [0, 0]);
-  cycle(s, [['y_reimu'], [DY]], [0, 0]); // 2枚でラウンド終了 → 6点
-  assert.strictEqual(s.players[0].roundScores[0], 6);
+  cycle(s, [['y_reimu'], [DY]], [0, 0]); // 2枚でラウンド終了 → 1ペア目4点
+  assert.strictEqual(s.players[0].roundScores[0], 4);
   cycle(s, [['y_reimu', 'y_reimu'], [DY, DY]], [0, 0]);
   cycle(s, [['y_mystia'], [DY]], [0, 0]); // 1枚だけ → 0点
   assert.strictEqual(s.players[0].roundScores[1], 0);
@@ -828,18 +828,12 @@ test('永夜: 魔理沙=ゲーム末の通算ボーナスは無い', () => {
   assert.strictEqual(Engine.charmBonus(s, 0), 0);
 });
 
-test('永夜: 霊夢=通算7枚で +7（未達なら 0）', () => {
+test('永夜: 霊夢=ゲーム末ボーナスは無い（崖の廃止）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
   s.players[0].gameEndCounts['y_reimu'] = 7;
   s.phase = 'over';
-  assert.strictEqual(Engine.charmBonus(s, 0), 7);
-
-  const s2 = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
-  fixPeek(s2);
-  s2.players[0].gameEndCounts['y_reimu'] = 6;
-  s2.phase = 'over';
-  assert.strictEqual(Engine.charmBonus(s2, 0), 0);
+  assert.strictEqual(Engine.charmBonus(s, 0), 0);
 });
 
 test('永夜: 魔理沙=通算枚数が最多でも加点なし（旧+9の撤去）', () => {
@@ -1085,6 +1079,7 @@ test('select フェーズ: 人間の選択は AI 解決で埋められない', (
 });
 
 console.log(`\n${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+
 
 
 

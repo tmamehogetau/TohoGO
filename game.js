@@ -152,7 +152,9 @@
       case 'temaki': return `この枚数を競う・最多 +${def.most}／最少 ${def.least} 点`;
       case 'springMost': return `ラウンド末・春の獲得数が全員最多なら、所持 1 枚ごとに +${def.most} 点（このカードの所持が条件）`;
       case 'springBoost': return '取った後、次に春を取るとそのアイコン数ぶんの春と点を追加で獲得（同じラウンド内）';
-      case 'pair': return `2 枚で 1 ペア = ${def.points} 点${gameEndBonusText(def)}`;
+      case 'pair': return def.pairRamp
+        ? `2 枚で 1 ペア。**ゲーム通算**で 1ペア目 ${def.pairRamp} 点・2ペア目 ${def.pairRamp + 1} 点・3ペア目 ${def.pairRamp + 2} 点…と増える`
+        : `2 枚で 1 ペア = ${def.points} 点${gameEndBonusText(def)}`;
       case 'aliceSet': {
         const tbl = def.table || [0, 1, 4, 9, 16];
         return `集めた${def.name}の種類数で得点／1種 ${tbl[1]} 点・2種 ${tbl[2]} 点・3種 ${tbl[3]} 点・4種 ${tbl[4]} 点`;
@@ -188,7 +190,7 @@
       case 'temaki': return `最多+${def.most}／最少${def.least}`;
       case 'springMost': return `春の最多で+${def.most}×枚`;
       case 'springBoost': return '次の春で春と点を追加';
-      case 'pair': return `2枚で${def.points}点`;
+      case 'pair': return def.pairRamp ? `累計ペア ${def.pairRamp}/${def.pairRamp + 1}/${def.pairRamp + 2}…` : `2枚で${def.points}点`;
       case 'aliceSet': return '種類数で1/4/9/16点';
       case 'set3': return `3枚で${def.points}点`;
       case 'collect': return '枚数で加点';

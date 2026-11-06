@@ -68,6 +68,7 @@
           taken: [],   // インスタンス { key, icons?, flipped?, copied? }
           desserts: [], // デザート蓄積
           gameEndCounts: {}, // ゲーム末判定カード（霊夢・魔理沙）の通算取得数
+          pairCount: 0, // 累計ペア方式（霊夢）のゲーム通算ペア数
           chopsticks: 0, // 早飲み（pick2）用。箸カードは未実装だが将来追加する可能性があるため経路は残す
           roundScores: [0, 0, 0],
         });
@@ -887,7 +888,17 @@
             break;
           }
           case 'pair': {
-            kindPts = Math.floor(n / 2) * def.points;
+            if (def.pairRamp) {
+              // 累計ペア方式（霊夢）: k ペア目 = pairRamp + (k-1) 点。ゲーム通算で番号が増える
+              const pairs = Math.floor(n / 2);
+              let gain = 0;
+              for (let i = 1; i <= pairs; i++) gain += def.pairRamp + (p.pairCount || 0) + (i - 1);
+              if (pairs) p.pairCount = (p.pairCount || 0) + pairs;
+              kindPts = gain;
+              if (kindLabel === null) kindLabel = `${def.name}（${pairs}ペア）`;
+            } else {
+              kindPts = Math.floor(n / 2) * def.points;
+            }
             break;
           }
           case 'pairCond': {
@@ -1142,6 +1153,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   if (typeof window !== 'undefined') window.Engine = Engine;
 })();
+
 
 
 

@@ -174,7 +174,9 @@
       case 'pair': {
         // 揃うまで得点にならない。あと 1 枚なら現実味があるが、2 枚必要なら宝くじに近い
         const need = mine % 2 === 1 ? 1 : 2;
-        return def.points * (need === 1 ? 0.7 : 0.3);
+        // 累計ペア方式（霊夢）: 次のペアの点数はゲームが進むほど上がる
+        const next = def.pairRamp ? def.pairRamp + (p.pairCount || 0) : def.points;
+        return next * (need === 1 ? 0.7 : 0.3);
       }
       case 'set3': {
         const need = 3 - (mine % 3);
