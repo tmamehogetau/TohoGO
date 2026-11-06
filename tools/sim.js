@@ -73,8 +73,9 @@ function emptyAcq() {
 }
 
 // 1 ゲームを AI 4 人で完走し、ラウンドごとの取得カードと得点を返す
-function playGame(incident) {
-  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident });
+function playGame(incident, opts) {
+  const o = opts || {};
+  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], o.intruder ? { incident, intruder: o.intruder } : { incident });
   const acq = [emptyAcq(), emptyAcq(), emptyAcq()]; // 3 ラウンド分
   const add = (pi, key) => {
     const m = acq[Math.min(s.round, 2)][pi];
@@ -140,7 +141,7 @@ function winShares(ranking) {
   return shares;
 }
 
-function run(incidents, games) {
+function run(incidents, games, opts) {
   const byIncident = new Map(); // incident -> Map(key -> stat)
   const totalsByIncident = new Map(); // incident -> { scoreSamples, wins }
 
@@ -153,7 +154,7 @@ function run(incidents, games) {
     const wins = [0, 0, 0, 0];
 
     for (let g = 0; g < games; g++) {
-      const game = playGame(incident);
+      const game = playGame(incident, opts);
       game.totals.forEach((t, pi) => scoreSamples[pi].push(t));
       // 勝率は Engine.finalRanking の勝者定義（合計点 → デザート枚数 → 同率）に従い、同率1位は分け合う
       winShares(game.ranking).forEach((s, pi) => { wins[pi] += s; });
@@ -493,3 +494,4 @@ function main() {
 module.exports = { run, playGame, runWithSeed, mean, fmt, parseArgs };
 
 if (require.main === module) main();
+

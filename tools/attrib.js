@@ -52,8 +52,8 @@ function cardCount(def) {
   return def.count || 1;
 }
 
-function avgTotal(incident, opts) {
-  const res = sim.runWithSeed(opts.seed, () => sim.run([incident.id], opts.games));
+function avgTotal(incident, opts, intruder) {
+  const res = sim.runWithSeed(opts.seed, () => sim.run([incident.id], opts.games, intruder ? { intruder } : null));
   return sim.mean(res.totalsByIncident.get(incident.id).scoreSamples.flat());
 }
 
@@ -84,13 +84,13 @@ const TARGETS = {
   ],
   eternal: [
     ['y_kaguya', '蓬莱山輝夜 3点', (d) => { d.points = 0; }],
-    ['y_eirin', '八意永琳 3点', (d) => { d.points = 0; }],
+    ['y_eirin', '八意永琳 2点/輝夜+1', (d) => { d.points = 0; d.pointsIfPicked = null; }],
     ['y_reisen', '鈴仙 1点', (d) => { d.points = 0; }],
     ['y_tewi', 'てゐ 2枚6点', (d) => { d.table = [0, 0, 0]; }],
-    ['y_moko', '妹紅 -1/最多×2', (d) => { d.roundPenalty = 0; d.endMostPer = 0; }],
+    ['y_moko', '妹紅 最多+6/最少-6', (d) => { d.most = 0; d.least = 0; }],
     ['y_riggle', 'リグル 同時取得', (d) => { d.points = 0; }],
-    ['y_reimu', '霊夢 3枚ごと9点+通算9枚', (d) => { d.points = 0; d.gameEndTotalAtLeast = null; }],
-    ['y_marisa', '魔理沙 2枚ごと4点+通算最多', (d) => { d.points = 0; d.gameEndMost = null; }],
+    ['y_reimu', '霊夢 2枚毎4点/通算7枚+7', (d) => { d.points = 0; d.gameEndTotalAtLeast = null; }],
+    ['y_marisa', '魔理沙 0/2/8/13/21', (d) => { d.table = [0, 0, 0, 0, 0]; }],
     ['__maki', '玉兎 マキ配点', null],
   ],
 };
@@ -116,6 +116,10 @@ function main() {
     const base = avgTotal(incident, opts);
     out('');
     out(`=== ${incident.name} ベース ${sim.fmt(base, 2)} 点/人（${opts.games} ゲーム） ===`);
+    // 乱入者は「霊夢/魔理沙のどちらか1種だけ」なので、存在しないゲームを含めると寄与が半分に薄まる。
+    // 乱入者の行だけは、そのカードを固定して（存在するゲームだけで）測る。
+    const intruderKeys = (incident.intruders || []).map((d) => d.key);
+    const baseOf = (key) => (intruderKeys.includes(key) ? avgTotal(incident, opts, key) : base);
     out(`${pad('カード', 24)}${pad('枚数', 6)}${pad('合計寄与', 10)}${pad('1枚あたり', 10)}`);
     const rows = [];
     for (const [key, label, patch] of TARGETS[incidentId] || []) {
@@ -142,14 +146,16 @@ function main() {
       }
       const def = findDef(incident, key);
       if (!def) { rows.push({ label: `${label}（未定義）`, count: null, contrib: NaN, linear: false }); continue; }
+      const isIntr = intruderKeys.includes(key);
+      const baseHere = baseOf(key);
       const snap = JSON.parse(JSON.stringify(def));
       patch(def);
-      const v = avgTotal(incident, opts);
+      const v = avgTotal(incident, opts, isIntr ? key : null);
       Object.assign(def, snap);
       rows.push({
-        label,
+        label: isIntr ? `${label}※` : label,
         count: cardCount(def),
-        contrib: base - v,
+        contrib: baseHere - v,
         linear: LINEAR_KINDS.includes(def.kind),
       });
     }
@@ -161,6 +167,7 @@ function main() {
   }
   out('');
   out('合計寄与は「そのカード全枚数を 0 点にしたときのパック平均の低下」。');
+  out('乱入者（※印）は霊夢/魔理沙のどちらか1種だけが入るため、そのカードを固定した「存在するゲームだけ」で測る。');
   out('1 枚あたりは点が枚数に比例するカード（instant）だけ算出。マキ・手巻き・共闘・収集などは — 表示。');
   out('1 枚ずつ抜いて測るため各値は独立ではなく、合計はパック平均に一致しない。');
 
@@ -171,3 +178,4 @@ function main() {
 }
 
 main();
+
