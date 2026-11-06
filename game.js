@@ -132,7 +132,9 @@
       case 'instant': {
         const parts = [`${def.points} 点`];
         if (def.absentKeys) parts.push(`誰かが同時に${def.absentKeys.map(nameOf).join('か')}を取ると 0 点`);
-        if (def.comboKeys) parts.push(`取った瞬間に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`);
+        if (def.comboKeys) parts.push(def.comboAtEnd
+          ? `ラウンド末に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`
+          : `取った瞬間に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`);
         if (def.discardBonus) parts.push(`取得時・手元 1 枚を山札へ戻し +${def.discardBonus} 点`);
         if (def.intruderPenalty) parts.push(`自分が乱入者を取ったラウンドは所持 1 枚ごとに -${def.intruderPenalty} 点`);
         if (def.zeroIfTaken) parts.push(`同じ手番に${nameOf(def.zeroIfTaken)}を取った人がいると 0 点`);
@@ -522,7 +524,11 @@
     if (def.kind === 'coop') return inst.coopPoints || null; // リグルは取得した手番で確定
     if (def.kind !== 'instant') return null;
     let pts = def.points;
-    if (inst.instantCombo && def.comboBonus) pts += def.comboBonus; // 美鈴・藍・橙の取得時コンボ
+    if (inst.instantCombo && def.comboBonus) pts += def.comboBonus; // 取得時コンボ（美鈴）
+    if (def.comboAtEnd && def.comboBonus && def.comboKeys
+      && def.comboKeys.every((k) => STATE.players[pi].taken.some((i) => i.key === k && !i.flipped && !i.discarded))) {
+      pts += def.comboBonus; // ラウンド末コンボ（藍・橙）
+    }
     if (def.absentBlocked) pts = 0; // 咲夜の同席判定
     if (inst.turnBonus) pts += inst.turnBonus; // 永琳: 同じ手番に輝夜が出ていたときの加点
     if (def.intruderPenalty && STATE.roundStats && STATE.roundStats[pi] && STATE.roundStats[pi].intruderTaken) {

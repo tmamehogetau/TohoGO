@@ -34,8 +34,8 @@
   // ---------------- 春雪異変（妖々夢） ----------------
   const SPRING_MAIN = [
     { key: 's_yukari', kind: 'instant', points: 3, name: '八雲紫', icon: '境', color: '#7b4ea3', count: 3 },
-    { key: 's_ran', kind: 'instant', points: 2, comboKeys: ['s_yukari', 's_chen'], comboBonus: 1, name: '八雲藍', icon: '狐', color: '#d9a441', count: 4 },
-    { key: 's_chen', kind: 'instant', points: 1, comboKeys: ['s_yukari', 's_ran'], comboBonus: 1, name: '橙', icon: '橙', color: '#d97e30', count: 5 },
+    { key: 's_ran', kind: 'instant', points: 2, comboKeys: ['s_yukari', 's_chen'], comboBonus: 1, comboAtEnd: true, name: '八雲藍', icon: '狐', color: '#d9a441', count: 4 },
+    { key: 's_chen', kind: 'instant', points: 1, comboKeys: ['s_yukari', 's_ran'], comboBonus: 1, comboAtEnd: true, name: '橙', icon: '橙', color: '#d97e30', count: 5 },
     { key: 's_spring', kind: 'maki', iconCounts: { 1: 4, 2: 5, 3: 3 }, name: '春', icon: '春', color: '#e88ab8', count: 12 },
     { key: 's_yuyuko', kind: 'springMost', most: 4, name: '西行寺幽々子', icon: '姫', color: '#d8cfe8', count: 3 },
     { key: 's_youmu', kind: 'springBoost', name: '魂魄妖夢', icon: '庭', color: '#8fb8a0', count: 3 },
@@ -148,6 +148,7 @@
     window.Data = { RULES, INCIDENTS, INCIDENT_IDS, incidentById, buildCardMap, buildMainDeck, buildDessertPool };
   }
 })();
+
 
 
 

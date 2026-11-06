@@ -106,7 +106,12 @@
         // zeroIfTaken（レティ）: 同じ手番に条件カードを取られると 0 点。期待値を割り引く
         if (def.zeroIfTaken) value *= 0.5;
         // 取得時コンボ（美鈴・藍・橙）: 相方が既に手元なら加点される
-        if (def.comboKeys && def.comboKeys.some((k) => countKey(p, k) > 0)) value += def.comboBonus || 0;
+        if (def.comboKeys) {
+          const held = def.comboKeys.filter((k) => countKey(p, k) > 0).length;
+          // ラウンド末コンボ（藍・橙）は揃うほど加点、取得時コンボ（美鈴）は揃ったときだけ
+          if (def.comboAtEnd) value += (def.comboBonus || 0) * (held / def.comboKeys.length);
+          else if (held === def.comboKeys.length) value += def.comboBonus || 0;
+        }
         return value;
       }
       case 'othersDiff': {
@@ -443,6 +448,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = AI;
   if (typeof window !== 'undefined') window.AI = AI;
 })();
+
 
 
 

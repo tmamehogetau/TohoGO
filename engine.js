@@ -349,7 +349,7 @@
       // 即時点数はラウンド末に一括集計する（ここでは加点しない）。
       // コンボ（美鈴・藍・橙）の発動だけは取得順依存のため、取得時にフラグを記録する。
       if (def.kind === 'instant') {
-        if (def.comboKeys && def.comboKeys.length) {
+        if (def.comboKeys && def.comboKeys.length && !def.comboAtEnd) {
           const owned = new Set(p.taken.map((i2) => i2.key));
           if (def.comboKeys.every((k) => owned.has(k))) {
             inst.instantCombo = true;
@@ -421,7 +421,12 @@
           // 同じ手番の条件（永琳: 誰かが同じ手番に輝夜を取っていれば加点）
           inst.roundPts += inst.turnBonus || 0;
           inst.roundPts += inst.extraPts || 0; // 取得時に確定した追加点
-          if (inst.instantCombo && def.comboBonus) inst.roundPts += def.comboBonus; // 取得時コンボ（美鈴・藍・橙）
+          if (inst.instantCombo && def.comboBonus) inst.roundPts += def.comboBonus; // 取得時コンボ（美鈴）
+          // ラウンド末コンボ（藍・橙）: 取得順ではなく、ラウンド終了時に揃っているかで判定
+          if (def.comboAtEnd && def.comboKeys && def.comboBonus
+            && def.comboKeys.every((k) => p.taken.some((x) => x.key === k && !x.flipped && !x.discarded))) {
+            inst.roundPts += def.comboBonus;
+          }
           pts += inst.roundPts;
         }
         // 乱入者ペナルティ（輝夜・永琳）: ラウンド内に乱入者を取得していたら、
@@ -1122,6 +1127,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   if (typeof window !== 'undefined') window.Engine = Engine;
 })();
+
 
 
 

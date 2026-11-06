@@ -464,6 +464,24 @@ test('春雪: 妖夢の加護は春を取らなければ発生しない', () => 
   cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]); // 春を取らずにラウンド終了
   assert.strictEqual(s.players[0].roundScores[0], 0, '加護は 0 点のまま');
 });
+test('春雪: 藍・橙のコンボはラウンド末判定（取得順に依存しない）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  fixPeek(s);
+  cycle(s, [['s_ran', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]); // 藍から
+  cycle(s, [['s_chen', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]); // 橙
+  cycle(s, [['s_yukari', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]); // 紫を最後
+  cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]); // ラウンド終了
+  assert.strictEqual(s.players[0].roundScores[0], 3 + 2 + 1 + 1 + 1, '藍+1・橙+1（順序不問）');
+});
+
+test('春雪: 藍・橙のコンボはラウンド末に揃っていないと発動しない', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  fixPeek(s);
+  cycle(s, [['s_ran', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]);
+  cycle(s, [['s_yukari', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]); // 橙を取らない
+  cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]);
+  assert.strictEqual(s.players[0].roundScores[0], 3 + 2, '橙がいないので藍のコンボは不発');
+});
 test('春雪: リリーホワイト=デザート蓄積・ゲーム末に4枚ごとに12点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
   fixPeek(s);
@@ -1062,6 +1080,7 @@ test('select フェーズ: 人間の選択は AI 解決で埋められない', (
 });
 
 console.log(`\n${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+
 
 
 
