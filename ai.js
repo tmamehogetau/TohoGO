@@ -318,8 +318,12 @@
       .map((card, idx) => {
         let value = cardValue(state, pi, card, style);
         const key = typeof card === 'string' ? card : card.key;
-        if (pol === 'denial') value += 0.45 * opponentGain(state, pi, key);
-        else if (pol === 'adaptive') value += 0.15 * opponentGain(state, pi, key);
+        if (pol === 'denial') {
+          // 妨害は「相手の次の一段が大きいとき」だけ。小さい得のために picks を捨てない
+          const og = opponentGain(state, pi, key);
+          const min = Number(process.env.DRAFT_AI_DENIAL_MIN || 4);
+          if (og >= min) value += 0.45 * og;
+        } else if (pol === 'adaptive') value += 0.15 * opponentGain(state, pi, key);
         return { idx, value: value + Math.random() * 0.5 };
       })
       .sort((a, b) => b.value - a.value);
@@ -441,6 +445,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = AI;
   if (typeof window !== 'undefined') window.AI = AI;
 })();
+
 
 
 
