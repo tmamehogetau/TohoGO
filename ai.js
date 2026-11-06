@@ -132,11 +132,21 @@
           return Math.max(0.2, (at(def.table.length) - at(mine)) / remain);
         }
         const step = (k) => Math.max(0, at(k + 1) - at(k));
+        let v = Math.max(0.2, step(mine));
         // 先読みモード（DRAFT_AI_LOOKAHEAD=1）: 2枚先の限界を半額で足す。閾値の白黒を避ける
-        if (process.env.DRAFT_AI_LOOKAHEAD === '1') {
-          return Math.max(0.2, step(mine) + 0.5 * step(mine + 1));
+        if (process.env.DRAFT_AI_LOOKAHEAD === '1') v = Math.max(0.2, step(mine) + 0.5 * step(mine + 1));
+        // 妨害モード（DRAFT_AI_BLOCK=1）: 相手が完成に近いほど「取って潰す」価値を足す。
+        // 重み 0.4 = 相手の損の4割ぶんを自分の得に換算（損して得取る思考の近似）
+        if (process.env.DRAFT_AI_BLOCK === '1') {
+          let oppMax = 0;
+          for (let j = 0; j < state.players.length; j++) {
+            if (j === pi) continue;
+            const n = countKey(state.players[j], key);
+            if (n > oppMax) oppMax = n;
+          }
+          if (oppMax > 0) v += 0.4 * step(oppMax);
         }
-        return Math.max(0.2, step(mine));
+        return v;
       }
       case 'pairCond': {
         const need = mine % 2 === 1 ? 1 : 2;
@@ -386,6 +396,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = AI;
   if (typeof window !== 'undefined') window.AI = AI;
 })();
+
 
 
 
