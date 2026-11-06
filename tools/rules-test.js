@@ -894,16 +894,12 @@ test('永夜: 魔理沙=ラウンド末に所持枚数の2乗点', () => {
   assert.strictEqual(s.players[0].roundScores[1], 4);
 });
 
-test('永夜: 魔理沙=通算最多でないと +9 は入らない', () => {
+test('永夜: 魔理沙=ゲーム末の通算ボーナスは無い', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_marisa' });
   fixPeek(s);
-  // 各ラウンド p0 は 1 枚、p1 は 2 枚 → 通算 3 対 6 で p1 が最多
-  for (let r = 0; r < 3; r++) {
-    cycle(s, [['y_marisa', 'y_marisa'], ['y_marisa', 'y_marisa']], [0, 0]);
-    cycle(s, [['y_mystia'], ['y_marisa']], [0, 0]); // ラウンド終了
-  }
-  const roundTotal = s.players[0].roundScores.reduce((a, b) => a + b, 0);
-  assert.strictEqual(Engine.scorePlayer(s, 0) - roundTotal, 0, '最多ではないので 0');
+  s.players[0].gameEndCounts['y_marisa'] = 7; // 通算を積んでも加点されない
+  s.phase = 'over';
+  assert.strictEqual(Engine.charmBonus(s, 0), 0);
 });
 
 test('永夜: 霊夢=通算7枚で +7（未達なら 0）', () => {
@@ -920,16 +916,14 @@ test('永夜: 霊夢=通算7枚で +7（未達なら 0）', () => {
   assert.strictEqual(Engine.charmBonus(s2, 0), 0);
 });
 
-test('永夜: 魔理沙=通算の枚数が最多で +9（同点は全員・0枚は対象外）', () => {
+test('永夜: 魔理沙=通算枚数が最多でも加点なし（旧+9の撤去）', () => {
   const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'eternal', intruder: 'y_marisa' });
   fixPeek(s);
   s.players[0].gameEndCounts['y_marisa'] = 4;
-  s.players[1].gameEndCounts['y_marisa'] = 4;
-  s.players[2].gameEndCounts['y_marisa'] = 1;
+  s.players[1].gameEndCounts['y_marisa'] = 1;
   s.phase = 'over';
-  assert.strictEqual(Engine.charmBonus(s, 0), 9);
-  assert.strictEqual(Engine.charmBonus(s, 1), 9);
-  assert.strictEqual(Engine.charmBonus(s, 2), 0);
+  assert.strictEqual(Engine.charmBonus(s, 0), 0);
+  assert.strictEqual(Engine.charmBonus(s, 1), 0);
 });
 
 test('永夜: 妹紅=ラウンド末に取った1枚ごと−1・ゲーム末に最多の枚数×2点', () => {
