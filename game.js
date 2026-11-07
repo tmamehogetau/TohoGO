@@ -221,7 +221,7 @@
       }
       case 'set3': return `ラウンド末・3 枚 1 セット = ${def.points} 点${gameEndBonusText(def)}`;
       case 'collect': return `ラウンド末・枚数が多いほど得点。${def.table.map((v, i) => `${i + 1} 枚 ${v} 点`).join('／')}…`;
-      case 'socialJoin': return 'ラウンド末・このラウンドに他の人が大妖精かチルノを取っていたら、その人数 × 1 点';
+      case 'socialJoin': return `ラウンド末・このラウンドに他の人が${(def.joinKeys || []).map(nameOf).join('か')}を取っていたら、その人数 × ${def.per || 1} 点`;
       case 'roundComboCount': return `ラウンド末・このラウンドに継続カードを取った枚数 × ${def.per} 点`;
       case 'tofu': return `ラウンド末・1 枚 ${def.table[0]} 点／2 枚 ${def.table[1]} 点。3 枚目を取ると全部 0 点`;
       case 'eel': return `ラウンド末・1 枚だけだと ${def.first} 点。2 枚以上集めると +${def.more} 点`;
