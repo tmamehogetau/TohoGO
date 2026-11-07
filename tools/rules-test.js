@@ -1188,6 +1188,34 @@ test('風神録: 信仰=10個到達で即時8点（カードは残る）', () =>
   assert.strictEqual(s.players[0].taken.filter((x) => x.key === 'f_faith').length, 2, 'カードは捨てない');
 });
 
+test('風神録: 信仰=同手番で2人到達なら同点8点ずつ・次は3位2点', () => {
+  const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'mountain' });
+  fixPeek(s);
+  const F = (n) => ({ key: 'f_faith', icons: n });
+  setHands(s, [[F(5), 'x_dummy'], [F(5), 'x_dummy'], ['x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0, 0]); // 5個ずつ
+  setHands(s, [[F(5), 'x_dummy'], [F(5), 'x_dummy'], ['x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0, 0]); // p0 と p1 が同じ手番で10個
+  setHands(s, [['x_dummy', 'x_dummy'], ['x_dummy', 'x_dummy'], [F(10), 'x_dummy']]);
+  pickAll(s, [0, 0, 0]); // p2 が後から10個（3位）
+  assert.strictEqual(s.players[0].roundScores[0], 8, '同点1位');
+  assert.strictEqual(s.players[1].roundScores[0], 8, '同点1位');
+  assert.strictEqual(s.players[2].roundScores[0], 2, '2位はスキップされ3位の2点');
+});
+
+test('風神録: 信仰=ラウンド終了時に未到達でもアイコン上位が残りの順位点を得る', () => {
+  const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'mountain' });
+  fixPeek(s);
+  const F = (n) => ({ key: 'f_faith', icons: n });
+  setHands(s, [[F(5), 'x_dummy'], [F(4), 'x_dummy'], ['x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0, 0]);
+  setHands(s, [['x_dummy'], ['x_dummy'], ['x_dummy']]);
+  pickAll(s, [0, 0, 0]); // ラウンド終了（どちらも10個未満）
+  assert.strictEqual(s.players[0].roundScores[0], 8, 'アイコン最多が1位');
+  assert.strictEqual(s.players[1].roundScores[0], 5, '2番目が2位');
+  assert.strictEqual(s.players[2].roundScores[0], 0, '信仰なしは0点');
+});
+
 test('風神録: 犬走椛=0枚−3点／奇数0点／偶数+5点', () => {
   const mk = (n) => {
     const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });

@@ -821,34 +821,52 @@
       return n;
     }
 
+    // 信仰の順位付け: 同アイコン数は同順位・同点（次点はスキップ＝1,1,3）
+    function awardFaithGroups(state, groups) {
+      const def = Object.values(state.cardMap).find((d) => d.kind === 'uramaki');
+      if (!def) return;
+      const ranks = def.rankPoints || [8, 5, 2];
+      let place = state.faithAwarded || 0;
+      for (const g of groups) {
+        if (place >= ranks.length) break;
+        const pts = ranks[place];
+        for (const pi of g.players) {
+          state.players[pi].roundScores[state.round] += pts;
+          state.roundStats[pi].faithCleared = true;
+          addLog(state, `${state.players[pi].name}: 信仰が ${g.n} 個で${place + 1}位（+${pts} 点）`);
+        }
+        place += g.players.length;
+      }
+      state.faithAwarded = Math.min(ranks.length, place);
+    }
+
+    function faithGroups(state, filter) {
+      const byN = new Map();
+      for (let i = 0; i < state.playerCount; i++) {
+        const st = state.roundStats[i];
+        if (st.faithCleared) continue;
+        const n = faithIconTotal(state, i);
+        if (!filter(n)) continue;
+        if (!byN.has(n)) byN.set(n, []);
+        byN.get(n).push(i);
+      }
+      return [...byN.entries()]
+        .sort((a, b) => b[0] - a[0])
+        .map(([n, players]) => ({ n, players }));
+    }
+
     function checkFaithRace(state) {
       const def = Object.values(state.cardMap).find((d) => d.kind === 'uramaki');
       if (!def) return;
       const threshold = def.threshold || 10;
-      const ranks = def.rankPoints || [8, 5, 2];
-      state.faithAwarded = state.faithAwarded || 0;
-      const cand = [];
-      for (let i = 0; i < state.playerCount; i++) {
-        const st = state.roundStats[i];
-        const n = faithIconTotal(state, i);
-        if (n < threshold) {
-          if (st.faithCleared) st.faithCleared = false; // 将来、信仰を減らす効果が入った場合の保険
-          continue;
-        }
-        if (st.faithCleared) continue;
-        cand.push({ pi: i, n });
-      }
-      if (!cand.length) return;
-      cand.sort((a, b) => b.n - a.n || a.pi - b.pi);
-      for (const { pi, n } of cand) {
-        if (state.faithAwarded >= ranks.length) break;
-        const pts = ranks[state.faithAwarded];
-        const place = state.faithAwarded + 1;
-        state.faithAwarded += 1;
-        state.roundStats[pi].faithCleared = true;
-        state.players[pi].roundScores[state.round] += pts;
-        addLog(state, `${state.players[pi].name}: 信仰が ${n} 個に到達（${place}番目・+${pts} 点）`);
-      }
+      awardFaithGroups(state, faithGroups(state, (n) => n >= threshold));
+    }
+
+    // ラウンド終了時: 10個に届かなかった人も、残っているアイコン数が多い順に残りの順位点を得る
+    function finishFaithRace(state) {
+      const def = Object.values(state.cardMap).find((d) => d.kind === 'uramaki');
+      if (!def) return;
+      awardFaithGroups(state, faithGroups(state, (n) => n > 0));
     }
 
     // UI 用ユーティリティ: taken 内の key → 枚数マップ（裏返しカードも所持としては数える）
@@ -869,6 +887,8 @@
 
       // 即時点数のラウンド末一括集計（先頭で行い、バナーの点数内訳に含める）
       const roundStart = state.players.map((p) => p.roundScores[state.round] || 0);
+      // 信仰: 10個に届かなかった人にも残りの順位点を配る
+      finishFaithRace(state);
       settleInstantScores(state);
 
       // 全体判定（多数決系・共闘・幽々子）
