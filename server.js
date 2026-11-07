@@ -24,6 +24,12 @@ const MIME = {
 
 const server = http.createServer((req, res) => {
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
+  // Render などのヘルスチェック用
+  if (urlPath === '/healthz') {
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('ok');
+    return;
+  }
   if (urlPath === '/') urlPath = '/index.html';
   const filePath = path.join(__dirname, path.normalize(urlPath));
   if (!filePath.startsWith(__dirname)) {

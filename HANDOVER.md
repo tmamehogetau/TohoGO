@@ -341,3 +341,12 @@ Windows の PowerShell 5.1 は node の UTF-8 出力を化けさせるので、`
 
 
 
+
+## 10. Render 公開の手順
+
+1. https://render.com にログイン（GitHub 連携）
+2. New → Blueprint → リポジトリ `tmamehogetau/TohoGO` を選択
+3. `render.yaml` の内容でサービスが作成される（Free / node / `npm start` / `/healthz`）
+4. 初回ビルド後に発行される URL で動作確認
+
+注意: 無料プランは 15 分アイドルでスリープし、その間のルームは消える（ルームはメモリ保持）。WebSocket は同一ポートで動作。
