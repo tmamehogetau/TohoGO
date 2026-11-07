@@ -1297,3 +1297,86 @@ body[data-stage="scarlet"] {
     linear-gradient(180deg, rgba(9, 7, 12, 0.80) 0%, rgba(8, 6, 10, 0.88) 60%, rgba(6, 5, 9, 0.93) 100%),
     var(--stage-bg);
 }
+
+/* =========================================================
+   文字サイズの調整（全体を少し大きく、詳細と一覧はさらに大きく）
+   ========================================================= */
+
+/* 全体: rem 基準を上げて各サイズをまとめて 1 段階大きく */
+html { font-size: 17px; }
+
+/* カード詳細（右パネル） */
+#preview { font-size: 1rem; }
+.preview-name { font-size: 1.15rem; }
+.preview-tag { font-size: 0.72rem; }
+.preview-desc { font-size: 1rem; line-height: 1.65; }
+.preview-empty { font-size: 0.95rem; }
+.preview-icons span { font-size: 0.82rem; }
+.preview-card { width: 100%; }
+
+/* 詳細が読みやすいよう右パネルを広げる */
+main { grid-template-columns: 1fr 300px; }
+
+/* ステージカード一覧 */
+#cardref { width: min(1180px, 97vw); }
+#cardref h2 { font-size: 1.35rem; }
+#cardref h3 { font-size: 1.15rem; }
+.ref-name { font-size: 1.12rem; }
+.ref-count { font-size: 0.95rem; }
+.ref-desc { font-size: 1.02rem; line-height: 1.6; color: #ccc4ba; }
+.ref-variants span { font-size: 0.8rem; }
+.ref-compo-item span { font-size: 0.85rem; }
+.ref-compo-item svg { width: 14px; height: 14px; }
+.ref-minis .card.mini { width: 58px; height: 84px; }
+
+/* ゲーム中の小さい文字も少し持ち上げる */
+.row-label { font-size: 0.92rem; }
+.chip-name { font-size: 1.02rem; }
+.chip-round { font-size: 0.82rem; }
+.chip-tags { font-size: 0.78rem; }
+#hand-status { font-size: 1.02rem; }
+.train-note { font-size: 0.85rem; }
+
+/* 狭い画面では詳細パネルを下に回す */
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+  .preview-desc { font-size: 0.98rem; }
+  .ref-desc { font-size: 1rem; }
+}
+
+/* 一覧パネルは下の画面が透けないよう不透明寄りに */
+#cardref {
+  background: linear-gradient(180deg, rgba(26, 22, 32, 0.995), rgba(18, 15, 23, 0.995));
+  backdrop-filter: blur(2px);
+}
+
+/* 背景が明るいステージでもヘッダーの文字が読めるように */
+header {
+  background: linear-gradient(180deg, rgba(10, 9, 14, 0.55), rgba(10, 9, 14, 0.12));
+  border-radius: 8px;
+  padding: 8px 10px 10px;
+  margin-left: -10px;
+  margin-right: -10px;
+}
+header h1,
+#round-indicator,
+#pass-indicator {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+/* 文字の可読性: 取得行・手札の下地にもう1枚暗幕を重ねる */
+.table-row,
+#hand-area {
+  background-image:
+    linear-gradient(180deg, rgba(9, 7, 12, 0.42), rgba(9, 7, 12, 0.58)),
+    linear-gradient(180deg, var(--frame-1, rgba(36, 31, 44, 0.9)), var(--frame-2, rgba(28, 24, 34, 0.9))),
+    var(--stage-bg, none);
+  background-size: cover, cover, cover;
+  background-position: center, center, center;
+}
+.row-label {
+  color: #d5cec5;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+.table-row.me .row-label { color: var(--accent); }
+#hand-status { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
