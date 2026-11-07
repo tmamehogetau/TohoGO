@@ -1242,6 +1242,17 @@ test('風神録: ラウンド結果の内訳合計がラウンド点と一致す
   assert.ok((r.extras || []).some((e) => e.key === 'f_faith'), '信仰の得点が内訳に出る');
 });
 
+test('風神録: 早苗=複数持っても重ならない（次の奇跡は1回だけ）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  fixPeek(s);
+  cycle(s, [['f_sanae', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]);
+  cycle(s, [['f_sanae', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]);
+  cycle(s, [['f_kanako', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]);
+  cycle(s, [['f_kanako'], ['x_dummy']], [0, 0]);
+  cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]); // ラウンド終了
+  assert.strictEqual(s.players[0].roundScores[0], 14); // 早苗2 + 神奈子9 + 神奈子3
+});
+
 test('風神録: 犬走椛=0枚−3点／奇数0点／偶数+5点', () => {
   const mk = (n) => {
     const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });

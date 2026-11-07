@@ -378,7 +378,7 @@
 
       // 早苗の加護: 次に取る神奈子／諏訪子の点数を3倍にする（取り置きは先着順・重複は1回ずつ）
       if (def.buffTargets) {
-        p.sanaePending = (p.sanaePending || 0) + 1;
+        p.sanaePending = 1; // 重ねがけ不可: 早苗を何枚持っても次の奇跡は1回だけ
         addLog(state, `${p.name}: 早苗が次の奇跡に備えた`);
       } else if (def.buffable && (p.sanaePending || 0) > 0) {
         p.sanaePending -= 1;
