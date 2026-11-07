@@ -185,6 +185,7 @@
   // kind から説明テキストを生成（表記ルール: 数値と単位の間は半角スペース／条件の区切りは「／」／
   // タイミングは「取得時・」「ラウンド末・」「ゲーム末・」「ラウンド中・」で始める）
   function descOf(def) {
+    if (def && def.text && def.text.detail) return def.text.detail;
     const MAKI = Data.RULES.MAKI_POINTS;
     switch (def.kind) {
       case 'instant': {
@@ -253,6 +254,7 @@
   }
   // カード面用の極短テキスト（詳細は右の拡大表示とカード一覧で読む）
   function tinyDesc(def) {
+    if (def && def.text && def.text.short) return def.text.short;
     switch (def.kind) {
       case 'instant': {
         const extra = [];

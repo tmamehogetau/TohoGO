@@ -49,7 +49,10 @@ push('='.repeat(72));
 for (const id of Data.INCIDENT_IDS) {
   const inc = Data.incidentById(id);
   const map = Data.buildCardMap(inc, null);
-  for (const c of inc.intruders || []) map[c.key] = c;
+  for (const c of inc.intruders || []) {
+    const m = Data.buildCardMap(inc, c);
+    map[c.key] = m[c.key];
+  }
   const { descOf, tinyDesc } = makeFns(map);
 
   push('');
@@ -96,7 +99,7 @@ for (const id of Data.INCIDENT_IDS) {
     push('');
     push(`── ${label.replace(/（[^）]*）$/, '')}${variantsText}${note} ／ ${row.count} 枚${iconCompo(def) ? ` ／ ${iconCompo(def)}` : ''}`);
     push(`  カード上  : ${tinyDesc(def)}`);
-    push(`  ツールチップ: ${label}：${descOf(def)}`);
+    push(`  ツールチップ: ${def.group ? def.groupLabel : label}：${descOf(def)}`);
     push(`  カード一覧: ${descOf(def)}`);
   }
 }
@@ -109,3 +112,4 @@ push('');
 
 fs.writeFileSync(OUT, lines.join('\r\n') + '\r\n', 'utf8');
 console.log(`書き出しました: ${OUT}（${lines.length} 行）`);
+
