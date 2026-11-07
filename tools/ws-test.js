@@ -180,8 +180,8 @@ const isState = (m) => m.type === 'state';
     lastPicks: [{ pi: 0, keys: ['s_spring'] }, { pi: 1, keys: ['k_maid'] }],
     roundBanner: null, log: [], hidden: true, hiddenOwner: 1,
     roundStats: [
-      { springIcons: 5, dessertTaken: 1, intruderTaken: false },
-      { springIcons: 1, dessertTaken: 0, intruderTaken: false },
+      { springIcons: 5, dessertTaken: 1 },
+      { springIcons: 1, dessertTaken: 0 },
     ],
     picks: [null, null], choices: [null, null],
     selections: null, selectNeeded: null, deck: [], dessertPool: [], peekNeeded: null, peekCards: null,
@@ -223,4 +223,5 @@ const isState = (m) => m.type === 'state';
   console.error('WS SMOKE FAIL:', e.message);
   process.exit(1);
 });
+
 

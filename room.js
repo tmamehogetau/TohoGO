@@ -43,7 +43,7 @@ function viewFor(room, seat) {
   const players = order.map((oi) => {
     const p = state.players[oi];
     const s = room.seats[oi];
-    // 自分に見えていない（＝他の手番で隠された）乱入者の通算は差し引く
+    // 自分に見えていない（＝他の手番で隠された）追加カードの通算は差し引く
     const maskView = (i) => i.hiddenTaken && seat !== i.hiddenBy;
     const hiddenGE = {};
     for (const i of p.taken) {
@@ -359,5 +359,6 @@ function stateIncludesSelection(state, seat) {
 }
 
 module.exports = { Room, viewFor, makeCode, MAX_PLAYERS, MIN_PLAYERS };
+
 
 

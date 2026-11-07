@@ -161,7 +161,6 @@
           ? `ラウンド末・${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus} 点`
           : `取った瞬間・${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus} 点`);
         if (def.discardBonus) parts.push(`取得時・手元の 1 枚を山札へ戻すと +${def.discardBonus} 点`);
-        if (def.intruderPenalty) parts.push(`自分が乱入者を取ったラウンドは、所持 1 枚ごとに -${def.intruderPenalty} 点`);
         if (def.zeroIfTaken) parts.push(`同じ手番に${nameOf(def.zeroIfTaken)}を取った人がいると 0 点`);
         if (def.pointsIfPicked) parts.push(`同じ手番に誰か（自分含む）が${nameOf(def.pointsIfPicked.key)}を取っていれば +${def.pointsIfPicked.bonus} 点`);
         if (def.swap) parts.push('取得時・手元のカード 1 枚を山札と交換できる（山札の上から 1 枚引く）');
@@ -575,9 +574,6 @@
     }
     if (def.absentBlocked) pts = 0; // 咲夜の同席判定
     if (inst.turnBonus) pts += inst.turnBonus; // 永琳: 同じ手番に輝夜が出ていたときの加点
-    if (def.intruderPenalty && STATE.roundStats && STATE.roundStats[pi] && STATE.roundStats[pi].intruderTaken) {
-      pts -= def.intruderPenalty; // 輝夜・永琳の乱入者ペナルティ
-    }
     if (inst.extraPts) pts += inst.extraPts; // 永琳の調合など、取得時に確定した追加点
     return pts;
   }
@@ -820,7 +816,7 @@
       const tags = [];
       if (p.chopsticks > 0) tags.push(`早×${p.chopsticks}`);
       if (p.desserts.length > 0) tags.push(`継続カード×${p.desserts.length}`);
-      // 乱入者（霊夢/魔理沙）はゲーム通算で数えるので、手元ではなく通算カウントを出す
+      // 霊夢・魔理沙はゲーム通算で数えるので、手元ではなく通算カウントを出す
       if (STATE.intruderKey) {
         const cnt = gameEndCountFor(p, STATE.intruderKey);
         if (cnt > 0) tags.push(`${nameOf(STATE.intruderKey)}×${cnt}`);
@@ -852,7 +848,7 @@
     return p.taken.filter((inst) => !hiddenFromViewer(inst));
   }
 
-  // 幻覚で隠した乱入者ぶんを差し引いた通算（ローカル対戦用。オンラインはサーバーが処理済み）
+  // 幻覚で隠した追加カードぶんを差し引いた通算（ローカル対戦用。オンラインはサーバーが処理済み）
   function gameEndCountFor(p, key) {
     let n = (p.gameEndCounts && p.gameEndCounts[key]) || 0;
     n -= p.taken.filter((i) => hiddenFromViewer(i) && i.key === key).length;
@@ -1197,11 +1193,10 @@
     h2.textContent = `ステージ「${STATE.incidentName}」・${STATE.incidentSubtitle}`;
     el.appendChild(h2);
 
-    // メイン → 乱入者 → 継続カード の順に種別ごと表示
+    // メイン → 継続カード の順に種別ごと表示
     const allKeys = Object.keys(STATE.cardMap);
     const groups = [
-      { title: 'メインカード', keys: allKeys.filter((k) => k !== STATE.dessert.key && k !== STATE.intruderKey) },
-      { title: '乱入者', keys: STATE.intruderKey ? [STATE.intruderKey] : [] },
+      { title: 'メインカード', keys: allKeys.filter((k) => k !== STATE.dessert.key) },
       { title: '継続カード', keys: [STATE.dessert.key] },
     ];
     for (const g of groups) {
@@ -1465,6 +1460,7 @@
   // デバッグ・テスト用に公開（Game.state でヘッドレスエンジンの state を直接参照できる）
   window.Game = { startGame, renderAll, get state() { return STATE; } };
 })();
+
 
 
 

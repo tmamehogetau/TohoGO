@@ -41,7 +41,7 @@
       const incidentId = opts_.incident || INCIDENT_IDS[Math.floor(Math.random() * INCIDENT_IDS.length)];
       const incident = incidentById(incidentId);
 
-      // 乱入者抽選（永夜のみ・テスト用に opts.intruder で固定可）
+      // 追加カードの抽選（永遠亭のみ・テスト用に opts.intruder で固定可）
       let intruderDef = null;
       if (incident.intruders && incident.intruders.length) {
         if (opts_.intruder) {
@@ -100,7 +100,7 @@
         hidden: false, // うどんげの情報隠蔽
       };
       addLog(state, `ステージ「${incident.name}」・${incident.subtitle} 開始！ ${playerCount} 人・手札 ${handSize} 枚`);
-      if (intruderDef) addLog(state, `乱入者「${intruderDef.name}」が現れた…！`);
+      if (intruderDef) addLog(state, `今回は「${intruderDef.name}」も加わる`);
       dealRound(state);
       return state;
     }
@@ -133,7 +133,7 @@
       state.peekCards = null;
       state.faithAwarded = 0;
       state.faithEvents = [];
-      state.roundStats = state.players.map(() => ({ springIcons: 0, dessertTaken: 0, intruderTaken: false, faithCleared: false }));
+      state.roundStats = state.players.map(() => ({ springIcons: 0, dessertTaken: 0, faithCleared: false }));
     }
 
     function dispatch(state, action) {
@@ -339,9 +339,6 @@
       // 春アイコンの記録（幽々子・レティ・妖夢の判定に使用）
       if (inst.icons) stats.springIcons += inst.icons;
 
-      // 乱入者の取得記録（輝夜・永琳のペナルティ判定に使用）
-      if (state.intruderKey && inst.key === state.intruderKey) stats.intruderTaken = true;
-
       // ゲーム末判定カード（霊夢・魔理沙）はラウンドをまたいで数える。
       // taken はラウンド末に山札へ戻るため、ここで通算を記録しておく
       if (def.gameEnd) {
@@ -434,7 +431,7 @@
       }
     }
 
-    // 即時点数のラウンド末一括集計（破棄/裏返し/咲夜同席/コンボ/乱入者ペナルティをここで反映）
+    // 即時点数のラウンド末一括集計（破棄/裏返し/咲夜同席/コンボをここで反映）
     function settleInstantScores(state) {
       for (let i = 0; i < state.playerCount; i++) {
         const p = state.players[i];
@@ -473,17 +470,6 @@
             inst.roundPts += def.comboBonus;
           }
           pts += inst.roundPts;
-        }
-        // 乱入者ペナルティ（輝夜・永琳）: ラウンド内に乱入者を取得していたら、
-        // 所持している乱入者影響カード 1 枚ごとに -1（取得順は問わない）
-        if (state.roundStats[i].intruderTaken) {
-          for (const inst of p.taken) {
-            const def = state.cardMap[inst.key];
-            if (!def || def.kind !== 'instant' || !def.intruderPenalty) continue;
-            if (inst.flipped || inst.discarded) continue;
-            inst.roundPts -= def.intruderPenalty;
-            pts -= def.intruderPenalty;
-          }
         }
         // フランの破棄ボーナスはラウンド末にまとめて加算する
         pts += p.taken.reduce((a, inst) => a + (inst.franBonus || 0), 0);
@@ -1386,6 +1372,8 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   if (typeof window !== 'undefined') window.Engine = Engine;
 })();
+
+
 
 
 

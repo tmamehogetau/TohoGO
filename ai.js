@@ -71,7 +71,7 @@
 
   // 手札 1 枚を取ったときの「今ラウンドの得点」増分の見積もり。
   // engine.js のラウンド末・ゲーム末判定と同じ式をなぞり、増えるぶんだけを返す近似。
-  // 条件系（同席・乱入者・ペナルティ）は「今の自分の場」で満たしているかで価値を変える。
+  // 条件系（同席・コンボ・バフ）は「今の自分の場」で満たしているかで価値を変える。
   // 理想重視モード（開発用）: DRAFT_AI_IDEAL=1 で全席、DRAFT_AI_IDEAL_SEAT=<席番号> でその席だけ
   function idealMode(pi) {
     const seat = ENV.DRAFT_AI_IDEAL_SEAT;
@@ -84,7 +84,7 @@
     const def = state.cardMap[key];
     if (!def) return 1;
     const p = state.players[pi];
-    const stats = (state.roundStats && state.roundStats[pi]) || { springIcons: 0, dessertTaken: 0, intruderTaken: false };
+    const stats = (state.roundStats && state.roundStats[pi]) || { springIcons: 0, dessertTaken: 0 };
     const others = state.players.map((_, i) => i).filter((i) => i !== pi);
     const mine = countKey(p, key);
     const icons = (typeof card === 'object' && card.icons) || 1;
@@ -99,10 +99,6 @@
         // 同じ手番の条件（永琳: 誰かが輝夜を出していれば加点）。確率は控えめに 0.5 で見積もる
         if (def.pointsIfPicked) {
           value += (def.pointsIfPicked.bonus || 1) * 0.5;
-        }
-        // 乱入者ペナルティ: 既に取っていれば確定減点、まだなら確率ぶんだけ割り引く
-        if (def.intruderPenalty) {
-          value -= stats.intruderTaken ? def.intruderPenalty : def.intruderPenalty * 0.4;
         }
         // 同席条件（咲夜）: 同じ手番に他プレイヤーも同じ札を出すと 0 点。
         // 同時性は読めないので、このラウンドに他の人が咲夜を持っているかで大きく割り引く
@@ -407,8 +403,6 @@
       if (inst.absentBlocked) return 0;
       let v = def.points;
       if (inst.instantCombo && def.comboBonus) v += def.comboBonus;
-      const stats = state.roundStats[pi];
-      if (def.intruderPenalty && stats && stats.intruderTaken) v -= def.intruderPenalty;
       return v;
     }
     if (def.kind === 'coop') return inst.coopPoints || 0;
@@ -527,6 +521,9 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = AI;
   if (typeof window !== 'undefined') window.AI = AI;
 })();
+
+
+
 
 
 

@@ -53,7 +53,7 @@
   const SPRING_DESSERT = { key: 's_lily', kind: 'dessertIce', per: 4, points: 12, name: 'リリーホワイト', icon: '報', color: '#f0e6b8', pool: 15 };
 
   // ---------------- 永遠亭（永夜抄） ----------------
-  // 乱入者（霊夢/魔理沙）はランダムでいずれか 1 種のみデッキに組み込まれる
+  // 霊夢/魔理沙はランダムでいずれか 1 種のみデッキに組み込まれる（永夜のみ）
   const ETERNAL_MAIN = [
     { key: 'y_kaguya', kind: 'instant', points: 3, name: '蓬莱山輝夜', icon: '夜', color: '#c9a84c', count: 3 },
     { key: 'y_eirin', kind: 'instant', points: 2, pointsIfPicked: { key: 'y_kaguya', bonus: 1 }, name: '八意永琳', icon: '薬', color: '#6a8fb8', count: 4 },
@@ -131,7 +131,7 @@
     return INCIDENTS[id] || null;
   }
 
-  // セット内の key → 定義（メイン＋継続カード＋乱入者）
+  // セット内の key → 定義（メイン＋継続カード＋追加カード）
   function buildCardMap(incident, intruderDef) {
     const map = {};
     for (const def of incident.main) map[def.key] = def;
@@ -172,6 +172,7 @@
     window.Data = { RULES, INCIDENTS, INCIDENT_IDS, incidentById, buildCardMap, buildMainDeck, buildDessertPool };
   }
 })();
+
 
 
 

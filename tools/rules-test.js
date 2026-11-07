@@ -104,7 +104,7 @@ test('春雪: メイン54枚・春のアイコン配分（1個4/2個5/3個3）',
   assert.strictEqual(spring.filter((i) => i.icons === 3).length, 3);
 });
 
-test('永夜: 乱入者指定で1種のみ組み込まれる', () => {
+test('永遠亭: 追加カード指定で1種のみ組み込まれる', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
   assert.strictEqual(s.intruderKey, 'y_reimu');
@@ -699,14 +699,14 @@ test('リザルト: 獲得カード＋判定の内訳がラウンド点と一致
 
 // ================= 永夜メカニズム =================
 
-test('永夜: 輝夜=即時3点（乱入者ペナルティなし）', () => {
+test('永遠亭: 輝夜=即時3点（追加カードのペナルティなし）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
   cycle(s, [['y_kaguya', DY], [DY, DY]], [0, 0]); // 輝夜1枚取得
   cycle(s, [['y_kaguya'], [DY]], [0, 0]); // 輝夜2枚目・ラウンド終了 → 輝夜(3点)×2枚 = 6点
   assert.strictEqual(s.players[0].roundScores[0], 6);
-  cycle(s, [['y_reimu', DY], [DY, DY]], [0, 0]); // 乱入者霊夢取得
-  cycle(s, [['y_kaguya', DY], [DY, DY]], [0, 0]); // 輝夜1枚取得（乱入者ありラウンド）
+  cycle(s, [['y_reimu', DY], [DY, DY]], [0, 0]); // 霊夢を取得
+  cycle(s, [['y_kaguya', DY], [DY, DY]], [0, 0]); // 輝夜1枚取得（霊夢ありラウンド）
   cycle(s, [['y_kaguya'], [DY]], [0, 0]); // 輝夜2枚目・ラウンド終了 → 減点なしで 3×2枚 = 6点
   assert.strictEqual(s.players[0].roundScores[1], 6);
   assert.strictEqual(Engine.scorePlayer(s, 0), 12); // 霊夢1枚は0点
@@ -1035,7 +1035,7 @@ test('春雪で4人AI完走', () => {
   fullRun('spring', null);
 });
 
-test('永夜で4人AI完走（両乱入者）', () => {
+test('永遠亭で4人AI完走（霊夢・魔理沙の両方）', () => {
   fullRun('eternal', 'y_reimu');
   fullRun('eternal', 'y_marisa');
 });
@@ -1114,8 +1114,8 @@ test('initialCounts: 全異変でカードリファレンス用の構成枚数�
   }
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
-  assert.strictEqual(s.initialCounts['y_reimu'], 8, '乱入者は参加分のみ記録');
-  assert.strictEqual(s.initialCounts['y_marisa'], undefined, '不参加の乱入者は記録されない');
+  assert.strictEqual(s.initialCounts['y_reimu'], 8, '参加した追加カードのみ記録');
+  assert.strictEqual(s.initialCounts['y_marisa'], undefined, '不参加の追加カードは記録されない');
 });
 
 // UI 契約: select フェーズ中、人間（seat 0）の選択は AI 側処理で {} 自動解決してはならない。
@@ -1279,6 +1279,7 @@ test('風神録: 射命丸文=手札から追加で2枚取り、山札から2枚
 
 console.log(`\
 ${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+
 
 
 
