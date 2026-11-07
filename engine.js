@@ -364,8 +364,14 @@
       // 妖夢（springBoost）: このカードを取ると「次の春カード」に効果が付く。
       // 次に春を取ったとき、そのアイコン数ぶんの春と点を追加で得る（同ラウンド内で消費）。
       if (def.kind === 'springBoost') {
-        p.springBuff = (p.springBuff || 0) + 1;
-        addLog(state, `${p.name}: 妖夢が次の春に備えた`);
+        // 同じ手番に複数枚取っても効果は1回だけ（異なる手番なら枚数ぶん溜まる）
+        if (p.youmuSeq !== state.pickSeq) {
+          p.youmuSeq = state.pickSeq;
+          p.springBuff = (p.springBuff || 0) + 1;
+          addLog(state, `${p.name}: 妖夢が次の春に備えた`);
+        } else {
+          addLog(state, `${p.name}: 同じ手番の妖夢は重ならない`);
+        }
       } else if (inst.key === 's_spring' && (p.springBuff || 0) > 0) {
         p.springBuff -= 1;
         const icons = inst.icons || 1;
@@ -378,9 +384,14 @@
 
       // 早苗の加護: 次に取る神奈子／諏訪子の点数を3倍にする（取り置きは先着順・重複は1回ずつ）
       if (def.buffTargets) {
-        // 早苗1枚につき「次の奇跡」1回ぶん。複数持てば回数が増えるが、同じ1枚に3倍が重なることはない
-        p.sanaePending = (p.sanaePending || 0) + 1;
-        addLog(state, `${p.name}: 早苗が次の奇跡に備えた`);
+        // 早苗1枚につき「次の奇跡」1回ぶん。ただし同じ手番に複数枚取っても効果は1回だけ
+        if (p.sanaeSeq !== state.pickSeq) {
+          p.sanaeSeq = state.pickSeq;
+          p.sanaePending = (p.sanaePending || 0) + 1;
+          addLog(state, `${p.name}: 早苗が次の奇跡に備えた`);
+        } else {
+          addLog(state, `${p.name}: 同じ手番の早苗は重ならない`);
+        }
       } else if (def.buffable && (p.sanaePending || 0) > 0) {
         p.sanaePending -= 1;
         inst.triple = 3;
