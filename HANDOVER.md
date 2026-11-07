@@ -353,5 +353,5 @@ Windows の PowerShell 5.1 は node の UTF-8 出力を化けさせるので、`
 
 ### スリープ対策
 
-- クライアント: 画面を開いている間、5 分ごとに `/keepalive` を GET（`Cache-Control: no-store`）。タブ非表示中は停止し、再表示で再開
-- 常時起動: `.github/workflows/keepalive.yml` が 10 分ごとに `https://<RENDER_URL>/healthz` を叩く。リポジトリ変数 `RENDER_URL` の登録が必要
+- クライアント: 画面を開いている間だけ、5 分ごとに `/keepalive` を GET（`Cache-Control: no-store`）。タブ非表示中は停止し、再表示で再開
+- **常時 ping はしない**（無料プランの月間時間を消費しないため）。誰も見ていない時はスリープさせる

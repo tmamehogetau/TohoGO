@@ -15,8 +15,8 @@ Web ゲーム（HTML/JS + `ws`）として動作する。
 
 ### スリープ対策
 
-- **画面を開いている間**はクライアントが 5 分ごとに `/keepalive` を叩きます（タブが非表示の間は止まります）
-- **常時起こしておきたい場合**は `.github/workflows/keepalive.yml` を使います。リポジトリの Settings → Variables に `RENDER_URL`（例: `tohogo.onrender.com`）を登録すると、GitHub Actions が 10 分ごとに `/healthz` を叩きます
+- **画面を開いている間だけ**、クライアントが 5 分ごとに `/keepalive` を叩きます（タブが非表示の間は停止）
+- 誰もアクセスしていない時はスリープさせます。無料プランの月間時間を無駄に消費しないため、常時 ping は行いません
 
 ## 遊び方
 
