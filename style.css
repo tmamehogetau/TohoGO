@@ -763,3 +763,256 @@ main {
 .rules-panel strong { color: #fff; }
 .rules-panel button { margin-top: 20px; }
 .rules-open { margin: 4px 0 14px; }
+
+/* =========================================================
+   UI 装飾レイヤー（カード以外の見た目）
+   背景・見出し・パネル・ボタン・バナー・ロビーの質感を揃える
+   ========================================================= */
+
+:root {
+  --line: #3a3342;
+  --line-soft: rgba(217, 194, 122, 0.18);
+  --gold-soft: rgba(217, 194, 122, 0.45);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.55);
+  --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+/* --- 背景: 麻の葉風の格子 + 上下の光 --- */
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1100px 520px at 12% -8%, rgba(194, 42, 78, 0.20), transparent 62%),
+    radial-gradient(900px 520px at 92% 108%, rgba(63, 111, 181, 0.18), transparent 62%),
+    linear-gradient(180deg, #1a1720 0%, #14121a 55%, #121017 100%);
+  background-attachment: fixed;
+  font-feature-settings: "palt";
+  letter-spacing: 0.01em;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+  background-image:
+    repeating-linear-gradient(60deg, rgba(217, 194, 122, 0.045) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(-60deg, rgba(217, 194, 122, 0.045) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(0deg, rgba(217, 194, 122, 0.03) 0 1px, transparent 1px 34px);
+}
+
+#lobby, #app { position: relative; z-index: 1; }
+
+/* --- 見出し: 明朝 + 金のグラデーション --- */
+h1, h2, #banner h2, .lobby-card h1 {
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", "Noto Serif JP", "MS PMincho", serif;
+  letter-spacing: 0.08em;
+}
+
+header {
+  border-bottom: 1px solid var(--line);
+  position: relative;
+  padding-bottom: 10px;
+}
+header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--gold) 45%, transparent 85%);
+  opacity: 0.9;
+}
+header h1 {
+  background: linear-gradient(180deg, #f4e7c3, var(--gold) 60%, #a8863f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: 1.55rem;
+}
+#round-indicator {
+  color: var(--gold);
+  padding: 2px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: rgba(217, 194, 122, 0.06);
+  font-size: 0.85rem;
+}
+
+/* --- パネル共通の質感 --- */
+.lobby-card, .table-row, #hand-area, #cardref, .player-chip {
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
+}
+.lobby-card, #cardref {
+  background: linear-gradient(180deg, rgba(38, 33, 46, 0.96), rgba(28, 24, 34, 0.96));
+  box-shadow: var(--shadow-lg);
+}
+.table-row {
+  background: linear-gradient(180deg, rgba(36, 31, 44, 0.9), rgba(28, 24, 34, 0.9));
+}
+.table-row.me {
+  border-color: var(--gold-soft);
+  box-shadow: 0 0 0 1px rgba(217, 194, 122, 0.18), var(--shadow-sm);
+}
+.table-row.me::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--gold), transparent);
+}
+#hand-area {
+  background: linear-gradient(180deg, rgba(38, 33, 46, 0.94), rgba(27, 23, 33, 0.94));
+}
+
+/* --- プレイヤーチップ: 席ごとの色帯 --- */
+.player-chip {
+  position: relative;
+  padding-left: 14px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(38, 33, 46, 0.9), rgba(28, 24, 34, 0.9));
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.player-chip::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #6c6478;
+}
+.player-chip:nth-child(1)::before { background: #c22a4e; }
+.player-chip:nth-child(2)::before { background: #3f6fb5; }
+.player-chip:nth-child(3)::before { background: #4f8f5a; }
+.player-chip:nth-child(4)::before { background: #8a5aa8; }
+.player-chip.me { transform: translateY(-1px); }
+.player-chip.picked { opacity: 0.55; }
+
+/* --- ボタン --- */
+button {
+  background: linear-gradient(180deg, #d0345a, #a82142);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), var(--shadow-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: transform 0.08s ease, filter 0.12s ease, box-shadow 0.12s ease;
+}
+button:hover { filter: brightness(1.12); transform: translateY(-1px); }
+button:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); }
+button:disabled { opacity: 0.45; transform: none; cursor: default; }
+button.secondary {
+  background: linear-gradient(180deg, #2f3644, #232a36);
+  border: 1px solid var(--line);
+  color: var(--text);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+button.secondary:hover { border-color: var(--gold-soft); }
+
+/* --- 継続カード置き場 --- */
+.dessert-box {
+  border-color: var(--line);
+  background:
+    repeating-linear-gradient(45deg, rgba(217, 194, 122, 0.035) 0 8px, transparent 8px 16px),
+    rgba(24, 20, 30, 0.6);
+}
+.dessert-box .box-label {
+  color: var(--gold);
+  letter-spacing: 0.06em;
+}
+
+/* --- ラウンド結果バナー --- */
+#banner {
+  background: rgba(10, 8, 12, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+#banner h2 {
+  font-size: 1.5rem;
+  letter-spacing: 0.14em;
+  text-shadow: 0 2px 20px rgba(217, 194, 122, 0.25);
+  margin-bottom: 14px;
+}
+#banner .bp {
+  background: linear-gradient(180deg, rgba(38, 33, 46, 0.96), rgba(27, 23, 33, 0.96));
+  box-shadow: var(--shadow-sm);
+}
+#banner .bp.banner-me {
+  border-color: var(--gold-soft);
+  box-shadow: 0 0 0 1px rgba(217, 194, 122, 0.2);
+}
+
+/* --- 選択オーバーレイ --- */
+#select-area.active {
+  background: rgba(20, 17, 25, 0.97);
+  border: 1px solid var(--gold-soft);
+  box-shadow: 0 0 0 1px rgba(217, 194, 122, 0.15), var(--shadow-lg);
+}
+.select-title {
+  color: var(--gold);
+  letter-spacing: 0.04em;
+}
+
+/* --- カード一覧パネル --- */
+#cardref { border-color: var(--line); }
+#cardref h2 {
+  background: linear-gradient(180deg, #f4e7c3, var(--gold) 60%, #a8863f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* --- ロビー --- */
+.lobby-card {
+  position: relative;
+  border: 1px solid var(--line-soft);
+  padding: 44px 52px;
+}
+.lobby-card::before,
+.lobby-card::after {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--gold-soft);
+  pointer-events: none;
+}
+.lobby-card::before { left: 10px; top: 10px; border-right: none; border-bottom: none; }
+.lobby-card::after { right: 10px; bottom: 10px; border-left: none; border-top: none; }
+.lobby-card h1 {
+  background: linear-gradient(180deg, #f6ecd0, var(--gold) 55%, #a8863f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: 2.3rem;
+  text-shadow: 0 8px 30px rgba(217, 194, 122, 0.18);
+}
+
+/* --- 狭い画面: 盤面を 1 カラムに --- */
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+  #player-bar { grid-template-columns: repeat(2, 1fr); }
+  #app { padding: 10px; }
+  #hand .card { width: 78px; height: 117px; }
+  .lobby-card { padding: 28px 22px; margin: 0 12px; }
+}
+
+/* 遊び方ボタンは控えめなリンク風に */
+.lobby-card .rules-open {
+  display: block;
+  margin: 18px auto 0;
+  padding: 6px 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  box-shadow: none;
+}
+.lobby-card .rules-open:hover { color: var(--gold); border-color: var(--gold-soft); }
