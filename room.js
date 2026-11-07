@@ -304,7 +304,8 @@ class Room {
     this.touch();
     if (!this.state || !this.state.roundBanner) return { ok: false, error: 'ラウンド結果がありません' };
     this.continueReady.add(seat);
-    const connected = this.seats.map((s, i) => (s.connected ? i : -1)).filter((i) => i >= 0);
+    // AI 席は「準備完了」を送れないので、人間の接続席だけを待つ
+    const connected = this.seats.map((s, i) => (s.connected && !s.isAI ? i : -1)).filter((i) => i >= 0);
     if (connected.every((i) => this.continueReady.has(i))) {
       this.state.roundBanner = null;
       this.continueReady.clear();

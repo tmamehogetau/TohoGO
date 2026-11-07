@@ -350,6 +350,7 @@
         stats.dessertTaken++;
       }
 
+      inst.takenSeq = state.pickSeq;
       p.taken.push(inst);
 
       // 春アイコンの記録（幽々子・レティ・妖夢の判定に使用）
@@ -449,6 +450,8 @@
           const def = state.cardMap[inst.key];
           if (!def || def.kind !== 'instant' || (!def.absentKeys && !def.zeroIfTaken && !def.pointsIfPicked)) continue;
           if (inst.absentChecked) continue;
+          // その手番に取ったカードだけを判定する（山札確認などで後から得たカードを誤判定しない）
+          if (inst.takenSeq !== state.pickSeq) continue;
           inst.absentChecked = true;
           const others = state.lastPicks.filter((x) => x.pi !== pi).flatMap((x) => x.keys);
           const allKeys = state.lastPicks.flatMap((x) => x.keys);
@@ -527,14 +530,35 @@
     function selectionNeeded(state, pi) {
       const p = state.players[pi];
       const need = { discard: false, flip: false, copy: false, peek: false, swap: false, scoop: false, swapNamed: false };
+      // 対象が無い効果は選択を出さない（空の選択画面で詰まらないように）
+      const map = state.cardMap;
+      const hasDiscardTarget = p.taken.some((x) => !x.discarded && !((map[x.key] || {}).discardBonus));
+      const hasFlipTarget = p.taken.some((x) => !x.flipped && !x.discarded && (map[x.key] || {}).kind !== 'flip');
+      const hasCopyTarget = p.taken.some((x) => {
+        const d = map[x.key];
+        return !!d && d.kind !== 'copy';
+      });
+      const hasSwapTarget = p.taken.some((x) => !x.discarded);
+      const hasPeekDeck = state.deck.length > 0
+        || !!(state.peekCards && state.peekCards[pi] && state.peekCards[pi].length);
       for (const inst of p.taken) {
-        const def = state.cardMap[inst.key];
+        const def = map[inst.key];
         if (!def || inst.selectionDone) continue;
-        if (def.kind === 'instant' && def.discardBonus) need.discard = true;
-        if (def.kind === 'instant' && def.swap) need.swap = true;
-        if (def.kind === 'flip') need.flip = true;
-        if (def.kind === 'copy') need.copy = true;
-        if (def.kind === 'deckPeek') need.peek = true;
+        if (def.kind === 'instant' && def.discardBonus) {
+          if (hasDiscardTarget) need.discard = true; else inst.selectionDone = true;
+        }
+        if (def.kind === 'instant' && def.swap) {
+          if (hasSwapTarget) need.swap = true; else inst.selectionDone = true;
+        }
+        if (def.kind === 'flip') {
+          if (hasFlipTarget) need.flip = true; else inst.selectionDone = true;
+        }
+        if (def.kind === 'copy') {
+          if (hasCopyTarget) need.copy = true; else inst.selectionDone = true;
+        }
+        if (def.kind === 'deckPeek') {
+          if (hasPeekDeck) need.peek = true; else inst.selectionDone = true;
+        }
       }
       if ((p.scoopPending || 0) > 0 && p.hand.length > 0) need.scoop = true;
       if (p.nitoriReady) need.swapNamed = true;

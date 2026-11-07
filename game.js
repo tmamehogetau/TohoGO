@@ -11,6 +11,7 @@
   let SEL_MODE = null;    // 取得時選択: 'discard' | 'flip' | 'copy' | 'peek' | 'scoop' | 'swapNamed' | null
   let SEL_SELECTED = [];  // flip モード中の選択 idx
   let SEL_NAMED = null;   // にとり: 指定したカード名
+  let ROOM_CODE = null;   // 参加中のルームコード（ヘッダー表示・コピー用）
   let STAGED_CHOICE = null; // 段階選択中の確定済み choice（全モード揃ったら choose で送る）
 
   const $ = (id) => document.getElementById(id);
@@ -1354,6 +1355,15 @@
   }
 
   // ヘッダーのステージ紋章を差し替える
+  // 対戦中もルームコードが分かるようにヘッダーへ出す
+  function renderRoomBadge() {
+    const el = $('room-badge');
+    if (!el) return;
+    const show = ONLINE && ROOM_CODE && STATE;
+    el.classList.toggle('hidden', !show);
+    if (show) $('room-code-label').textContent = ROOM_CODE;
+  }
+
   function renderStageEmblem() {
     const em = $('stage-emblem');
     if (!em) return;
@@ -1378,6 +1388,7 @@
     renderBanner();
     renderPreview();
     renderStageEmblem();
+    renderRoomBadge();
     updateTimerIndicator();
   }
 
@@ -1555,6 +1566,12 @@
     $('btn-confirm-pick').addEventListener('click', confirmPick);
     $('btn-cardref').addEventListener('click', toggleCardRef);
     $('btn-online-leave').addEventListener('click', leaveOnlineLobby);
+    $('room-badge').addEventListener('click', () => {
+      if (!ROOM_CODE) return;
+      const label = $('room-code-label');
+      const done = () => { label.textContent = 'コピー済み'; setTimeout(() => { label.textContent = ROOM_CODE; }, 1200); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ROOM_CODE).then(done).catch(() => {});
+    });
     $('btn-add-ai').addEventListener('click', () => Net.addAi());
     $('btn-remove-ai').addEventListener('click', () => Net.removeAi());
     $('btn-copy-code').addEventListener('click', copyRoomCode);
@@ -1594,6 +1611,7 @@
       }
     },
     onLobby(lobby) {
+      if (lobby && lobby.roomCode) ROOM_CODE = lobby.roomCode;
       showOnlineLobby(lobby);
     },
     onState(view) {

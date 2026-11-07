@@ -347,6 +347,8 @@ test('紅霧: フランをスキップ後の小悪魔選択に古い破棄キー
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
   fixPeek(s);
   const F = 'k_meirin';
+  setHands(s, [['k_meirin', F], [F, F]]);
+  pickAll(s, [0, 0]); // 先に美鈴（破棄対象になるカード）を取る
   setHands(s, [['k_fran', F], [F, F]]);
   pickAll(s, [0, 0]); // フラン取得
   assert.strictEqual(s.phase, 'select');
@@ -1132,12 +1134,28 @@ test('initialCounts: 全異変でカードリファレンス用の構成枚数�
 
 // UI 契約: select フェーズ中、人間（seat 0）の選択は AI 側処理で {} 自動解決してはならない。
 // （2026-11-03 事故: runAiSelections が人間のフラン破棄も {} で解決し、効果が発揮されないまま進行していた）
+test('select フェーズ: 対象が無い取得時効果では選択フェーズに入らない', () => {
+  // 慧音を最初に取る → コピー対象が無いので選択なし
+  const s1 = Engine.newGame(2, ['A', 'B'], { incident: 'eternal' });
+  fixPeek(s1);
+  setHands(s1, [['y_keine'], [DY]]);
+  pickAll(s1, [0, 0]);
+  assert.strictEqual(s1.phase, 'pick', 'コピー対象が無ければ選択しない');
+
+  // フランを最初に取る → 破棄対象が無いので選択なし
+  const s2 = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s2);
+  setHands(s2, [['k_fran'], [D]]);
+  pickAll(s2, [0, 0]);
+  assert.ok(!s2.selectNeeded || !s2.selectNeeded.includes(0), '破棄対象が無ければ選択しない（相手の小悪魔は別）');
+});
+
 test('select フェーズ: 人間の選択は AI 解決で埋められない', () => {
   const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'scarlet' });
   fixPeek(s);
-  setHands(s, [['k_fran'], [D], [D], [D]]);
+  setHands(s, [['k_kozue'], [D], [D], [D]]);
   pickAll(s, [0, 0, 0, 0]);
-  assert.strictEqual(s.phase, 'select', 'フラン取得で select フェーズに入る');
+  assert.strictEqual(s.phase, 'select', '小悪魔取得で select フェーズに入る');
   assert.ok(s.selectNeeded.includes(0), '人間が選択対象に含まれる');
   // game.js の runAiSelections と同じ処理（pi === 0 を除外）
   for (const pi of s.selectNeeded) {

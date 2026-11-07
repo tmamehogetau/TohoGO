@@ -206,6 +206,16 @@ const isState = (m) => m.type === 'state';
   const v1b = viewFor(fakeRoom, 1);
   assert(v1b.players[0].taken[0].key === 'y_reisen', 'immune only for the hand it was played');
 
+  // AI 席（人数調整）は continue を送らないので、人間だけで進行判定する
+  const { Room } = require('../room.js');
+  const aiRoom = new Room('AI01');
+  aiRoom.join('ホスト', null);
+  aiRoom.addAi(0);
+  aiRoom.start(0);
+  aiRoom.state.roundBanner = { round: 0, results: [] };
+  aiRoom.continueAfterRound(0);
+  assert(aiRoom.state.roundBanner === null, 'AI 席があってもラウンドを進められる');
+
   // 取得時選択（文の追加取得・にとりの調査）に必要なフラグが view に載る
   fakeState.players[0].scoopPending = 2;
   fakeState.players[0].nitoriReady = true;

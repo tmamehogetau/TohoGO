@@ -1701,3 +1701,21 @@ body[data-stage="mountain"]{ --panel-a: rgba(18, 44, 34, 0.56); --panel-b: rgba(
   white-space: nowrap;
 }
 .player-chip:has(.chip-off) { opacity: 0.75; }
+
+/* ゲーム中も見えるルームコード */
+#room-badge {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  padding: 2px 10px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+#room-badge b {
+  color: var(--gold);
+  letter-spacing: 0.18em;
+  margin-left: 4px;
+}
+#room-badge:hover { border-color: var(--gold-soft); color: var(--text); }
