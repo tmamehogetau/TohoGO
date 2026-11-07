@@ -146,69 +146,70 @@
     return parts.join('');
   }
 
-  // kind から説明テキストを生成（実パラメータを数字で見せる・全文はツールチップと一覧で使う）
+  // kind から説明テキストを生成（表記ルール: 数値と単位の間は半角スペース／条件の区切りは「／」／
+  // タイミングは「取得時・」「ラウンド末・」「ゲーム末・」「ラウンド中・」で始める）
   function descOf(def) {
     const MAKI = Data.RULES.MAKI_POINTS;
     switch (def.kind) {
       case 'instant': {
         const parts = [`${def.points} 点`];
+        if (def.buffTargets) parts.push(`取得後・次に${def.buffTargets.map(nameOf).join('か')}を取ると、その点が 3 倍（1 回ずつ消費）`);
         if (def.absentKeys) parts.push(def.absentKeys.includes(def.key)
           ? '他の人も同じ手番に同じ札を取ると 0 点（単独なら満点）'
           : `誰かが同時に${def.absentKeys.map(nameOf).join('か')}を取ると 0 点`);
         if (def.comboKeys) parts.push(def.comboAtEnd
-          ? `ラウンド末に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`
-          : `取った瞬間に${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus}`);
-        if (def.discardBonus) parts.push(`取得時・手元 1 枚を山札へ戻し +${def.discardBonus} 点`);
-        if (def.intruderPenalty) parts.push(`自分が乱入者を取ったラウンドは所持 1 枚ごとに -${def.intruderPenalty} 点`);
+          ? `ラウンド末・${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus} 点`
+          : `取った瞬間・${def.comboKeys.map(nameOf).join('・')}も手元なら +${def.comboBonus} 点`);
+        if (def.discardBonus) parts.push(`取得時・手元の 1 枚を山札へ戻すと +${def.discardBonus} 点`);
+        if (def.intruderPenalty) parts.push(`自分が乱入者を取ったラウンドは、所持 1 枚ごとに -${def.intruderPenalty} 点`);
         if (def.zeroIfTaken) parts.push(`同じ手番に${nameOf(def.zeroIfTaken)}を取った人がいると 0 点`);
         if (def.pointsIfPicked) parts.push(`同じ手番に誰か（自分含む）が${nameOf(def.pointsIfPicked.key)}を取っていれば +${def.pointsIfPicked.bonus} 点`);
-        if (def.swap) parts.push('取得時・手元のカード1枚を山札と交換できる（山札の上から1枚引く）');
+        if (def.swap) parts.push('取得時・手元のカード 1 枚を山札と交換できる（山札の上から 1 枚引く）');
         if (def.hidden) {
-          parts.push('取った番・他の全員の取得は「うどんげ」に見える');
-          parts.push('免疫はその番の自分だけ。他の人が出した番では自分も影響を受ける');
+          parts.push('取った手番・他の全員の取得は「うどんげ」に見える');
+          parts.push('免疫はその手番の自分だけ。他の人が出した手番では自分も影響を受ける');
         }
         return parts.join('／');
       }
       case 'othersDiff': return `ラウンド末・(同じ手番に他の人が取った${nameOf(def.plusKey)}の枚数 − ${nameOf(def.minusKey)}の枚数) × ${def.mult} 点`;
       case 'pairCond': return `ラウンド末・2 枚ごとに ${def.points} 点／2 枚ごとに自分の${nameOf('s_spring')}アイコン合計 -${def.reduceSpringIconsPerPair}（春の順位判定が下がる）`;
-      case 'maki': return `このアイコンの合計を競う・最多 ${MAKI.first} 点／2 位 ${MAKI.second} 点`;
-      case 'temaki': return `この枚数を競う・最多 +${def.most}／最少 ${def.least} 点`;
-      case 'springMost': return `ラウンド末・春の獲得数が全員最多なら、所持 1 枚ごとに +${def.most} 点（このカードの所持が条件）`;
-      case 'springBoost': return '取った後、次に春を取るとそのアイコン数ぶんの春と点を追加で獲得（同じラウンド内）';
+      case 'maki': return `ラウンド末・このアイコンの合計を競う。最多 ${MAKI.first} 点／2 位 ${MAKI.second} 点（同数は同順位で等分・次点はスキップ）`;
+      case 'temaki': return `ラウンド末・この枚数を競う。最多 +${def.most} 点／最少 ${def.least} 点（同数は全員で等分）`;
+      case 'springMost': return `ラウンド末・春の獲得数が全員最多なら、所持 1 枚ごとに +${def.most} 点`;
+      case 'springBoost': return '取得後・次に春を取ると、そのアイコン数ぶんの春と点を追加で獲得（同じラウンド内）';
       case 'pair': return def.pairRamp
-        ? `2 枚で 1 ペア。**ゲーム通算**で 1ペア目 ${def.pairRamp} 点・2ペア目 ${def.pairRamp + 1} 点・3ペア目 ${def.pairRamp + 2} 点…と増える`
-        : `2 枚で 1 ペア = ${def.points} 点${gameEndBonusText(def)}`;
+        ? `ラウンド末・2 枚で 1 ペア。ゲーム通算で 1 ペア目 ${def.pairRamp} 点・2 ペア目 ${def.pairRamp + 1} 点・3 ペア目 ${def.pairRamp + 2} 点…と増える`
+        : `ラウンド末・2 枚で 1 ペア ${def.points} 点${gameEndBonusText(def)}`;
       case 'aliceSet': {
         const tbl = def.table || [0, 1, 4, 9, 16];
-        return `集めた${def.name}の種類数で得点／1種 ${tbl[1]} 点・2種 ${tbl[2]} 点・3種 ${tbl[3]} 点・4種 ${tbl[4]} 点`;
+        return `ラウンド末・集めた${def.name}の種類数で得点。1 種 ${tbl[1]} 点／2 種 ${tbl[2]} 点／3 種 ${tbl[3]} 点／4 種 ${tbl[4]} 点`;
       }
-      case 'set3': return `3 枚で 1 セット = ${def.points} 点${gameEndBonusText(def)}`;
-      case 'collect': return `1/2/3/4/5+ 枚で ${def.table.join('/')} 点`;
+      case 'set3': return `ラウンド末・3 枚で 1 セット ${def.points} 点${gameEndBonusText(def)}`;
+      case 'collect': return `ラウンド末・1/2/3/4/5+ 枚で ${def.table.join('/')} 点`;
       case 'socialJoin': return 'ラウンド末・自分以外で大妖精かチルノを取ったプレイヤー 1 人につき +1 点';
-      case 'roundComboCount': return `このラウンドに自分がデザートを取るたび +${def.per} 点`;
-      case 'tofu': return `1 枚 ${def.table[0]} 点・2 枚 ${def.table[1]} 点・3 枚以上 ${def.table[def.table.length - 1]} 点`;
-      case 'eel': return `1 枚 ${def.first} 点／2 枚以上 +${def.more} 点（中途半端な1枚が祟り）`;
+      case 'roundComboCount': return `ラウンド末・このラウンドに自分がデザートを取るたび +${def.per} 点`;
+      case 'tofu': return `ラウンド末・1 枚 ${def.table[0]} 点／2 枚 ${def.table[1]} 点／3 枚以上 ${def.table[def.table.length - 1]} 点`;
+      case 'eel': return `ラウンド末・1 枚 ${def.first} 点／2 枚以上 +${def.more} 点（中途半端な 1 枚が祟り）`;
       case 'pairWith': return `ラウンド末・${nameOf(def.partner)}とのペア 1 組につき ${def.points} 点`;
-      case 'uramaki': return `ラウンド中・信仰アイコンが ${def.threshold} 個に到達した順に ${def.rankPoints.join(' / ')} 点（カードは残る）`;
-      case 'scoop': return '取得時・手札から追加で 2 枚取り、山札から 2 枚補充（このカードは山札の下へ）';
-      case 'swapNamed': return '次の取得後・カード名を指定して他者の手札からランダムに 1 枚もらい、このカードを渡す（本体0点）';
+      case 'uramaki': return `ラウンド中・信仰アイコンが ${def.threshold} 個に到達した順に ${def.rankPoints.join(' / ')} 点（同数は同順位・次点スキップ／カードは残る）`;
+      case 'scoop': return '取得時・手札から追加で 2 枚取り、山札から 2 枚を補充（このカードは山札の下へ）';
+      case 'swapNamed': return '次の取得後・カード名を指定し、他者の手札からランダムに 1 枚もらってこのカードを渡す（本体 0 点）';
       case 'dessertParity': return `ゲーム末・0 枚なら ${def.zero} 点／偶数なら +${def.even} 点／奇数なら 0 点`;
       case 'kindCount': return `ラウンド末・「取ったカードの種類数 ${def.offset >= 0 ? '+' : ''}${def.offset}」点`;
       case 'letty': return `ラウンド末・(自分の冬の枚数 − 自分の春の個数) × ${def.mult} 点`;
-      case 'coop': return `取得した手番に、自分以外が同じ手番で取得したリグル 1 枚につき +${def.points} 点（1 人だけなら 0 点）`;
-      case 'flip': return `取得時・手元のカードを任意枚数裏返せる（判定から外れ 1 枚 ${def.flipPoints} 点・ミスティア自身は対象外）`;
-      case 'copy': return `取得時・手元の他のカード 1 枚の効果をコピー`;
+      case 'coop': return `取得した手番・自分以外が同じ手番で取得したリグル 1 枚につき +${def.points} 点（1 人だけなら 0 点）`;
+      case 'flip': return `取得時・手元のカードを任意枚数裏返せる（判定から外れ 1 枚 ${def.flipPoints} 点／ミスティア自身は対象外）`;
+      case 'copy': return '取得時・手元の他のカード 1 枚の効果をコピー';
       case 'deckPeek': return `取得時・山札の上 ${def.peek} 枚を見て 1 枚獲得（残りは山札の下へ・使わなくてもよい）`;
-      case 'collectByTwo': return `ゲーム末・2 枚ごとに ${def.per2} 点・4 枚以上で +${def.bonusAt4}`;
+      case 'collectByTwo': return `ゲーム末・2 枚ごとに ${def.per2} 点／4 枚以上で +${def.bonusAt4}`;
       case 'parity': return `ゲーム末・偶数枚なら 2 枚ごとに ${def.per2Even} 点／奇数なら ${def.per2Odd} 点`;
-      case 'dessertLeast': return `ゲーム末・このデザートの枚数が最少なら ${def.least} 点`;
+      case 'dessertLeast': return `ゲーム末・このデザートの枚数が最少なら ${def.least} 点（同数は全員で等分）`;
       case 'dessertIce': return `ゲーム末・${def.per} 枚ごとに +${def.points} 点`;
-      case 'dessertMostLeast': return `ゲーム末・所持枚数が最多なら +${def.most} 点／最少なら ${def.least} 点`;
+      case 'dessertMostLeast': return `ゲーム末・所持枚数が最多なら +${def.most} 点／最少なら ${def.least} 点（同数は全員で等分）`;
       case 'dessertRound': return `ラウンド末・そのラウンドに取った 1 枚ごとに ${def.roundPenalty} 点／ゲーム末・最多なら 所持枚数 × ${def.endMostPer} 点`;
       default: return '';
     }
   }
-
   // カード面用の極短テキスト（詳細は右の拡大表示とカード一覧で読む）
   function tinyDesc(def) {
     switch (def.kind) {
@@ -1400,6 +1401,14 @@
     $('btn-mode-online').addEventListener('click', () => showMode('online'));
     $('btn-solo-back').addEventListener('click', showModeSelect);
     $('btn-mp-back').addEventListener('click', showModeSelect);
+    // 遊び方モーダル
+    const rulesModal = $('rules-modal');
+    const openRules = () => rulesModal.classList.remove('hidden');
+    const closeRules = () => rulesModal.classList.add('hidden');
+    $('btn-rules').addEventListener('click', openRules);
+    $('btn-rules-close').addEventListener('click', closeRules);
+    rulesModal.addEventListener('click', (e) => { if (e.target === rulesModal) closeRules(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !rulesModal.classList.contains('hidden')) closeRules(); });
     buildSoloIncidentOptions();
     buildSettingOptions();
     setInterval(updateTimerIndicator, 500);
