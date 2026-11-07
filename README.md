@@ -13,6 +13,11 @@ Web ゲーム（HTML/JS + `ws`）として動作する。
 - WebSocket は同じポートで動くので、そのまま対戦も可能
 - **無料プランは 15 分アクセスが無いとスリープ**し、その間のルーム（メモリ保持）は消えます
 
+### スリープ対策
+
+- **画面を開いている間**はクライアントが 5 分ごとに `/keepalive` を叩きます（タブが非表示の間は止まります）
+- **常時起こしておきたい場合**は `.github/workflows/keepalive.yml` を使います。リポジトリの Settings → Variables に `RENDER_URL`（例: `tohogo.onrender.com`）を登録すると、GitHub Actions が 10 分ごとに `/healthz` を叩きます
+
 ## 遊び方
 
 ```bash

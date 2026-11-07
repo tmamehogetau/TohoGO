@@ -1,0 +1,25 @@
+name: keepalive
+
+# Render 無料プランのアイドル停止（15 分）を避けるための定期 ping。
+# リポジトリの Settings → Variables に RENDER_URL を設定すると有効になります。
+# 例: RENDER_URL = tohogo.onrender.com （https:// は不要）
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render
+        env:
+          RENDER_URL: ${{ vars.RENDER_URL }}
+        run: |
+          if [ -z "$RENDER_URL" ]; then
+            echo "RENDER_URL が未設定のためスキップします"
+            exit 0
+          fi
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "https://${RENDER_URL}/healthz" || true)
+          echo "GET https://${RENDER_URL}/healthz -> ${code}"

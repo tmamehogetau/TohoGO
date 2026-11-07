@@ -25,8 +25,11 @@ const MIME = {
 const server = http.createServer((req, res) => {
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
   // Render などのヘルスチェック用
-  if (urlPath === '/healthz') {
-    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  if (urlPath === '/healthz' || urlPath === '/keepalive') {
+    res.writeHead(200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-store, max-age=0',
+    });
     res.end('ok');
     return;
   }

@@ -1456,7 +1456,25 @@
     el.textContent = `残り ${left}秒`;
   }
 
+  // ---- Render のスリープ対策 ----
+  // 画面を開いている間は 5 分ごとに軽くサーバーを叩いて、無料プランのアイドル停止を避ける
+  const KEEPALIVE_MS = 5 * 60 * 1000;
+  let keepAliveTimer = null;
+  function pingKeepAlive() {
+    if (document.visibilityState !== 'visible') return;
+    try { fetch('/keepalive', { cache: 'no-store', keepalive: true }).catch(() => {}); } catch (e) { /* 失敗しても無視 */ }
+  }
+  function startKeepAlive() {
+    if (keepAliveTimer) clearInterval(keepAliveTimer);
+    pingKeepAlive();
+    keepAliveTimer = setInterval(pingKeepAlive, KEEPALIVE_MS);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') startKeepAlive();
+  });
+
   function init() {
+    startKeepAlive();
     $('btn-start').addEventListener('click', startGame);
     $('input-name').addEventListener('keydown', (e) => {
       if (e.key !== 'Enter') return;

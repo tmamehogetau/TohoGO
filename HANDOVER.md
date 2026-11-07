@@ -350,3 +350,8 @@ Windows の PowerShell 5.1 は node の UTF-8 出力を化けさせるので、`
 4. 初回ビルド後に発行される URL で動作確認
 
 注意: 無料プランは 15 分アイドルでスリープし、その間のルームは消える（ルームはメモリ保持）。WebSocket は同一ポートで動作。
+
+### スリープ対策
+
+- クライアント: 画面を開いている間、5 分ごとに `/keepalive` を GET（`Cache-Control: no-store`）。タブ非表示中は停止し、再表示で再開
+- 常時起動: `.github/workflows/keepalive.yml` が 10 分ごとに `https://<RENDER_URL>/healthz` を叩く。リポジトリ変数 `RENDER_URL` の登録が必要
