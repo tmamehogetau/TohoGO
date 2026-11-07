@@ -1415,3 +1415,45 @@ main { grid-template-columns: minmax(0, 1fr) 320px; }
 .banner-players { width: min(1120px, 94vw); }
 #cardref { width: min(1400px, 97vw); }
 .ref-grid { grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); }
+
+/* =========================================================
+   ステージ背景は盤面全体に 1 枚だけ敷く（行ごとに細切れにしない）
+   ========================================================= */
+
+#board {
+  position: relative;
+  background-image:
+    linear-gradient(180deg, rgba(9, 7, 12, 0.30), rgba(9, 7, 12, 0.50)),
+    var(--stage-bg, none);
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  border-radius: 14px;
+  padding: 6px;
+}
+
+body[data-stage="scarlet"] { --panel-a: rgba(56, 20, 28, 0.40); --panel-b: rgba(22, 11, 16, 0.62); }
+body[data-stage="spring"]  { --panel-a: rgba(60, 30, 46, 0.40); --panel-b: rgba(22, 12, 19, 0.62); }
+body[data-stage="eternal"] { --panel-a: rgba(24, 33, 62, 0.40); --panel-b: rgba(10, 13, 26, 0.62); }
+body[data-stage="mountain"]{ --panel-a: rgba(18, 44, 34, 0.40); --panel-b: rgba(8, 20, 15, 0.62); }
+
+/* 枠は半透明にして、下の 1 枚の背景が連続して見えるように */
+.table-row,
+#hand-area {
+  background-image: linear-gradient(180deg, var(--panel-a, rgba(36, 31, 44, 0.5)), var(--panel-b, rgba(28, 24, 34, 0.66)));
+  background-size: auto;
+  background-position: center;
+  background-repeat: repeat;
+  backdrop-filter: blur(2px);
+}
+
+/* 背景の連続感は残しつつ、カードと文字が沈まない濃さに調整 */
+#board {
+  background-image:
+    linear-gradient(180deg, rgba(9, 7, 12, 0.42), rgba(9, 7, 12, 0.60)),
+    var(--stage-bg, none);
+}
+body[data-stage="scarlet"] { --panel-a: rgba(56, 20, 28, 0.56); --panel-b: rgba(22, 11, 16, 0.78); }
+body[data-stage="spring"]  { --panel-a: rgba(60, 30, 46, 0.56); --panel-b: rgba(22, 12, 19, 0.78); }
+body[data-stage="eternal"] { --panel-a: rgba(24, 33, 62, 0.56); --panel-b: rgba(10, 13, 26, 0.78); }
+body[data-stage="mountain"]{ --panel-a: rgba(18, 44, 34, 0.56); --panel-b: rgba(8, 20, 15, 0.78); }
