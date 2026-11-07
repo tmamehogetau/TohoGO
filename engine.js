@@ -808,7 +808,7 @@
     }
 
     // 信仰（uramaki）: アイコン合計がしきい値に到達したら即時得点するレース。
-    // カードは捨てず、到達の順番だけを記録する（にとりで減らされて再到達したら次の順位が入る）
+    // カードは捨てず、到達の順番だけを記録する（信仰が減る効果は現状ないため、順位は1ラウンドに1人1回）
     function faithIconTotal(state, pi) {
       const p = state.players[pi];
       let n = 0;
@@ -832,7 +832,7 @@
         const st = state.roundStats[i];
         const n = faithIconTotal(state, i);
         if (n < threshold) {
-          if (st.faithCleared) st.faithCleared = false; // 減らされたら再挑戦できる
+          if (st.faithCleared) st.faithCleared = false; // 将来、信仰を減らす効果が入った場合の保険
           continue;
         }
         if (st.faithCleared) continue;
@@ -1345,6 +1345,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   if (typeof window !== 'undefined') window.Engine = Engine;
 })();
+
 
 
 
