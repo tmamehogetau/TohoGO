@@ -61,6 +61,10 @@ function viewFor(room, seat) {
       desserts: p.desserts,
       gameEndCounts,
       chopsticks: p.chopsticks,
+      // UI が取得時の選択（文の追加取得・にとりの調査）を描画するために必要
+      scoopPending: p.scoopPending || 0,
+      nitoriReady: !!p.nitoriReady,
+      sanaePending: p.sanaePending || 0,
       roundScores: p.roundScores,
       connected: !!(s && s.connected),
       seat: oi,

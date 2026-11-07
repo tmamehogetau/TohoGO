@@ -204,6 +204,13 @@ const isState = (m) => m.type === 'state';
   const v1b = viewFor(fakeRoom, 1);
   assert(v1b.players[0].taken[0].key === 'y_reisen', 'immune only for the hand it was played');
 
+  // 取得時選択（文の追加取得・にとりの調査）に必要なフラグが view に載る
+  fakeState.players[0].scoopPending = 2;
+  fakeState.players[0].nitoriReady = true;
+  const vSel = viewFor(fakeRoom, 0);
+  assert(vSel.players[0].scoopPending === 2, 'scoopPending is sent to the client');
+  assert(vSel.players[0].nitoriReady === true, 'nitoriReady is sent to the client');
+
   // ラウンド結果の内訳（獲得カードと配点）が view に載り、席順に回転する
   fakeState.roundBanner = {
     round: 0,
