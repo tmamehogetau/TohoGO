@@ -12,7 +12,7 @@
   <div class="lobby-card">
     <h1>東方数紙業</h1>
     <p class="subtitle">東方Project二次創作 × スシGO風ドラフト</p>
-    <p class="note">v0.4 — 異変パック 4 種 / ソロ・オンライン対戦（2〜5 人）</p>
+    <p class="note">v0.4 — ステージセット 4 種 / ソロ・オンライン対戦（2〜5 人）</p>
     <button id="btn-rules" class="secondary rules-open">遊び方</button>
     <input id="input-name" placeholder="あなたの名前" value="" maxlength="12">
 
@@ -22,10 +22,10 @@
     </div>
 
     <div id="solo-panel" class="hidden">
-      <label class="setting-row">異変
+      <label class="setting-row">ステージ
         <select id="solo-incident"></select>
       </label>
-      <button id="btn-start">宴会を始める</button>
+      <button id="btn-start">ゲームを始める</button>
       <div><button id="btn-solo-back" class="secondary back-btn">← 戻る</button></div>
     </div>
 
@@ -39,7 +39,7 @@
     <div id="online-lobby" class="hidden">
       <p class="note">ルームコード: <strong id="online-code"></strong>（参加者に伝えてください）</p>
       <div id="online-settings">
-        <label class="setting-row">異変
+        <label class="setting-row">ステージ
           <select id="setting-incident"></select>
         </label>
         <label class="setting-row">取得時間
@@ -52,7 +52,7 @@
         <p class="note" id="setting-hint">※ルームマスターのみ変更できます</p>
       </div>
       <div id="online-players"></div>
-      <button id="btn-online-start" class="hidden">宴会を始める</button>
+      <button id="btn-online-start" class="hidden">ゲームを始める</button>
       <p class="note" id="online-hint"></p>
     </div>
   </div>
@@ -64,7 +64,7 @@
     <div id="round-indicator"></div>
     <div id="pass-indicator"></div>
     <div id="timer-indicator" class="hidden"></div>
-    <button id="btn-cardref" class="secondary btn-cardref">異変カード一覧</button>
+    <button id="btn-cardref" class="secondary btn-cardref">ステージカード一覧</button>
   </header>
 
   <main>
@@ -98,31 +98,31 @@
 <div id="rules-modal" class="hidden">
   <div class="rules-panel">
     <h2>東方数紙業の遊び方</h2>
-    <p>東方Project二次創作のドラフトカードゲームです。手札から1枚ずつ取って隣へ回し、3ラウンド後の合計点で競います。</p>
+    <p>東方Project二次創作のドラフトカードゲームです。手札から 1 枚ずつ取って隣へ回し、3 ラウンド後の合計点で競います。</p>
 
     <h3>ゲームの流れ</h3>
     <ol>
-      <li>異変を選ぶ（おまかせも可）。異変ごとにカードの顔ぶれと駆け引きが変わります</li>
-      <li>手札から1枚選んで「決定」。全員の選択が揃うと公開され、手札が隣へ渡ります</li>
+      <li>ステージを選ぶ（おまかせも可）。ステージごとにカードの顔ぶれと駆け引きが変わります</li>
+      <li>手札から 1 枚選んで「決定」。全員の選択が揃うと公開され、手札が隣へ渡ります</li>
       <li>手札が尽きるとラウンド終了。得点を計算して次のラウンドへ</li>
-      <li>3ラウンド終了時の合計点が高い人の勝ち。同点はデザートの枚数が多い方が上位、それも同じなら同率1位</li>
+      <li>3 ラウンド終了時の合計点が高い人の勝ち。同点は継続カードの枚数が多い方が上位、それも同じなら同率1位</li>
     </ol>
 
-    <h3>得点の3種類</h3>
+    <h3>得点の 3 種類</h3>
     <ul>
       <li><strong>即時点</strong>：カードを取ったときに確定する点。ラウンド末にまとめて加算されます</li>
       <li><strong>ラウンド末</strong>：ペア・セット・収集・多数決など、ラウンドの終わりに判定されます</li>
-      <li><strong>ゲーム末</strong>：デザート。取り過ぎても少なすぎても損になるものがあります</li>
+      <li><strong>ゲーム末</strong>：継続カード。取り過ぎても少なすぎても損になるものがあります</li>
     </ul>
 
-    <h3>デザート</h3>
-    <p>各ラウンドの山札に少しずつ混ざり、ゲーム終了時にまとめて判定されます。条件はカードごとに違うので、カード説明の「デザート」を確認してください。</p>
+    <h3>継続カード</h3>
+    <p>各ラウンドの山札に少しずつ混ざり、ゲーム終了時にまとめて判定されます。条件はカードごとに違うので、カード説明の「継続カード」を確認してください。</p>
 
     <h3>取得時の効果</h3>
     <p>フラン（破棄）・ミスティア（裏返し）・慧音（コピー）・小悪魔（山札確認）・文（追加取得）・にとり（名前指定）は、取ったあとに選択画面が出ます。効果を使わずに進めることもできます（必須のものを除く）。</p>
 
-    <h3>異変パック</h3>
-    <p>紅霧・春雪・永夜・風神録の4種類。1ゲームにつき1つだけ使い、10種類のカードで構成されます。</p>
+    <h3>ステージセット</h3>
+    <p>紅魔館・白玉楼・永遠亭・守矢神社の 4 種類。1 ゲームにつき 1 つだけ使い、10 種類のカードで構成されます。</p>
 
     <h3>操作メモ</h3>
     <ul>
@@ -142,6 +142,9 @@
 <script src="net.js"></script>
 </body>
 </html>
+
+
+
 
 
 

@@ -29,14 +29,14 @@
     return n;
   }
 
-  // デザート置き場も含めた所持数（デザート系はラウンド末に置き場へ移るため）
+  // 継続カード置き場も含めた所持数（継続カード系はラウンド末に置き場へ移るため）
   function dessertCount(state, pi, key) {
     const p = state.players[pi];
     const inTaken = p.taken.filter((i) => i.key === key && !i.discarded && !i.flipped).length;
     return inTaken + p.desserts.filter((i) => i.key === key).length;
   }
 
-  // メインデッキの総枚数（デザートは別プールなので除く）。他人の同時取得の期待値に使う
+  // メインデッキの総枚数（継続カードは別プールなので除く）。他人の同時取得の期待値に使う
   function packCardCount(state) {
     let n = 0;
     for (const d of Object.values(state.cardMap)) {
@@ -231,7 +231,7 @@
         // 次の春でアイコン数ぶんの春と点。春がまだ手元/山に残っていそうなら強め
         return p.taken.some((i) => i.key === 's_spring') ? 2.4 : 1.6;
       case 'roundComboCount':
-        // 固定点（base）＋チルノなど対象デザート1枚ごとの点
+        // 固定点（base）＋チルノなど対象継続カード1枚ごとの点
         return (def.base || 0) * 0.7 + def.per * (def.cumulative ? 1.2 : 0.7);
       case 'socialJoin': {
         // 自分以外で大妖精かチルノを取っている人数ぶんもらえる（ラウンド末）
@@ -257,7 +257,7 @@
       }
       case 'coop': {
         // 自分以外が同じ手番に取った枚数ぶんの点。他人の選択は読めないので、
-        // パック内のリグルの密度から「他の人が同時に取る枚数」を期待値で近似する
+        // セット内のリグルの密度から「他の人が同時に取る枚数」を期待値で近似する
         const others = state.playerCount - 1;
         const expectedOthers = others * ((def.count || 1) / Math.max(1, packCardCount(state)));
         return (typeof def.points === 'number' ? def.points : 1) * expectedOthers;
@@ -478,7 +478,7 @@
 
     if (need.swap) {
       // 交換で山札の平均的な札が来るので、明らかに弱い札だけ交換する（交換そのものは 0 点）。
-      // 一番弱い札を 1 枚選んで交換する（永琳自身とデザートは対象外）
+      // 一番弱い札を 1 枚選んで交換する（永琳自身と継続カードは対象外）
       const dessertKey = state.dessert && state.dessert.key;
       let best = -1;
       let bestValue = Infinity;
@@ -527,6 +527,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = AI;
   if (typeof window !== 'undefined') window.AI = AI;
 })();
+
 
 
 

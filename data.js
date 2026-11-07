@@ -1,6 +1,6 @@
 'use strict';
 
-// 異変パック定義。
+// ステージセット定義。
 // カードは「kind（メカニズム）」+「name/icon/color（キャラ味付け）」+「count（枚数）」+「params」。
 // IIFE で包む: ブラウザでは全 script が同一グローバルスコープのため、const 宣言の衝突を防ぐ。
 
@@ -9,7 +9,7 @@
     ROUNDS: 3,
     // スシGOパーティー準拠: 2-3人10枚 / 4-5人9枚
     HAND_SIZES: { 2: 10, 3: 10, 4: 9, 5: 9 },
-    DESSERT_MIX: [5, 3, 2], // ラウンド1/2/3 のデザート混入数
+    DESSERT_MIX: [5, 3, 2], // ラウンド1/2/3 の継続カード混入数
     // 多数決の標準配点（DESIGN 2-4）: 2人=1位4点/同点各2点、3人以上=1位6点/一意の2位3点
     MAKI_POINTS: { first: 6, second: 3 },
     MAKI_2P: { first: 4, tie: 2 },
@@ -17,7 +17,7 @@
     PASS_DIRS: [-1, 1, -1],
   };
 
-  // ---------------- 紅霧異変（紅魔郷） ----------------
+  // ---------------- 紅魔館（紅魔郷） ----------------
   const SCARLET_MAIN = [
     { key: 'k_remi', kind: 'instant', points: 3, name: 'レミリア', icon: '王', color: '#8b1a2b', count: 3 },
     { key: 'k_fran', kind: 'instant', points: 2, discardBonus: 2, name: 'フランドール', icon: '妹', color: '#c22a4e', count: 4 },
@@ -31,7 +31,7 @@
   ];
   const SCARLET_DESSERT = { key: 'k_cirno', kind: 'dessertLeast', least: -9, name: 'チルノ', icon: '⑨', color: '#5bb8d4', pool: 15 };
 
-  // ---------------- 春雪異変（妖々夢） ----------------
+  // ---------------- 白玉楼（妖々夢） ----------------
   const SPRING_MAIN = [
     { key: 's_yukari', kind: 'instant', points: 3, name: '八雲紫', icon: '境', color: '#7b4ea3', count: 3 },
     { key: 's_ran', kind: 'instant', points: 2, comboKeys: ['s_yukari', 's_chen'], comboBonus: 1, comboAtEnd: true, name: '八雲藍', icon: '狐', color: '#d9a441', count: 4 },
@@ -52,7 +52,7 @@
   ];
   const SPRING_DESSERT = { key: 's_lily', kind: 'dessertIce', per: 4, points: 12, name: 'リリーホワイト', icon: '報', color: '#f0e6b8', pool: 15 };
 
-  // ---------------- 永夜異変（永夜抄） ----------------
+  // ---------------- 永遠亭（永夜抄） ----------------
   // 乱入者（霊夢/魔理沙）はランダムでいずれか 1 種のみデッキに組み込まれる
   const ETERNAL_MAIN = [
     { key: 'y_kaguya', kind: 'instant', points: 3, name: '蓬莱山輝夜', icon: '夜', color: '#c9a84c', count: 3 },
@@ -70,7 +70,7 @@
   ];
   const ETERNAL_DESSERT = { key: 'y_moko', kind: 'dessertMostLeast', most: 6, least: -6, name: '藤原妹紅', icon: '火', color: '#d15a32', pool: 15 };
 
-  // ---------------- 風神録異変（風神録） ----------------
+  // ---------------- 守矢神社（風神録） ----------------
   // 信仰の取り合い（到達レース）と厄の押し付けがテーマ
   const MOUNTAIN_MAIN = [
     { key: 'f_kanako', kind: 'instant', points: 3, buffable: true, name: '八坂神奈子', icon: '山', color: '#8d6e3a', count: 3 },
@@ -85,12 +85,12 @@
   ];
   const MOUNTAIN_DESSERT = { key: 'f_momiji', kind: 'dessertParity', zero: -3, even: 5, name: '犬走椛', icon: '狼', color: '#a85a3a', pool: 15 };
 
-  // ---------------- パック ----------------
+  // ---------------- セット ----------------
   const INCIDENTS = {
     scarlet: {
       id: 'scarlet',
-      name: '紅霧異変',
-      subtitle: '紅の館の夜会',
+      name: '紅魔館',
+      subtitle: '紅い館の連携',
       theme: 'キャラ間連携',
       main: SCARLET_MAIN,
       dessert: SCARLET_DESSERT,
@@ -98,8 +98,8 @@
     },
     spring: {
       id: 'spring',
-      name: '春雪異変',
-      subtitle: '白玉楼の桜見宴会',
+      name: '白玉楼',
+      subtitle: '桜をめぐる攻防',
       theme: '春をめぐる攻防',
       main: SPRING_MAIN,
       dessert: SPRING_DESSERT,
@@ -107,8 +107,8 @@
     },
     eternal: {
       id: 'eternal',
-      name: '永夜異変',
-      subtitle: '永遠亭の月見宴会',
+      name: '永遠亭',
+      subtitle: '月をめぐる管理',
       theme: '数量の管理とジレンマ',
       main: ETERNAL_MAIN,
       dessert: ETERNAL_DESSERT,
@@ -116,8 +116,8 @@
     },
     mountain: {
       id: 'mountain',
-      name: '風神録異変',
-      subtitle: '守矢の御柱祭',
+      name: '守矢神社',
+      subtitle: '信仰と厄払い',
       theme: '信仰と厄払い',
       main: MOUNTAIN_MAIN,
       dessert: MOUNTAIN_DESSERT,
@@ -131,7 +131,7 @@
     return INCIDENTS[id] || null;
   }
 
-  // パック内の key → 定義（メイン＋デザート＋乱入者）
+  // セット内の key → 定義（メイン＋継続カード＋乱入者）
   function buildCardMap(incident, intruderDef) {
     const map = {};
     for (const def of incident.main) map[def.key] = def;
@@ -172,6 +172,8 @@
     window.Data = { RULES, INCIDENTS, INCIDENT_IDS, incidentById, buildCardMap, buildMainDeck, buildDessertPool };
   }
 })();
+
+
 
 
 

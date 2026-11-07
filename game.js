@@ -81,7 +81,7 @@
 
   function startGame() {
     const name = $('input-name').value.trim() || 'あなた';
-    // おまかせのときは先に異変を決めて、席名がカード名と被らないようにする
+    // おまかせのときは先にステージを決めて、席名がカード名と被らないようにする
     const incident = $('solo-incident').value
       || Data.INCIDENT_IDS[Math.floor(Math.random() * Data.INCIDENT_IDS.length)];
     const inc = Data.incidentById(incident);
@@ -118,7 +118,7 @@
     showModeSelect();
   }
 
-  // カード定義は state.cardMap から引く（異変ごとにキャラが変わるため）
+  // カード定義は state.cardMap から引く（ステージごとにキャラが変わるため）
   function defOf(key) {
     return STATE.cardMap[key];
   }
@@ -187,7 +187,7 @@
       case 'set3': return `ラウンド末・3 枚で 1 セット ${def.points} 点${gameEndBonusText(def)}`;
       case 'collect': return `ラウンド末・1/2/3/4/5+ 枚で ${def.table.join('/')} 点`;
       case 'socialJoin': return 'ラウンド末・自分以外で大妖精かチルノを取ったプレイヤー 1 人につき +1 点';
-      case 'roundComboCount': return `ラウンド末・このラウンドに自分がデザートを取るたび +${def.per} 点`;
+      case 'roundComboCount': return `ラウンド末・このラウンドに自分が継続カードを取るたび +${def.per} 点`;
       case 'tofu': return `ラウンド末・1 枚 ${def.table[0]} 点／2 枚 ${def.table[1]} 点／3 枚以上 ${def.table[def.table.length - 1]} 点`;
       case 'eel': return `ラウンド末・1 枚 ${def.first} 点／2 枚以上 +${def.more} 点（中途半端な 1 枚が祟り）`;
       case 'pairWith': return `ラウンド末・${nameOf(def.partner)}とのペア 1 組につき ${def.points} 点`;
@@ -203,7 +203,7 @@
       case 'deckPeek': return `取得時・山札の上 ${def.peek} 枚を見て 1 枚獲得（残りは山札の下へ・使わなくてもよい）`;
       case 'collectByTwo': return `ゲーム末・2 枚ごとに ${def.per2} 点／4 枚以上で +${def.bonusAt4}`;
       case 'parity': return `ゲーム末・偶数枚なら 2 枚ごとに ${def.per2Even} 点／奇数なら ${def.per2Odd} 点`;
-      case 'dessertLeast': return `ゲーム末・このデザートの枚数が最少なら ${def.least} 点（同数は全員で等分）`;
+      case 'dessertLeast': return `ゲーム末・この継続カードの枚数が最少なら ${def.least} 点（同数は全員で等分）`;
       case 'dessertIce': return `ゲーム末・${def.per} 枚ごとに +${def.points} 点`;
       case 'dessertMostLeast': return `ゲーム末・所持枚数が最多なら +${def.most} 点／最少なら ${def.least} 点（同数は全員で等分）`;
       case 'dessertRound': return `ラウンド末・そのラウンドに取った 1 枚ごとに ${def.roundPenalty} 点／ゲーム末・最多なら 所持枚数 × ${def.endMostPer} 点`;
@@ -225,7 +225,7 @@
       case 'set3': return `3枚で${def.points}点`;
       case 'collect': return '枚数で加点';
       case 'socialJoin': return '他人の大妖精/チルノで+1';
-      case 'roundComboCount': return `デザート毎+${def.per}`;
+      case 'roundComboCount': return `継続カード毎+${def.per}`;
       case 'tofu': return `${def.table.join('/')}点`;
       case 'kindCount': return `種類数${def.offset >= 0 ? '+' : ''}${def.offset}`;
       case 'letty': return `(冬−春)×${def.mult}`;
@@ -428,14 +428,14 @@
   }
 
   // select モードごとの選択対象判定（効果カード自身・破棄済みは対象外）
-  // デザートは破棄/裏返し/コピーの対象に含まれる（デザートリスクの回避手段になる）
+  // 継続カードは破棄/裏返し/コピーの対象に含まれる（継続カードリスクの回避手段になる）
   function selectTargetable(inst, mode) {
     const def = defOf(inst.key);
     if (!def || inst.discarded) return false;
     if (mode === 'discard') return !def.discardBonus; // フラン自身は破棄できない
     if (mode === 'flip') return def.kind !== 'flip'; // ミスティア自身は裏返せない
     if (mode === 'copy') return def.kind !== 'copy'; // 慧音自身はコピーできない
-    if (mode === 'swap') return !def.swap && def.key !== STATE.dessert.key; // 永琳自身とデザートは交換できない
+    if (mode === 'swap') return !def.swap && def.key !== STATE.dessert.key; // 永琳自身と継続カードは交換できない
     return false;
   }
 
@@ -601,7 +601,7 @@
 
     const statusEl = $('hand-status');
     if (STATE.phase === 'over') {
-      statusEl.textContent = '宴会終了！';
+      statusEl.textContent = 'ゲーム終了！';
     } else if (STATE.phase === 'select') {
       statusEl.textContent = selectStatusText(selectTurn);
     } else if (STATE.picks[0]) {
@@ -819,7 +819,7 @@
       const roundPts = p.roundScores[STATE.round];
       const tags = [];
       if (p.chopsticks > 0) tags.push(`早×${p.chopsticks}`);
-      if (p.desserts.length > 0) tags.push(`デザート×${p.desserts.length}`);
+      if (p.desserts.length > 0) tags.push(`継続カード×${p.desserts.length}`);
       // 乱入者（霊夢/魔理沙）はゲーム通算で数えるので、手元ではなく通算カウントを出す
       if (STATE.intruderKey) {
         const cnt = gameEndCountFor(p, STATE.intruderKey);
@@ -975,12 +975,12 @@
       main.appendChild(cards);
       row.appendChild(main);
 
-      // デザート置き場（右端固定・BGA 版準拠）
+      // 継続カード置き場（右端固定・BGA 版準拠）
       const dbox = document.createElement('div');
       dbox.className = 'dessert-box';
       const dlabel = document.createElement('div');
       dlabel.className = 'box-label';
-      dlabel.textContent = p.desserts.length ? `デザート ×${p.desserts.length}` : 'デザート置き場';
+      dlabel.textContent = p.desserts.length ? `継続カード ×${p.desserts.length}` : '継続カード置き場';
       dbox.appendChild(dlabel);
       const dcards = document.createElement('div');
       dcards.className = 'box-cards';
@@ -1001,7 +1001,7 @@
 
   function renderRound() {
     if (STATE.phase === 'over') {
-      $('round-indicator').textContent = '宴会終了';
+      $('round-indicator').textContent = 'ゲーム終了';
       $('pass-indicator').textContent = '';
       return;
     }
@@ -1059,7 +1059,7 @@
     // ゲーム終了: 最終結果バナー（スコアテーブル廃止に伴いここで表示）
     if (STATE.phase === 'over' && !STATE.roundBanner) {
       if (FINAL_CLOSED) { el.classList.add('hidden'); return; }
-      // 順位と同点処理は Engine 側の定義（合計点 → デザート枚数 → 同率）に従う
+      // 順位と同点処理は Engine 側の定義（合計点 → 継続カード枚数 → 同率）に従う
       const ranked = Engine.finalRanking(STATE);
       const rankCounts = new Map();
       ranked.forEach((r) => rankCounts.set(r.rank, (rankCounts.get(r.rank) || 0) + 1));
@@ -1079,7 +1079,7 @@
             .join('');
           return `<div class="bp${r.pi === 0 ? ' banner-me' : ''}">
             <div class="bp-head"><span>${r.rank}位${rankCounts.get(r.rank) > 1 ? '（同率）' : ''} ${r.name}${r.pi === 0 ? '（あなた）' : ''}</span><span class="bp-total">${r.total}点</span></div>
-            <div class="bp-sub">デザート ${r.desserts} 枚 ／ ${rounds} ／ ゲーム末 ${geTotal >= 0 ? '+' : ''}${geTotal} 点</div>
+            <div class="bp-sub">継続カード ${r.desserts} 枚 ／ ${rounds} ／ ゲーム末 ${geTotal >= 0 ? '+' : ''}${geTotal} 点</div>
             ${geList ? `<div class="bp-extras">${geList}</div>` : ''}
             ${desserts ? `<div class="bp-cards">${desserts}</div>` : ''}
           </div>`;
@@ -1090,7 +1090,7 @@
         <button class="secondary" data-act="lobby">ロビーへ戻る</button>
         <button class="secondary" data-act="close">結果を閉じる</button>
       </div>`;
-      el.innerHTML = `<h2>宴会が幕を閉じた</h2><div class="banner-players">${rows}</div>${actions}<p class="banner-note">同点はデザート枚数で判定／クリックで閉じる</p>`;
+      el.innerHTML = `<h2>ゲーム終了</h2><div class="banner-players">${rows}</div>${actions}<p class="banner-note">同点は継続カード枚数で判定／クリックで閉じる</p>`;
       el.classList.remove('hidden');
       el.onclick = (ev) => {
         if (ev.target.closest('button')) return;
@@ -1181,7 +1181,7 @@
     };
   }
 
-  // 異変カード一覧モーダル（現在のセットの全カード・説明・構成枚数）
+  // ステージカード一覧モーダル（現在のセットの全カード・説明・構成枚数）
   function toggleCardRef() {
     const el = $('cardref');
     if (!el.classList.contains('hidden')) { el.classList.add('hidden'); return; }
@@ -1194,15 +1194,15 @@
     el.appendChild(closeBtn);
 
     const h2 = document.createElement('h2');
-    h2.textContent = `異変「${STATE.incidentName}」・${STATE.incidentSubtitle}`;
+    h2.textContent = `ステージ「${STATE.incidentName}」・${STATE.incidentSubtitle}`;
     el.appendChild(h2);
 
-    // メイン → 乱入者 → デザート の順に種別ごと表示
+    // メイン → 乱入者 → 継続カード の順に種別ごと表示
     const allKeys = Object.keys(STATE.cardMap);
     const groups = [
       { title: 'メインカード', keys: allKeys.filter((k) => k !== STATE.dessert.key && k !== STATE.intruderKey) },
       { title: '乱入者', keys: STATE.intruderKey ? [STATE.intruderKey] : [] },
-      { title: 'デザート', keys: [STATE.dessert.key] },
+      { title: '継続カード', keys: [STATE.dessert.key] },
     ];
     for (const g of groups) {
       if (!g.keys.length) continue;
@@ -1465,6 +1465,7 @@
   // デバッグ・テスト用に公開（Game.state でヘッドレスエンジンの state を直接参照できる）
   window.Game = { startGame, renderAll, get state() { return STATE; } };
 })();
+
 
 
 

@@ -1,8 +1,8 @@
 'use strict';
 
-// ヘッドレス・ドラフトエンジン（異変パックシステム版）。
+// ヘッドレス・ドラフトエンジン（ステージセットシステム版）。
 // state は plain object、全変更を dispatch に集約。
-// 進行: ピック →（必要なら取得時選択）→ パス → ラウンド末判定 → 山札リサイクル → デザート混入 → 次ラウンド。
+// 進行: ピック →（必要なら取得時選択）→ パス → ラウンド末判定 → 山札リサイクル → 継続カード混入 → 次ラウンド。
 // IIFE で包む: ブラウザでは全 script が同一グローバルスコープのため、let 宣言の衝突を防ぐ。
 
 (function () {
@@ -37,7 +37,7 @@
       if (!handSize) return null;
       const opts_ = opts || {};
 
-      // 異変抽選（テスト用に opts.incident で固定可）
+      // ステージ抽選（テスト用に opts.incident で固定可）
       const incidentId = opts_.incident || INCIDENT_IDS[Math.floor(Math.random() * INCIDENT_IDS.length)];
       const incident = incidentById(incidentId);
 
@@ -66,7 +66,7 @@
           name: names[i] || `Player ${i + 1}`,
           hand: [],
           taken: [],   // インスタンス { key, icons?, flipped?, copied? }
-          desserts: [], // デザート蓄積
+          desserts: [], // 継続カード蓄積
           gameEndCounts: {}, // ゲーム末判定カード（霊夢・魔理沙）の通算取得数
           pairCount: 0, // 累計ペア方式（霊夢）のゲーム通算ペア数
           chopsticks: 0, // 早飲み（pick2）用。箸カードは未実装だが将来追加する可能性があるため経路は残す
@@ -99,13 +99,13 @@
         log: [],
         hidden: false, // うどんげの情報隠蔽
       };
-      addLog(state, `異変「${incident.name}」・${incident.subtitle} 開始！ ${playerCount} 人・手札 ${handSize} 枚`);
-      if (intruderDef) addLog(state, `乱入者「${intruderDef.name}」が宴会に現れた…！`);
+      addLog(state, `ステージ「${incident.name}」・${incident.subtitle} 開始！ ${playerCount} 人・手札 ${handSize} 枚`);
+      if (intruderDef) addLog(state, `乱入者「${intruderDef.name}」が現れた…！`);
       dealRound(state);
       return state;
     }
 
-    // ラウンド開始: デザート混入 → 配布 → 統計リセット
+    // ラウンド開始: 継続カード混入 → 配布 → 統計リセット
     function dealRound(state) {
       const mix = RULES.DESSERT_MIX[state.round] || 0;
       for (let i = 0; i < mix; i++) {
@@ -323,13 +323,13 @@
       }
     }
 
-    // 取得処理（デザートも手元に置く・即時点数・ラウンド統計）
+    // 取得処理（継続カードも手元に置く・即時点数・ラウンド統計）
     function applyTake(state, pi, inst) {
       const p = state.players[pi];
       const def = state.cardMap[inst.key];
       const stats = state.roundStats[pi];
 
-      // デザート枠も他のカードと同様に taken に置かれる（ラウンド終了時にデザート置き場へ送られる）
+      // 継続カード枠も他のカードと同様に taken に置かれる（ラウンド終了時に継続カード置き場へ送られる）
       if (inst.key === state.dessert.key) {
         stats.dessertTaken++;
       }
@@ -540,13 +540,13 @@
       if (!state.selectNeeded.includes(pi)) return err('選択の必要なし');
       if (state.selections[pi] !== null) return err('すでに選択済み');
       const c = choice || {};
-      // フラン破棄: { discard: idx|null } — taken 内の idx（デザートは taken に入らないため対象外）
+      // フラン破棄: { discard: idx|null } — taken 内の idx（継続カードは taken に入らないため対象外）
       // ミスティア: { flip: [idx] } — taken 内の idx 1 枚（0 可・最大 1 枚）
       // 慧音: { copy: idx|null } — taken 内の idx（ラウンド中に取得した他のカード・慧音自身は対象外）
       const p = state.players[pi];
       const need = selectionNeeded(state, pi);
       const map = state.cardMap;
-      // デザートも破棄/裏返し/コピーの対象に含める（デザートリスクの回避手段になる）
+      // 継続カードも破棄/裏返し/コピーの対象に含める（継続カードリスクの回避手段になる）
 
       if (need.discard && c.discard !== null && c.discard !== undefined) {
         const idx = c.discard;
@@ -570,7 +570,7 @@
         if (!Number.isInteger(idx) || idx < 0 || idx >= p.taken.length) return err('無効なコピー対象');
         if (p.taken[idx].discarded) return err('破棄されたカードはコピーできない');
         // 効果カード自身は対象外（慧音が慧音をコピーする循環を防ぐ）
-        // デザートもコピー可（copied デザートはそのラウンドの取得として判定に参加し、ラウンド末に山札へ戻る）
+        // 継続カードもコピー可（copied 継続カードはそのラウンドの取得として判定に参加し、ラウンド末に山札へ戻る）
         if (map[p.taken[idx].key] && map[p.taken[idx].key].kind === 'copy') return err('慧音自身はコピーできない');
       }
       if (need.peek && c.pick !== null && c.pick !== undefined) {
@@ -935,9 +935,9 @@
         r.extras = detail[i];
       }
 
-      // デザート置き場への移動と山札リサイクル:
-      // 手元のデザートはデザート置き場へ、それ以外は山札に戻してシャッフル
-      // 破棄/裏返し/コピーされたデザートは判定から外れているため山札へ戻る（置き場には行かない）
+      // 継続カード置き場への移動と山札リサイクル:
+      // 手元の継続カードは継続カード置き場へ、それ以外は山札に戻してシャッフル
+      // 破棄/裏返し/コピーされた継続カードは判定から外れているため山札へ戻る（置き場には行かない）
       for (let i = 0; i < n; i++) {
         const p = state.players[i];
         const kept = p.taken.filter((inst) => inst.key === state.dessert.key && !inst.discarded && !inst.flipped && !inst.copied);
@@ -976,7 +976,7 @@
         // 最終ラウンドも結果を出し、閉じたあとに最終結果を表示する
         state.phase = 'over';
         state.roundBanner = banner;
-        addLog(state, '宴会が幕を閉じた');
+        addLog(state, 'ゲーム終了');
       } else {
         state.roundBanner = banner;
         state.round++;
@@ -1002,7 +1002,7 @@
           if (d !== 0) detail[i].push({ key, label, pts: d });
         }
       };
-      // パック内の maki 定義（春・兎）を検索
+      // セット内の maki 定義（春・兎）を検索
       const makiDefs = Object.values(state.cardMap).filter((d) => d.kind === 'maki');
       for (const def of makiDefs) {
         award(def.key, `${def.name}（順位）`, () => {
@@ -1147,7 +1147,7 @@
               if (inst.flipped || inst.discarded) continue;
               kinds.add(inst.key);
             }
-            // デザートも含める（手元のデザート）
+            // 継続カードも含める（手元の継続カード）
             for (const inst of p.desserts) kinds.add(inst.key);
             kindPts = Math.max(0, kinds.size + def.offset);
             break;
@@ -1188,7 +1188,7 @@
             break;
           }
           case 'roundComboCount': {
-            // そのラウンドに取ったデザート。破棄・裏返し・コピーは判定から外れる
+            // そのラウンドに取った継続カード。破棄・裏返し・コピーは判定から外れる
             // （フランで破棄したチルノを大妖精が数えてしまう不具合の修正）
             const target = def.targetKey || state.dessert.key;
             let cnt = p.taken.filter(
@@ -1206,7 +1206,7 @@
           pts += kindPts;
           detail.push({
             key,
-            label: kindLabel || (def.kind === 'roundComboCount' ? `${def.name}（デザート${n}枚）` : `${def.name}（${n}枚）`),
+            label: kindLabel || (def.kind === 'roundComboCount' ? `${def.name}（継続カード${n}枚）` : `${def.name}（${n}枚）`),
             pts: kindPts,
           });
         }
@@ -1223,7 +1223,7 @@
     //   - 既定: そのラウンドに取った枚数ぶん（roundPenalty）
     //   - roundPenaltyCumulative: 前ラウンドまでの蓄積＋今ラウンドの取得分の累計ぶん
     // ゲーム末の最多加点は gameEndScore 側（endMost / endMostPer）
-    // 破棄/裏返し/コピーされたデザートは判定から外れる
+    // 破棄/裏返し/コピーされた継続カードは判定から外れる
     function applyDessertRound(state, results) {
       const def = state.dessert;
       if (def.kind !== 'dessertRound' || !def.roundPenalty) return;
@@ -1235,7 +1235,7 @@
           : takenNow;
         if (!n) continue;
         const pts = def.roundPenalty * n;
-        // 内訳用: このラウンドに取ったデザート 1 枚ごとに罰則点を付ける
+        // 内訳用: このラウンドに取った継続カード 1 枚ごとに罰則点を付ける
         for (const inst of p.taken) {
           if (inst.key !== def.key || inst.discarded || inst.flipped || inst.copied) continue;
           inst.roundPts = (inst.roundPts || 0) + def.roundPenalty;
@@ -1253,7 +1253,7 @@
     function gameEndBreakdown(state, pi) {
       const p = state.players[pi];
       const out = [];
-      // デザート判定（種別ごと）
+      // 継続カード判定（種別ごと）
       const leastDefs = Object.values(state.cardMap).filter((d) => d.kind === 'dessertLeast');
       for (const def of leastDefs) {
         const counts = state.players.map((q) => q.desserts.filter((i) => i.key === def.key).length);
@@ -1290,7 +1290,7 @@
         if (cnt === max && def.most) out.push({ key: def.key, label: `${def.name}（最多${cnt}枚）`, pts: splitPts(def.most, mostN) });
         if (cnt === min && def.least) out.push({ key: def.key, label: `${def.name}（最少${cnt}枚）`, pts: splitPts(def.least, leastN) });
       }
-      // デザートの枚数パリティ（犬走椛）: 0枚 -3点 / 奇数 0点 / 偶数 +5点
+      // 継続カードの枚数パリティ（犬走椛）: 0枚 -3点 / 奇数 0点 / 偶数 +5点
       for (const def of Object.values(state.cardMap)) {
         if (def.kind !== 'dessertParity') continue;
         const cnt = p.desserts.filter((i) => i.key === def.key).length;
@@ -1327,7 +1327,7 @@
 
     // ゲーム末の順位（同点タイブレーキ込み）。
     //   1) 合計点が高い方が上位
-    //   2) 合計点が同じなら、デザートの合計枚数が多い方が上位
+    //   2) 合計点が同じなら、継続カードの合計枚数が多い方が上位
     //   3) それも同じなら同率（同じ順位・勝者を分け合う）
     // 順位は競技方式（1,1,3,4）。winner は 1 位の全員に立つ。
     // UI 表示・sim / ai-check の勝率集計はすべてこの関数を唯一の定義元にする。
@@ -1386,6 +1386,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   if (typeof window !== 'undefined') window.Engine = Engine;
 })();
+
 
 
 

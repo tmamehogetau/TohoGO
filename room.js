@@ -3,7 +3,7 @@
 // 対戦用ルーム管理（サーバー権威）。
 // 1 ルーム = 1 ゲーム。エンジンはサーバーで回し、クライアントには
 // 「自分の席を 0 番に回転させた state」を返す（UI が席0前提のため）。
-// 隠すもの: 他人の手札・山札の中身・デザートプールの中身・未公開のピック/選択・peek 候補。
+// 隠すもの: 他人の手札・山札の中身・継続カードプールの中身・未公開のピック/選択・peek 候補。
 
 const crypto = require('crypto');
 const Engine = require('./engine.js');
@@ -142,7 +142,7 @@ class Room {
     this.state = null;
     this.started = false;
     this.continueReady = new Set();
-    this.settings = { timerSeconds: 60, incident: '' }; // 取得時間（0=無制限）/ 異変（''=おまかせ）
+    this.settings = { timerSeconds: 60, incident: '' }; // 取得時間（0=無制限）/ ステージ（''=おまかせ）
     this.deadline = null; // 現在の手番の制限時刻（epoch ms）
     this.timerHandle = null;
     this.turnKey = null; // 手番の識別子（同じ手番ではタイマーを延長しない）
@@ -179,7 +179,7 @@ class Room {
     }
     if (settings && settings.incident !== undefined) {
       const inc = String(settings.incident || '');
-      if (inc !== '' && !Data.INCIDENT_IDS.includes(inc)) return { ok: false, error: '異変の指定が不正です' };
+      if (inc !== '' && !Data.INCIDENT_IDS.includes(inc)) return { ok: false, error: 'ステージの指定が不正です' };
       next.incident = inc;
     }
     this.settings = next;
@@ -359,4 +359,5 @@ function stateIncludesSelection(state, seat) {
 }
 
 module.exports = { Room, viewFor, makeCode, MAX_PLAYERS, MIN_PLAYERS };
+
 
