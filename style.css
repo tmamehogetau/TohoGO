@@ -1016,3 +1016,87 @@ button.secondary:hover { border-color: var(--gold-soft); }
   box-shadow: none;
 }
 .lobby-card .rules-open:hover { color: var(--gold); border-color: var(--gold-soft); }
+
+/* =========================================================
+   生成画像を使う UI パーツ（背景・ステージ紋章）
+   ========================================================= */
+
+/* 背景画像 + 可読性のための暗幕 */
+body {
+  background-image:
+    linear-gradient(180deg, rgba(16, 13, 20, 0.86) 0%, rgba(14, 12, 18, 0.92) 55%, rgba(10, 9, 14, 0.96) 100%),
+    url("assets/ui/bg.webp");
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: fixed, fixed;
+}
+body::before { opacity: 0.16; }
+
+/* ヘッダーのステージ紋章 */
+header { align-items: center; }
+.stage-emblem {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.65));
+  flex: 0 0 auto;
+}
+
+/* ロビーのステージ選択カード */
+.stage-row { display: block; text-align: left; }
+.setting-label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+.stage-cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.stage-card {
+  background: linear-gradient(180deg, rgba(40, 34, 50, 0.92), rgba(26, 22, 32, 0.92));
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: var(--text);
+  box-shadow: none;
+}
+.stage-card:hover { border-color: var(--gold-soft); transform: translateY(-2px); }
+.stage-card.selected {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px rgba(217, 194, 122, 0.35), 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+.stage-card-emblem {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  display: block;
+}
+.stage-card-auto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: var(--gold);
+  border: 1px dashed var(--line-soft);
+}
+.stage-card-name { font-size: 0.82rem; font-weight: 700; letter-spacing: 0.04em; }
+.stage-card-sub {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  line-height: 1.25;
+  text-align: center;
+}
+.lobby-card { background: linear-gradient(180deg, rgba(38, 33, 46, 0.9), rgba(24, 21, 30, 0.92)); backdrop-filter: blur(3px); }
+@media (max-width: 560px) {
+  .stage-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

@@ -23,9 +23,11 @@
     <button id="btn-rules" class="secondary rules-open">遊び方</button>
 
     <div id="solo-panel" class="hidden">
-      <label class="setting-row">ステージ
-        <select id="solo-incident"></select>
-      </label>
+      <div class="setting-row stage-row">
+        <span class="setting-label">ステージ</span>
+        <div id="stage-cards" class="stage-cards"></div>
+        <select id="solo-incident" class="hidden"></select>
+      </div>
       <button id="btn-start">ゲームを始める</button>
       <div><button id="btn-solo-back" class="secondary back-btn">← 戻る</button></div>
     </div>
@@ -61,6 +63,7 @@
 
 <div id="app" class="hidden">
   <header>
+    <img id="stage-emblem" class="stage-emblem hidden" alt="">
     <h1>東方数紙業</h1>
     <div id="round-indicator"></div>
     <div id="pass-indicator"></div>
@@ -143,6 +146,7 @@
 <script src="net.js"></script>
 </body>
 </html>
+
 
 
 

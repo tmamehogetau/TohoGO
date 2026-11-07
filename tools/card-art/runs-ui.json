@@ -1,0 +1,80 @@
+{
+ "outdir": "C:\\Users\\kou-1\\Projects\\touhou-draft\\.tmp\\ui-art\\raw",
+ "workflow": "C:\\Users\\kou-1\\comfyui-amd-rocm-kit\\workflows\\image\\moss_sft_4step_t2i.api.json",
+ "width": 832,
+ "height": 832,
+ "timeout_sec": 300,
+ "negative": "lowres, text, letters, watermark, signature, logo, worst quality, jpeg artifacts, photorealistic, 3d render, cluttered, busy, high contrast, blown highlights",
+ "runs": [
+  {
+   "name": "ui_bg_1",
+   "seed": 93010,
+   "prompt": "masterpiece, best quality, scenery, no humans, gensokyo, japanese shrine on a mountain, torii gate, stone steps, autumn leaves, night sky, full moon, stars, thin mist, distant mountains, dark muted color palette, low saturation, painterly, wide shot, cinematic soft light, calm atmosphere, negative space at the top",
+   "width": 1216,
+   "height": 832
+  },
+  {
+   "name": "ui_bg_2",
+   "seed": 93011,
+   "prompt": "masterpiece, best quality, scenery, no humans, gensokyo, japanese shrine on a mountain, torii gate, stone steps, autumn leaves, night sky, full moon, stars, thin mist, distant mountains, dark muted color palette, low saturation, painterly, wide shot, cinematic soft light, calm atmosphere, negative space at the top",
+   "width": 1216,
+   "height": 832
+  },
+  {
+   "name": "stage_red_1",
+   "seed": 93020,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, gold line art on deep purple background, symmetrical, flat design, clean lines, centered, western mansion silhouette, bat wings, clock face, small red accent",
+   "width": 832,
+   "height": 832
+  },
+  {
+   "name": "stage_red_2",
+   "seed": 93021,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, gold line art on deep purple background, symmetrical, flat design, clean lines, centered, western mansion silhouette, bat wings, clock face, small red accent",
+   "width": 832,
+   "height": 832
+  },
+  {
+   "name": "stage_hakugyoku_1",
+   "seed": 93030,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, gold line art on deep purple background, symmetrical, flat design, clean lines, centered, cherry blossom branch, torii gate, drifting petals, small pink accent",
+   "width": 832,
+   "height": 832
+  },
+  {
+   "name": "stage_hakugyoku_2",
+   "seed": 93031,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, gold line art on deep purple background, symmetrical, flat design, clean lines, centered, cherry blossom branch, torii gate, drifting petals, small pink accent",
+   "width": 832,
+   "height": 832
+  },
+  {
+   "name": "stage_eientei_1",
+   "seed": 93040,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, gold line art on deep purple background, symmetrical, flat design, clean lines, centered, full moon, bamboo leaves, rabbit silhouette, small silver accent",
+   "width": 832,
+   "height": 832
+  },
+  {
+   "name": "stage_eientei_2",
+   "seed": 93041,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, gold line art on deep purple background, symmetrical, flat design, clean lines, centered, full moon, bamboo leaves, rabbit silhouette, small silver accent",
+   "width": 832,
+   "height": 832
+  },
+  {
+   "name": "stage_moriya_1",
+   "seed": 93050,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, gold line art on deep purple background, symmetrical, flat design, clean lines, centered, torii gate, mountain peak, coiled snake and frog motifs, small green accent",
+   "width": 832,
+   "height": 832
+  },
+  {
+   "name": "stage_moriya_2",
+   "seed": 93051,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, gold line art on deep purple background, symmetrical, flat design, clean lines, centered, torii gate, mountain peak, coiled snake and frog motifs, small green accent",
+   "width": 832,
+   "height": 832
+  }
+ ]
+}

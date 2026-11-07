@@ -48,6 +48,14 @@
     $('mp-entry').classList.add('hidden');
   }
 
+  // ステージ紋章（assets/ui/<id>.webp）。おまかせは紋章なし
+  const STAGE_EMBLEM = {
+    scarlet: 'assets/ui/stage_red.webp',
+    spring: 'assets/ui/stage_hakugyoku.webp',
+    eternal: 'assets/ui/stage_eientei.webp',
+    mountain: 'assets/ui/stage_moriya.webp',
+  };
+
   function buildSoloIncidentOptions() {
     const sel = $('solo-incident');
     sel.innerHTML = '';
@@ -61,6 +69,33 @@
       o.value = id;
       o.textContent = inc.name;
       sel.appendChild(o);
+    }
+    // 画像つきのステージ選択カード
+    const wrap = $('stage-cards');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    const cards = [{ id: '', name: 'おまかせ', subtitle: 'ランダム', emblem: null }].concat(
+      Data.INCIDENT_IDS.map((id) => {
+        const inc = Data.incidentById(id);
+        return { id, name: inc.name, subtitle: inc.subtitle, emblem: STAGE_EMBLEM[id] || null };
+      }),
+    );
+    for (const c of cards) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'stage-card' + (sel.value === c.id ? ' selected' : '');
+      btn.dataset.stage = c.id;
+      btn.innerHTML = (c.emblem
+        ? '<img class="stage-card-emblem" src="' + c.emblem + '" alt="">'
+        : '<span class="stage-card-emblem stage-card-auto">✦</span>')
+        + '<span class="stage-card-name">' + c.name + '</span>'
+        + '<span class="stage-card-sub">' + c.subtitle + '</span>';
+      btn.addEventListener('click', () => {
+        sel.value = c.id;
+        sel.dispatchEvent(new Event('change'));
+        wrap.querySelectorAll('.stage-card').forEach((el) => el.classList.toggle('selected', el.dataset.stage === c.id));
+      });
+      wrap.appendChild(btn);
     }
   }
 
@@ -1278,6 +1313,19 @@
       <div class="preview-desc">${descOf(def)}</div>`;
   }
 
+  // ヘッダーのステージ紋章を差し替える
+  function renderStageEmblem() {
+    const em = $('stage-emblem');
+    if (!em) return;
+    const src = STATE && STATE.incidentId ? STAGE_EMBLEM[STATE.incidentId] : null;
+    if (src) {
+      if (em.getAttribute('src') !== src) em.src = src;
+      em.classList.remove('hidden');
+    } else {
+      em.classList.add('hidden');
+    }
+  }
+
   function renderAll() {
     autoSkipIfEmpty();
     renderRound();
@@ -1287,6 +1335,7 @@
     renderSelectArea(); // table-rows 再構築の後に呼び、あなたの行にオーバーレイを重ねる
     renderBanner();
     renderPreview();
+    renderStageEmblem();
     updateTimerIndicator();
   }
 
@@ -1298,7 +1347,7 @@
   }
 
   function lobbyName() {
-    return $('input-name').value.trim() || '幹事';
+    return $('input-name').value.trim() || 'あなた';
   }
 
   function createRoom() {
@@ -1460,6 +1509,8 @@
   // デバッグ・テスト用に公開（Game.state でヘッドレスエンジンの state を直接参照できる）
   window.Game = { startGame, renderAll, get state() { return STATE; } };
 })();
+
+
 
 
 
