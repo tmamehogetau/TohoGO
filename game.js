@@ -752,10 +752,12 @@
     const selectTurn = STATE.selectNeeded.includes(0);
 
     if (!selectTurn) {
-      // 他人の選択待ち。古いモードを残さない
+      // 他人の選択待ち。古いモードを残さない（オーバーレイも出さない）
       SEL_MODE = null;
       SEL_SELECTED = [];
       STAGED_CHOICE = null;
+      areaEl.classList.remove('active');
+      return;
     } else {
       const need = humanSelectNeeded();
       // 今の必要モードと一致しない古いモードが残っていたら選び直す
