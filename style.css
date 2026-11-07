@@ -1100,3 +1100,71 @@ header { align-items: center; }
 @media (max-width: 560px) {
   .stage-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* =========================================================
+   ステージ固有テーマ（背景・アクセント色・紋章の配色）
+   ========================================================= */
+
+body[data-stage="scarlet"] {
+  --accent: #d2304f;
+  --accent2: #7d2033;
+  --stage-glow: rgba(210, 48, 79, 0.30);
+  --stage-bg: url("assets/ui/bg_red.webp");
+}
+body[data-stage="spring"] {
+  --accent: #e07aa8;
+  --accent2: #8a4b73;
+  --stage-glow: rgba(224, 122, 168, 0.28);
+  --stage-bg: url("assets/ui/bg_hakugyoku.webp");
+}
+body[data-stage="eternal"] {
+  --accent: #6f8fe0;
+  --accent2: #3c4f8a;
+  --stage-glow: rgba(111, 143, 224, 0.28);
+  --stage-bg: url("assets/ui/bg_eientei.webp");
+}
+body[data-stage="mountain"] {
+  --accent: #57a97b;
+  --accent2: #2f6b4d;
+  --stage-glow: rgba(87, 169, 123, 0.28);
+  --stage-bg: url("assets/ui/bg_moriya.webp");
+}
+
+body {
+  background-image:
+    linear-gradient(180deg, rgba(10, 8, 14, 0.58) 0%, rgba(9, 7, 12, 0.74) 60%, rgba(7, 6, 10, 0.84) 100%),
+    var(--stage-bg, url("assets/ui/bg.webp"));
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: fixed, fixed;
+  transition: background-image 0.4s ease;
+}
+body::before { opacity: 0.13; }
+
+/* ステージ色の光を画面全体に薄く乗せる */
+#app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(900px 460px at 50% -12%, var(--stage-glow, transparent), transparent 72%);
+}
+
+/* 主ボタンとヘッダーの下線はステージ色に追従 */
+button { background: linear-gradient(180deg, var(--accent), var(--accent2)); }
+header::after { background: linear-gradient(90deg, var(--accent), var(--gold) 50%, transparent 88%); }
+
+/* ステージ選択カードの選択枠もステージ色に寄せる */
+.stage-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--stage-glow), 0 8px 20px rgba(0, 0, 0, 0.45); }
+
+
+/* ボタンのグラデーションはアクセントから独立して定義（赤→青の混色を避ける） */
+:root { --btn-a: #d0345a; --btn-b: #a82142; }
+body[data-stage="scarlet"] { --btn-a: #d2304f; --btn-b: #7d2033; }
+body[data-stage="spring"] { --btn-a: #e07aa8; --btn-b: #8a4b73; }
+body[data-stage="eternal"] { --btn-a: #6f8fe0; --btn-b: #3c4f8a; }
+body[data-stage="mountain"] { --btn-a: #57a97b; --btn-b: #2f6b4d; }
+button { background: linear-gradient(180deg, var(--btn-a), var(--btn-b)); }
+

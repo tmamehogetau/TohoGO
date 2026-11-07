@@ -1,0 +1,122 @@
+{
+ "outdir": "C:\\Users\\kou-1\\Projects\\touhou-draft\\.tmp\\ui-stage\\raw",
+ "workflow": "C:\\Users\\kou-1\\comfyui-amd-rocm-kit\\workflows\\image\\moss_sft_4step_t2i.api.json",
+ "width": 832,
+ "height": 832,
+ "timeout_sec": 300,
+ "negative": "lowres, text, letters, watermark, signature, logo, worst quality, jpeg artifacts, photorealistic, 3d render, cluttered, high contrast, blown highlights, too dark, underexposed",
+ "runs": [
+  {
+   "name": "bg_scarlet_1",
+   "seed": 94010,
+   "prompt": "masterpiece, best quality, scenery, no humans, scarlet devil mansion, gothic mansion, red moon, night sky, bats, rose garden, crimson mist, glowing windows, dark red and black palette, painterly, wide shot, cinematic lighting, clear silhouette",
+   "width": 1216,
+   "height": 832
+  },
+  {
+   "name": "bg_scarlet_2",
+   "seed": 94011,
+   "prompt": "masterpiece, best quality, scenery, no humans, scarlet devil mansion, gothic mansion, red moon, night sky, bats, rose garden, crimson mist, glowing windows, dark red and black palette, painterly, wide shot, cinematic lighting, clear silhouette",
+   "width": 1216,
+   "height": 832
+  },
+  {
+   "name": "bg_spring_1",
+   "seed": 94020,
+   "prompt": "masterpiece, best quality, scenery, no humans, japanese mansion in the netherworld, cherry blossom trees, falling petals, stone stairs, torii gate, pale pink and lavender sky, soft light, painterly, wide shot, luminous",
+   "width": 1216,
+   "height": 832
+  },
+  {
+   "name": "bg_spring_2",
+   "seed": 94021,
+   "prompt": "masterpiece, best quality, scenery, no humans, japanese mansion in the netherworld, cherry blossom trees, falling petals, stone stairs, torii gate, pale pink and lavender sky, soft light, painterly, wide shot, luminous",
+   "width": 1216,
+   "height": 832
+  },
+  {
+   "name": "bg_eternal_1",
+   "seed": 94030,
+   "prompt": "masterpiece, best quality, scenery, no humans, moon palace, bamboo forest, full moon, night sky, mist, paper lanterns, silver blue palette, painterly, wide shot, serene",
+   "width": 1216,
+   "height": 832
+  },
+  {
+   "name": "bg_eternal_2",
+   "seed": 94031,
+   "prompt": "masterpiece, best quality, scenery, no humans, moon palace, bamboo forest, full moon, night sky, mist, paper lanterns, silver blue palette, painterly, wide shot, serene",
+   "width": 1216,
+   "height": 832
+  },
+  {
+   "name": "bg_mountain_1",
+   "seed": 94040,
+   "prompt": "masterpiece, best quality, scenery, no humans, mountain shrine, torii gate, lake, autumn leaves, stone steps, sacred pillars, green and teal palette, sunlight, painterly, wide shot, fresh atmosphere",
+   "width": 1216,
+   "height": 832
+  },
+  {
+   "name": "bg_mountain_2",
+   "seed": 94041,
+   "prompt": "masterpiece, best quality, scenery, no humans, mountain shrine, torii gate, lake, autumn leaves, stone steps, sacred pillars, green and teal palette, sunlight, painterly, wide shot, fresh atmosphere",
+   "width": 1216,
+   "height": 832
+  },
+  {
+   "name": "emblem_scarlet_1",
+   "seed": 94050,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, gold line art on deep crimson background, symmetrical, flat design, clean lines, centered, mansion silhouette, bat wings, clock face",
+   "width": 832,
+   "height": 832
+  },
+  {
+   "name": "emblem_scarlet_2",
+   "seed": 94051,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, gold line art on deep crimson background, symmetrical, flat design, clean lines, centered, mansion silhouette, bat wings, clock face",
+   "width": 832,
+   "height": 832
+  },
+  {
+   "name": "emblem_spring_1",
+   "seed": 94060,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, pink and white line art on deep plum background, symmetrical, flat design, clean lines, centered, cherry blossom branch, torii gate, petals",
+   "width": 832,
+   "height": 832
+  },
+  {
+   "name": "emblem_spring_2",
+   "seed": 94061,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, pink and white line art on deep plum background, symmetrical, flat design, clean lines, centered, cherry blossom branch, torii gate, petals",
+   "width": 832,
+   "height": 832
+  },
+  {
+   "name": "emblem_eternal_1",
+   "seed": 94070,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, silver and pale blue line art on deep indigo background, symmetrical, flat design, clean lines, centered, full moon, bamboo leaves, rabbit silhouette",
+   "width": 832,
+   "height": 832
+  },
+  {
+   "name": "emblem_eternal_2",
+   "seed": 94071,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, silver and pale blue line art on deep indigo background, symmetrical, flat design, clean lines, centered, full moon, bamboo leaves, rabbit silhouette",
+   "width": 832,
+   "height": 832
+  },
+  {
+   "name": "emblem_mountain_1",
+   "seed": 94080,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, gold and green line art on deep forest green background, symmetrical, flat design, clean lines, centered, torii gate, mountain peak, snake and frog motifs",
+   "width": 832,
+   "height": 832
+  },
+  {
+   "name": "emblem_mountain_2",
+   "seed": 94081,
+   "prompt": "masterpiece, best quality, no humans, circular emblem, japanese kamon crest, gold and green line art on deep forest green background, symmetrical, flat design, clean lines, centered, torii gate, mountain peak, snake and frog motifs",
+   "width": 832,
+   "height": 832
+  }
+ ]
+}

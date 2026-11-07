@@ -148,6 +148,7 @@
     ONLINE = false;
     STATE = null;
     FINAL_CLOSED = false;
+    delete document.body.dataset.stage;
     $('app').classList.add('hidden');
     $('lobby').classList.remove('hidden');
     showModeSelect();
@@ -1324,6 +1325,8 @@
     } else {
       em.classList.add('hidden');
     }
+    if (STATE && STATE.incidentId) document.body.dataset.stage = STATE.incidentId;
+    else delete document.body.dataset.stage;
   }
 
   function renderAll() {
@@ -1509,6 +1512,7 @@
   // デバッグ・テスト用に公開（Game.state でヘッドレスエンジンの state を直接参照できる）
   window.Game = { startGame, renderAll, get state() { return STATE; } };
 })();
+
 
 
 
