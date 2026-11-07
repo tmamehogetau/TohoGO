@@ -388,9 +388,15 @@
       }
 
       // 射命丸文: 追加で手札から取る（選択フェーズで解決）
+      // 取材で取った文は効果を発動しない（無限連鎖の防止）
       if (def.kind === 'scoop') {
-        p.scoopPending = (p.scoopPending || 0) + (def.scoop || 2);
-        addLog(state, `${p.name}: 文が追加取材に入った`);
+        if (p.inScoop) {
+          inst.selectionDone = true;
+          addLog(state, `${p.name}: 取材で取った文は追加取材をしない`);
+        } else {
+          p.scoopPending = (p.scoopPending || 0) + (def.scoop || 2);
+          addLog(state, `${p.name}: 文が追加取材に入った`);
+        }
       }
 
       // 河城にとり: 次の取得後に、名前を指定して他者の手札と入れ替える
@@ -708,10 +714,12 @@
           const pending = p.scoopPending || 0;
           const idxs = Array.isArray(c.scoop) ? [...new Set(c.scoop)].slice(0, Math.min(pending, p.hand.length)) : [];
           const gotten = [];
+          p.inScoop = true;
           for (const idx of idxs.sort((a, b) => b - a)) {
             const inst = p.hand.splice(idx, 1)[0];
             if (inst) { applyTake(state, i, inst); gotten.push(inst); }
           }
+          p.inScoop = false;
           // 文自身は山札の下へ戻す（手元には残らない）
           const ayaIdx = p.taken.findIndex((x) => {
             const d = map[x.key];

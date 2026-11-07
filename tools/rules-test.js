@@ -1242,6 +1242,16 @@ test('風神録: ラウンド結果の内訳合計がラウンド点と一致す
   assert.ok((r.extras || []).some((e) => e.key === 'f_faith'), '信仰の得点が内訳に出る');
 });
 
+test('風神録: 取材で取った文は効果が重ならない', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  fixPeek(s);
+  setHands(s, [['f_aya', 'f_aya', 'x_dummy', 'x_dummy'], ['x_dummy', 'x_dummy', 'x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0]); // 文を取得 → 取材の選択フェーズ
+  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { scoop: [0, 1] } }); // 手札から文2とダミーを取る
+  assert.ok(r.ok, r.error);
+  assert.strictEqual(s.players[0].scoopPending || 0, 0, '2枚目の文は追加取材を積まない');
+});
+
 test('風神録: 早苗=枚数ぶん奇跡が起きる（1枚ずつ消費）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
   fixPeek(s);
