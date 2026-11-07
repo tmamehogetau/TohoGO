@@ -1155,14 +1155,14 @@ test('風神録: 鍵山雛=1枚なら−3点、2枚以上なら+7点', () => {
   assert.strictEqual(two.players[0].roundScores[0], 7, '2枚以上は+7点');
 });
 
-test('風神録: 秋静葉=穣子とのペア1組につき5点', () => {
+test('風神録: 秋静葉=穣子とのペア1組につき3点', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
   setHands(s, [['f_shizuha', 'f_minoriko'], [DM, DM]]);
   pickAll(s, [0, 0]); // 静葉
   setHands(s, [['f_minoriko'], [DM]]);
   pickAll(s, [0, 0]); // ラウンド終了（静葉1・穣子1）
-  // 静葉5点 + 穣子の収集1点
-  assert.strictEqual(s.players[0].roundScores[0], 6);
+  // 静葉3点 + 穣子の収集1点
+  assert.strictEqual(s.players[0].roundScores[0], 4);
 });
 
 test('風神録: 早苗=次に取った神奈子の点数が3倍', () => {
@@ -1237,4 +1237,5 @@ test('風神録: 射命丸文=手札から追加で2枚取り、山札から2枚
 
 console.log(`\
 ${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+
 

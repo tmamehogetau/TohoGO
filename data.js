@@ -80,7 +80,7 @@
     { key: 'f_aya', kind: 'scoop', scoop: 2, draw: 2, name: '射命丸文', icon: '文', color: '#3a3a42', count: 3 },
     { key: 'f_nitori', kind: 'swapNamed', name: '河城にとり', icon: '道', color: '#3d7ea6', count: 3 },
     { key: 'f_minoriko', kind: 'collect', table: [1, 3, 6, 10, 15], name: '秋穣子', icon: '穣', color: '#c8a44a', count: 8 },
-    { key: 'f_shizuha', kind: 'pairWith', partner: 'f_minoriko', points: 5, name: '秋静葉', icon: '紅', color: '#c85a3a', count: 8 },
+    { key: 'f_shizuha', kind: 'pairWith', partner: 'f_minoriko', points: 3, name: '秋静葉', icon: '紅', color: '#c85a3a', count: 8 },
     { key: 'f_faith', kind: 'uramaki', iconCounts: { 1: 4, 2: 5, 3: 3 }, threshold: 10, rankPoints: [8, 5, 2], name: '信仰', icon: '信', color: '#d8c07a', count: 12 },
   ];
   const MOUNTAIN_DESSERT = { key: 'f_momiji', kind: 'dessertParity', zero: -3, even: 5, name: '犬走椛', icon: '狼', color: '#a85a3a', pool: 15 };
@@ -172,6 +172,7 @@
     window.Data = { RULES, INCIDENTS, INCIDENT_IDS, incidentById, buildCardMap, buildMainDeck, buildDessertPool };
   }
 })();
+
 
 
 
