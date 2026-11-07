@@ -1440,16 +1440,22 @@
         const host = p.isHost ? '<span class="tag-host">ホスト</span>' : '';
         const you = mine ? '<span class="tag-you">あなた</span>' : '';
         const off = p.connected ? '' : '<span class="tag-off">切断</span>';
+        const ai = p.isAI ? '<span class="tag-ai">AI</span>' : '';
         return `<div class="online-player${mine ? ' me' : ''}${p.connected ? '' : ' off'}">`
           + `<span class="seat-no">${p.seat + 1}</span>`
           + `<span class="player-name">${p.name}</span>`
-          + host + you + off
+          + host + you + ai + off
           + '</div>';
       })
       .join('');
     const me = lobby.players.find((p) => p.seat === MY_SEAT);
     const isHostMe = !!(me && me.isHost);
     $('btn-online-start').classList.toggle('hidden', !isHostMe);
+    // AI での人数調整（ホストのみ・開始前のみ）
+    const canAdjust = isHostMe && !lobby.started;
+    $('ai-controls').classList.toggle('hidden', !canAdjust);
+    $('btn-add-ai').disabled = !canAdjust || lobby.players.length >= lobby.maxPlayers;
+    $('btn-remove-ai').disabled = !canAdjust || !lobby.players.some((p) => p.isAI);
     // ルーム設定（ホストのみ変更可）
     const settings = lobby.settings || {};
     $('setting-incident').value = settings.incident || '';
@@ -1461,7 +1467,11 @@
       : 'ルームマスターのみ変更できます';
     $('online-hint').textContent = lobby.started
       ? 'ゲーム開始…'
-      : `${lobby.players.length}/${lobby.maxPlayers}人（${lobby.minPlayers}人以上で開始）`;
+      : (() => {
+        const ai = lobby.players.filter((p) => p.isAI).length;
+        const humans = lobby.players.length - ai;
+        return `${lobby.players.length}/${lobby.maxPlayers}人（人間 ${humans}・AI ${ai}／${lobby.minPlayers}人以上で開始）`;
+      })();
   }
 
   function buildSettingOptions() {
@@ -1529,6 +1539,8 @@
     $('btn-confirm-pick').addEventListener('click', confirmPick);
     $('btn-cardref').addEventListener('click', toggleCardRef);
     $('btn-online-leave').addEventListener('click', leaveOnlineLobby);
+    $('btn-add-ai').addEventListener('click', () => Net.addAi());
+    $('btn-remove-ai').addEventListener('click', () => Net.removeAi());
     $('btn-copy-code').addEventListener('click', copyRoomCode);
     $('btn-create').addEventListener('click', createRoom);
     $('btn-join').addEventListener('click', joinRoom);

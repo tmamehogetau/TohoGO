@@ -69,6 +69,8 @@ wss.on('connection', (ws) => {
       case 'join': return onJoin(ws, msg);
       case 'start': return onStart(ws, msg);
       case 'setSettings': return onSetSettings(ws, msg);
+      case 'addAi': return onAddAi(ws);
+      case 'removeAi': return onRemoveAi(ws);
       case 'action': return onAction(ws, msg);
       case 'continue': return onContinue(ws);
       case 'leave': return onLeave(ws);
@@ -123,6 +125,39 @@ function onStart(ws, msg) {
   broadcastLobby(room);
   broadcastState(room);
   scheduleAutoPlay(room); // 開始時点で切断している席は AI に任せる
+}
+
+// ホストが AI 席を追加（人数調整）
+function onAddAi(ws) {
+  const { room, seat } = ctx(ws);
+  if (!room) return send(ws, { type: 'error', message: '先に join してください' });
+  const res = room.addAi(seat);
+  if (!res.ok) return send(ws, { type: 'error', message: res.error });
+  broadcastLobby(room);
+}
+
+// ホストが AI 席を削除（末尾の AI から）
+function onRemoveAi(ws) {
+  const { room, seat } = ctx(ws);
+  if (!room) return send(ws, { type: 'error', message: '先に join してください' });
+  // 席がずれるので、削除前の playerId -> ws 対応を控える
+  const byId = new Map();
+  for (const [oldSeat, sock] of room.sockets) {
+    const s = room.seats[oldSeat];
+    if (s) byId.set(s.id, sock);
+  }
+  const res = room.removeAi(seat);
+  if (!res.ok) return send(ws, { type: 'error', message: res.error });
+  // 席番号を詰め直し、ソケットとセッションを張り替える
+  room.sockets.clear();
+  room.seats.forEach((s, i) => {
+    const sock = byId.get(s.id);
+    if (!sock) return;
+    room.sockets.set(i, sock);
+    sock.meta = { code: room.code, seat: i };
+    sessions.set(sock, { code: room.code, seat: i });
+  });
+  broadcastLobby(room);
 }
 
 function onSetSettings(ws, msg) {
@@ -199,13 +234,14 @@ function afterChange(room) {
 // 切断中の席が行動待ちなら、少し待って AI に代行させる（ゲーム停止防止）
 function scheduleAutoPlay(room) {
   if (room.autoTimer) return;
-  const waiting = room.seats.some((s, i) => !s.connected && room.needsAction(i));
+  const waiting = room.seats.some((s, i) => (!s.connected || s.isAI) && room.needsAction(i));
   if (!waiting) return;
+  const delay = room.seats.some((s, i) => s.isAI && room.needsAction(i)) ? 250 : 1500;
   room.autoTimer = setTimeout(() => {
     room.autoTimer = null;
     if (!rooms.has(room.code)) return;
     if (room.autoPlayDisconnected()) afterChange(room);
-  }, 1500);
+  }, delay);
 }
 
 function broadcastLobby(room) {

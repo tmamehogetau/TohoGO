@@ -1660,3 +1660,32 @@ body[data-stage="mountain"]{ --panel-a: rgba(18, 44, 34, 0.56); --panel-b: rgba(
 .lobby-card { width: min(720px, 94vw); }
 #online-lobby { text-align: center; }
 .online-grid { text-align: left; }
+
+/* AI 席のタグと人数調整ボタン */
+.tag-ai {
+  font-size: 0.64rem;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(111, 143, 224, 0.25);
+  color: #cfe0ff;
+}
+.ai-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+.ai-label {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  width: 100%;
+}
+.ai-controls .small {
+  padding: 5px 10px;
+  font-size: 0.8rem;
+}
+.ai-controls .small:disabled { opacity: 0.4; }
+.online-player .tag-ai { margin-left: 2px; }

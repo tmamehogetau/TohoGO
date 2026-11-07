@@ -117,6 +117,8 @@
     join,
     start() { send({ type: 'start' }); },
     setSettings(settings) { send({ type: 'setSettings', settings }); },
+    addAi() { send({ type: 'addAi' }); },
+    removeAi() { send({ type: 'removeAi' }); },
     action(action) { send({ type: 'action', action }); },
     continueRound() { send({ type: 'continue' }); },
     leave,

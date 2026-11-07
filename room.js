@@ -161,8 +161,41 @@ class Room {
       maxPlayers: MAX_PLAYERS,
       settings: { ...this.settings },
       deadline: this.deadline,
-      players: this.seats.map((s, i) => ({ seat: i, name: s.name, connected: s.connected, isHost: s.isHost })),
+      players: this.seats.map((s, i) => ({ seat: i, name: s.name, connected: s.connected, isHost: s.isHost, isAI: !!s.isAI })),
     };
+  }
+
+  // 人数調整用の AI 席（ホストのみ・開始前のみ）
+  addAi(seat) {
+    this.touch();
+    const host = this.seats[seat];
+    if (!host || !host.isHost) return { ok: false, error: 'ルームマスターのみ AI を追加できます' };
+    if (this.started) return { ok: false, error: 'ゲーム開始後は変更できません' };
+    if (this.seats.length >= MAX_PLAYERS) return { ok: false, error: 'これ以上は追加できません' };
+    const pool = ['霊夢', '魔理沙', '妖夢', '咲夜', 'レミリア', '紫', '幽々子', '輝夜', '永琳', 'てゐ',
+      '早苗', '神奈子', '諏訪子', '萃香', '文', 'にとり', '椛', '雛', '穣子', '静葉'];
+    const used = new Set(this.seats.map((s) => s.name));
+    const picked = pool.find((n) => !used.has('AI・' + n));
+    const name = 'AI・' + (picked || 'プレイヤー');
+    this.seats.push({ id: 'ai-' + crypto.randomUUID(), name, connected: true, isHost: false, isAI: true });
+    return { ok: true };
+  }
+
+  removeAi(seat) {
+    this.touch();
+    const host = this.seats[seat];
+    if (!host || !host.isHost) return { ok: false, error: 'ルームマスターのみ AI を削除できます' };
+    if (this.started) return { ok: false, error: 'ゲーム開始後は変更できません' };
+    let idx = -1;
+    for (let i = this.seats.length - 1; i >= 0; i--) {
+      if (this.seats[i].isAI) { idx = i; break; }
+    }
+    if (idx < 0) return { ok: false, error: 'AI がいません' };
+    const humans = this.seats.filter((s) => !s.isAI).length;
+    if (humans < 1) return { ok: false, error: '人間の席がありません' };
+    if (this.seats.length - 1 < MIN_PLAYERS) return { ok: false, error: `${MIN_PLAYERS}人未満にはできません` };
+    this.seats.splice(idx, 1);
+    return { ok: true, removedSeat: idx };
   }
 
   // ルーム設定（ホストのみ・ゲーム開始前のみ）
@@ -220,7 +253,7 @@ class Room {
     const s = this.seats[seat];
     if (!s || !s.isHost) return { ok: false, error: 'ホストのみ開始できます' };
     // 切断中の席はゲーム開始後と同じく AI が代行する（幽霊席で開始できなくならないように）
-    const connected = this.seats.filter((x) => x.connected).length;
+    const connected = this.seats.filter((x) => x.connected || x.isAI).length;
     if (connected < MIN_PLAYERS) return { ok: false, error: `${MIN_PLAYERS}人以上で開始できます` };
     const names = this.seats.map((x) => x.name);
     const opts = this.settings.incident ? { incident: this.settings.incident } : {};
@@ -315,9 +348,9 @@ class Room {
     return acted;
   }
 
-  // 切断中の席を AI で埋める（ゲーム停止を防ぐ）
+  // 切断中・AI の席を AI で埋める（ゲーム停止を防ぐ）
   autoPlayDisconnected() {
-    return this.autoPlaySeats((seat) => !this.seats[seat].connected);
+    return this.autoPlaySeats((seat) => !this.seats[seat].connected || this.seats[seat].isAI);
   }
 
   // 時間切れ: 接続中も含めて全員代行
