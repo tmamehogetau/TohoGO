@@ -1168,3 +1168,124 @@ body[data-stage="eternal"] { --btn-a: #6f8fe0; --btn-b: #3c4f8a; }
 body[data-stage="mountain"] { --btn-a: #57a97b; --btn-b: #2f6b4d; }
 button { background: linear-gradient(180deg, var(--btn-a), var(--btn-b)); }
 
+
+/* =========================================================
+   ステージテーマ連動の「枠」（取得行・手札・継続カード枠）
+   ========================================================= */
+
+body[data-stage="scarlet"] {
+  --frame-1: rgba(96, 22, 36, 0.62);
+  --frame-2: rgba(34, 12, 18, 0.92);
+  --frame-line: rgba(210, 48, 79, 0.55);
+  --frame-glow: rgba(210, 48, 79, 0.35);
+  --stage-emblem-img: url("assets/ui/stage_red.webp");
+}
+body[data-stage="spring"] {
+  --frame-1: rgba(92, 40, 66, 0.62);
+  --frame-2: rgba(32, 16, 26, 0.92);
+  --frame-line: rgba(224, 122, 168, 0.55);
+  --frame-glow: rgba(224, 122, 168, 0.35);
+  --stage-emblem-img: url("assets/ui/stage_hakugyoku.webp");
+}
+body[data-stage="eternal"] {
+  --frame-1: rgba(28, 40, 78, 0.62);
+  --frame-2: rgba(14, 18, 34, 0.92);
+  --frame-line: rgba(111, 143, 224, 0.55);
+  --frame-glow: rgba(111, 143, 224, 0.35);
+  --stage-emblem-img: url("assets/ui/stage_eientei.webp");
+}
+body[data-stage="mountain"] {
+  --frame-1: rgba(24, 62, 46, 0.62);
+  --frame-2: rgba(12, 26, 20, 0.92);
+  --frame-line: rgba(87, 169, 123, 0.55);
+  --frame-glow: rgba(87, 169, 123, 0.35);
+  --stage-emblem-img: url("assets/ui/stage_moriya.webp");
+}
+
+/* 取得行: ステージ背景を薄く敷いた帯 */
+.table-row {
+  position: relative;
+  border-color: var(--frame-line, var(--line));
+  background-image:
+    linear-gradient(180deg, var(--frame-1, rgba(36, 31, 44, 0.9)), var(--frame-2, rgba(28, 24, 34, 0.9))),
+    var(--stage-bg, none);
+  background-size: cover, cover;
+  background-position: center, center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), var(--shadow-sm);
+  overflow: hidden;
+}
+.table-row.me {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--frame-glow, rgba(217, 194, 122, 0.2)), var(--shadow-sm);
+}
+.table-row.me::before {
+  background: linear-gradient(180deg, var(--accent), transparent);
+}
+.table-row .row-label {
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+.table-row.me .row-label {
+  color: var(--accent);
+}
+
+/* 継続カード枠もステージ色に */
+.dessert-box {
+  border-color: var(--frame-line, var(--line));
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03) 0 8px, transparent 8px 16px),
+    var(--frame-2, rgba(24, 20, 30, 0.6));
+}
+.dessert-box .box-label {
+  color: var(--accent, var(--gold));
+}
+
+/* 手札エリア: ステージ色 + 紋章の透かし */
+#hand-area {
+  position: relative;
+  border-color: var(--frame-line, var(--line));
+  background-image:
+    linear-gradient(180deg, var(--frame-1, rgba(38, 33, 46, 0.94)), var(--frame-2, rgba(27, 23, 33, 0.94))),
+    var(--stage-bg, none);
+  background-size: cover, cover;
+  background-position: center, center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), var(--shadow-sm);
+  overflow: hidden;
+}
+#hand-area::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--accent), transparent);
+  pointer-events: none;
+}
+#hand-area::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  width: 64px;
+  height: 64px;
+  background: var(--stage-emblem-img, none) center / contain no-repeat;
+  opacity: 0.12;
+  pointer-events: none;
+}
+#hand-status {
+  position: relative;
+  z-index: 1;
+  color: var(--text);
+  opacity: 0.9;
+}
+
+/* 手札・取得行のカードはステージ色の縁取りを薄く */
+#hand .card,
+.table-row .card.mini {
+  box-shadow: 0 0 0 1px var(--frame-line, transparent), 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+#hand .card.selected,
+#hand .card:hover {
+  box-shadow: 0 0 0 2px var(--accent), 0 8px 18px rgba(0, 0, 0, 0.45);
+}

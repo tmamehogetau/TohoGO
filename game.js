@@ -967,7 +967,7 @@
       const label = document.createElement('div');
       label.className = 'row-label';
       const nameSpan = document.createElement('span');
-      nameSpan.textContent = `${p.name}${pi === 0 && p.name !== 'あなた' ? '（あなた）' : ''} の取ったカード`;
+      nameSpan.textContent = `${p.name}${pi === 0 && p.name !== 'あなた' ? '（あなた）' : ''}の取ったカード`;
       label.appendChild(nameSpan);
       // 追跡リソース（春合計・兎枚数など）
       for (const t of trackedTags(pi)) {
