@@ -248,7 +248,17 @@
   // カード面用の極短テキスト（詳細は右の拡大表示とカード一覧で読む）
   function tinyDesc(def) {
     switch (def.kind) {
-      case 'instant': return `${def.points}点${def.hidden ? '＋幻覚' : ''}${def.comboKeys ? '＋コンボ' : ''}${def.swap ? '＋交換' : ''}`;
+      case 'instant': {
+        const extra = [];
+        if (def.hidden) extra.push('＋幻覚');
+        if (def.comboKeys) extra.push('＋コンボ');
+        if (def.swap) extra.push('＋交換');
+        if (def.absentKeys && def.absentKeys.includes(def.key)) extra.push('（単独のみ）');
+        if (def.buffTargets) extra.push('＋次を3倍');
+        if (def.pointsIfPicked) extra.push('＋連携');
+        if (def.discardBonus) extra.push('＋破棄');
+        return `${def.points}点${extra.join('')}`;
+      }
       case 'othersDiff': return `(他${nameOf(def.plusKey)}−他${nameOf(def.minusKey)})×${def.mult}`;
       case 'pairCond': return `2枚毎${def.points}点／春-${def.reduceSpringIconsPerPair || 1}個`;
       case 'maki': return '最多+6／2位+3';
@@ -259,7 +269,7 @@
       case 'aliceSet': return '種類数で1/4/9/16点';
       case 'set3': return `3枚で${def.points}点`;
       case 'collect': return '枚数で加点';
-      case 'socialJoin': return '他人の大妖精/チルノで+1';
+      case 'socialJoin': return `他人の${nameOf((def.joinKeys || [])[0])}で+${def.per || 1}`;
       case 'roundComboCount': return `継続カード毎+${def.per}`;
       case 'tofu': return `${def.table.join('/')}点`;
       case 'kindCount': return `種類数${def.offset >= 0 ? '+' : ''}${def.offset}`;
@@ -274,6 +284,12 @@
       case 'dessertIce': return `${def.per}枚毎+${def.points}`;
       case 'dessertMostLeast': return `最多+${def.most}／最少${def.least}`;
       case 'dessertRound': return `取得毎${def.roundPenalty}／最多×${def.endMostPer}`;
+      case 'eel': return `1枚${def.first}／2枚+${def.more}`;
+      case 'scoop': return '手札+2枚';
+      case 'swapNamed': return '次に名前指定で交換';
+      case 'pairWith': return `${nameOf(def.partner)}とペア${def.points}点`;
+      case 'uramaki': return `${def.threshold}個で${def.rankPoints.join('/')}点`;
+      case 'dessertParity': return `0枚${def.zero}／偶数+${def.even}`;
       default: return '';
     }
   }
@@ -1512,6 +1528,7 @@
   // デバッグ・テスト用に公開（Game.state でヘッドレスエンジンの state を直接参照できる）
   window.Game = { startGame, renderAll, get state() { return STATE; } };
 })();
+
 
 
 
