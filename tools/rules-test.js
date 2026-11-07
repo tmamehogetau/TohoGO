@@ -1216,6 +1216,20 @@ test('風神録: 信仰=ラウンド終了時に未到達でもアイコン上�
   assert.strictEqual(s.players[2].roundScores[0], 0, '信仰なしは0点');
 });
 
+test('風神録: ラウンド結果の内訳合計がラウンド点と一致する（信仰を含む）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  fixPeek(s);
+  setHands(s, [[{ key: 'f_faith', icons: 5 }, 'x_dummy'], [DM, DM]]);
+  pickAll(s, [0, 0]);
+  setHands(s, [['x_dummy'], [DM]]);
+  pickAll(s, [0, 0]); // ラウンド終了（信仰5個 → ラウンド終了時に順位点）
+  const r = s.roundBanner.results[0];
+  const cardSum = (r.cards || []).reduce((a, c) => a + (c.pts || 0), 0);
+  const extraSum = (r.extras || []).reduce((a, e) => a + (e.pts || 0), 0);
+  assert.strictEqual(cardSum + extraSum, r.points, 'カード＋内訳＝ラウンド点');
+  assert.ok((r.extras || []).some((e) => e.key === 'f_faith'), '信仰の得点が内訳に出る');
+});
+
 test('風神録: 犬走椛=0枚−3点／奇数0点／偶数+5点', () => {
   const mk = (n) => {
     const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
@@ -1265,6 +1279,7 @@ test('風神録: 射命丸文=手札から追加で2枚取り、山札から2枚
 
 console.log(`\
 ${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+
 
 
 

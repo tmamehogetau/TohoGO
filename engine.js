@@ -132,6 +132,7 @@
       state.peekNeeded = null;
       state.peekCards = null;
       state.faithAwarded = 0;
+      state.faithEvents = [];
       state.roundStats = state.players.map(() => ({ springIcons: 0, dessertTaken: 0, intruderTaken: false, faithCleared: false }));
     }
 
@@ -833,6 +834,8 @@
         for (const pi of g.players) {
           state.players[pi].roundScores[state.round] += pts;
           state.roundStats[pi].faithCleared = true;
+          state.faithEvents = state.faithEvents || [];
+          state.faithEvents.push({ pi, n: g.n, place: place + 1, pts });
           addLog(state, `${state.players[pi].name}: 信仰が ${g.n} 個で${place + 1}位（+${pts} 点）`);
         }
         place += g.players.length;
@@ -886,7 +889,8 @@
       state.lastRoundStats = state.roundStats.map((s) => ({ ...s }));
 
       // 即時点数のラウンド末一括集計（先頭で行い、バナーの点数内訳に含める）
-      const roundStart = state.players.map((p) => p.roundScores[state.round] || 0);
+      // ラウンド開始時の持ち点は常に 0（信仰の即時点も含めてバナーの合計と内訳を一致させる）
+      const roundStart = state.players.map(() => 0);
       // 信仰: 10個に届かなかった人にも残りの順位点を配る
       finishFaithRace(state);
       settleInstantScores(state);
@@ -904,6 +908,10 @@
         p.roundScores[state.round] += scores[i];
         // ラウンド点 = 即時点 + 全体判定 + 個別判定（バナーの内訳合計と一致させる）
         results.push({ pi: i, name: p.name, points: p.roundScores[state.round] - roundStart[i] });
+      }
+      // 信仰（到達レース）の得点は即時加算なので、バナーの内訳にも積む
+      for (const ev of state.faithEvents || []) {
+        if (ev.pi >= 0 && ev.pi < n) detail[ev.pi].push({ key: 'f_faith', label: `信仰（${ev.n}個・${ev.place}位）`, pts: ev.pts });
       }
       addLog(state, `ラウンド${state.round + 1}終了`);
 
@@ -939,11 +947,24 @@
           delete inst.flipped;
           delete inst.discarded;
           delete inst.hiddenTaken; // 幻覚はラウンド末判定で解除＝公開される
+          delete inst.hiddenBy;
           delete inst.absentChecked;
           delete inst.absentBlocked;
           delete inst.instantCombo;
           delete inst.selectionDone;
           delete inst.copied;
+          // ラウンド内だけ有効な加点・フラグ（山札に戻って次ラウンド再使用されるため必ず消す）
+          delete inst.triple;
+          delete inst.turnBonus;
+          delete inst.extraPts;
+          delete inst.franBonus;
+          delete inst.coopPoints;
+          delete inst.diffPoints;
+          delete inst.springGain;
+          delete inst.youmuBoost;
+          delete inst.peekedGain;
+          delete inst.peekedBy;
+          delete inst.roundPts;
         }
         state.deck.push(...recycled);
         p.taken = [];
@@ -1365,6 +1386,8 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   if (typeof window !== 'undefined') window.Engine = Engine;
 })();
+
+
 
 
 
