@@ -31,9 +31,9 @@ C = {
     "f_kanako": (
         f"masterpiece, best quality, 1girl, yasaka kanako, touhou, blue hair, long hair, poofy hair, "
         f"dark red eyes, red shirt, long white sleeves, round mirror on chest, black long skirt, "
-        f"red flower print hem, large shimenawa, shide, {MOD}, raising one hand, commanding presence, "
-        f"onbashira pillar behind, confident smile, from below, cowboy shot, shrine, mountain, clouds",
-        9101),
+        f"red flower print hem, large shimenawa, shide, {MOD}, standing tall, arms crossed, dignified, "
+        f"stern commanding gaze, chin up, looking down at viewer, imposing presence, low angle, "
+        f"full body, shrine courtyard, onbashira pillars, god rays, dramatic clouds", 9101),
     "f_suwako": (
         f"masterpiece, best quality, 1girl, moriya suwako, touhou, blonde hair, medium hair, grey eyes, "
         f"purplish blue dress, frog print, white large sleeves, white collar, "
@@ -80,6 +80,10 @@ C = {
         "sunlight through trees, serene religious atmosphere, wide shot", 9110),
 }
 
+ONLY = [k.strip() for k in sys.argv[2].split(',')] if len(sys.argv) > 2 else None
+if ONLY:
+    C = {k: v for k, v in C.items() if k in ONLY}
+
 runs = []
 for key, (prompt, seed) in C.items():
     for i in range(COPIES):
@@ -99,3 +103,5 @@ with open(DST, "w", encoding="utf-8", newline="\n") as f:
     json.dump(manifest, f, ensure_ascii=False, indent=1)
     f.write("\n")
 print(f"{len(C)} chars x {COPIES} = {len(runs)} runs -> {DST}")
+
+

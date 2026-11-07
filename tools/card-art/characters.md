@@ -49,7 +49,7 @@
 
 | key | 正史の特徴 | 判定に使うタグ | 備考 |
 |---|---|---|---|
-| f_kanako | 青の長髪（ふわっと）・赤目・赤いシャツ＋白い長袖・胸の丸い鏡・黒い長スカート（赤い花柄の裾）・背中の大きなしめ縄 | `yasaka_kanako blue_hair red_eyes red_shirt white_sleeves mirror black_skirt shimenawa onbashira` | 御柱としめ縄が識別点 |
+| f_kanako | 青の長髪（ふわっと）・赤目・赤いシャツ＋白い長袖・胸の丸い鏡・黒い長スカート（赤い花柄の裾）・背中の大きなしめ縄。**腕組みの仁王立ち**で威厳を出す（2026-11-07 再生成） | `yasaka_kanako blue_hair red_eyes red_shirt white_sleeves mirror black_skirt shimenawa onbashira` | 御柱としめ縄が識別点 |
 | f_suwako | 金髪・灰色の目・紫青のワンピース（蛙プリント）・白い大きな袖・白い襟・茶色の広縁帽（蛙の目）・白ニーハイ | `moriya_suwako blonde_hair grey_eyes purple_dress frog_print white_sleeves wide-brimmed_hat frog_hat` | 帽子の蛙の目が識別点 |
 | f_sanae | 緑の長髪・黄目・青白い巫女服（水玉）・分離袖・蛇の髪飾り＋蛙の髪留め・御幣 | `kochiya_sanae green_hair yellow_eyes miko polka_dot detached_sleeves snake_hair_ornament gohei` | |
 | f_hina | アクアマリンの髪と目・赤いフリルリボン・赤いドレス（白フリル＋白いケープ）・黒ブーツ・裾に「厄」の渦 | `kagiyama_hina aquamarine_hair aquamarine_eyes red_dress white_frills red_bow black_boots` | 回転ポーズで描く |
@@ -102,4 +102,5 @@
 | 玉兎 | 人間ではなく兎 | `no humans, rabbit, white fur, pounding mochi` に変更（人型の兎娘をやめた） |
 
 再生成は各3案（咲夜/橙/プリズム/慧音/玉兎＝15枚＋橙の作り直し6枚）。採用は `assemble-final.py` の `PICK` に反映済み。
+
 
