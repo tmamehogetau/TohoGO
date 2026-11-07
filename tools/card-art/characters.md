@@ -45,6 +45,21 @@
 | y_marisa | 金の長髪・黄目・黒い魔女服＋白エプロン・黒帽子・箒 | `kirisame_marisa blonde_hair yellow_eyes witch_hat black_dress broom` | |
 | y_moko | 白の超長髪・赤目・赤いズボン＋白シャツ・炎 | `fujiwara_no_mokou white_hair red_eyes red_pants white_shirt fire` | |
 
+### 風神録（2026-11-07 追加）
+
+| key | 正史の特徴 | 判定に使うタグ | 備考 |
+|---|---|---|---|
+| f_kanako | 青の長髪（ふわっと）・赤目・赤いシャツ＋白い長袖・胸の丸い鏡・黒い長スカート（赤い花柄の裾）・背中の大きなしめ縄 | `yasaka_kanako blue_hair red_eyes red_shirt white_sleeves mirror black_skirt shimenawa onbashira` | 御柱としめ縄が識別点 |
+| f_suwako | 金髪・灰色の目・紫青のワンピース（蛙プリント）・白い大きな袖・白い襟・茶色の広縁帽（蛙の目）・白ニーハイ | `moriya_suwako blonde_hair grey_eyes purple_dress frog_print white_sleeves wide-brimmed_hat frog_hat` | 帽子の蛙の目が識別点 |
+| f_sanae | 緑の長髪・黄目・青白い巫女服（水玉）・分離袖・蛇の髪飾り＋蛙の髪留め・御幣 | `kochiya_sanae green_hair yellow_eyes miko polka_dot detached_sleeves snake_hair_ornament gohei` | |
+| f_hina | アクアマリンの髪と目・赤いフリルリボン・赤いドレス（白フリル＋白いケープ）・黒ブーツ・裾に「厄」の渦 | `kagiyama_hina aquamarine_hair aquamarine_eyes red_dress white_frills red_bow black_boots` | 回転ポーズで描く |
+| f_aya | 黒のセミロング・赤目・白ブラウス（茶の葉柄）＋黒スカート・黒トキン帽（白羽）・羽団扇・カメラ | `shameimaru_aya black_hair red_eyes white_blouse black_skirt tokin hat feather_ornament hauchiwa_fan camera` | |
+| f_nitori | 青髪・青目・青いポケット付きドレス・緑の帽子・青緑のリュック（金の鍵）・青い長靴・蒲の穂 | `kawashiro_nitori blue_hair blue_eyes blue_dress green_hat backpack wellington_boots cattail` | |
+| f_minoriko | 暗い金髪・赤目・黄色のブラウス（パフ袖）・赤いドレス（黒の肩紐）・赤い帽子（青い葡萄）・麦 | `aki_minoriko dark_blonde_hair red_eyes yellow_blouse red_dress red_hat grapes wheat` | |
+| f_shizuha | 短い金髪（赤い紅葉）・金目・赤いロングドレス（裾に葉模様）・白いリーフリボン | `aki_shizuha short_hair blonde_hair gold_eyes red_dress leaf_print autumn_leaves` | 穣子と髪色が近いので帽子と葡萄で差をつける |
+| f_momiji | 短い白髪・赤目・狼耳・赤いトキン・白い長袖シャツ＋黒いロングスカート（赤い炎模様）・長い刀＋紅葉の盾 | `inubashiri_momiji white_hair red_eyes wolf_ears red_tokin white_shirt black_skirt sword shield` | |
+| f_faith | （人物なし）守矢神社・鳥居・石段・しめ縄・御札・賽銭箱 | `no_humans moriya_shrine torii stone_steps shimenawa ofuda scenery` | 風景カード |
+
 ## 露出の方針
 
 - ポジティブに `modest clothes, fully clothed, long skirt, covered legs` を必ず入れる

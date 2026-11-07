@@ -1,0 +1,160 @@
+{
+ "outdir": "C:\\Users\\kou-1\\Projects\\touhou-draft\\.tmp\\card-art-mof\\raw",
+ "workflow": "C:\\Users\\kou-1\\comfyui-amd-rocm-kit\\workflows\\image\\moss_sft_4step_t2i.api.json",
+ "width": 832,
+ "height": 1216,
+ "timeout_sec": 300,
+ "negative": "lowres, bad anatomy, bad hands, extra fingers, missing fingers, fused fingers, watermark, text, signature, worst quality, jpeg artifacts, static pose, stiff, expressionless, blank stare, front view, cleavage, panties, underwear, lingerie, navel, bare legs, thighs, short skirt, upskirt, revealing clothes, suggestive, spread legs, high kick, bare shoulders",
+ "runs": [
+  {
+   "name": "f_kanako_1",
+   "seed": 91010,
+   "prompt": "masterpiece, best quality, 1girl, yasaka kanako, touhou, blue hair, long hair, poofy hair, dark red eyes, red shirt, long white sleeves, round mirror on chest, black long skirt, red flower print hem, large shimenawa, shide, modest clothes, fully clothed, long skirt, covered legs, raising one hand, commanding presence, onbashira pillar behind, confident smile, from below, cowboy shot, shrine, mountain, clouds"
+  },
+  {
+   "name": "f_kanako_2",
+   "seed": 91011,
+   "prompt": "masterpiece, best quality, 1girl, yasaka kanako, touhou, blue hair, long hair, poofy hair, dark red eyes, red shirt, long white sleeves, round mirror on chest, black long skirt, red flower print hem, large shimenawa, shide, modest clothes, fully clothed, long skirt, covered legs, raising one hand, commanding presence, onbashira pillar behind, confident smile, from below, cowboy shot, shrine, mountain, clouds"
+  },
+  {
+   "name": "f_kanako_3",
+   "seed": 91012,
+   "prompt": "masterpiece, best quality, 1girl, yasaka kanako, touhou, blue hair, long hair, poofy hair, dark red eyes, red shirt, long white sleeves, round mirror on chest, black long skirt, red flower print hem, large shimenawa, shide, modest clothes, fully clothed, long skirt, covered legs, raising one hand, commanding presence, onbashira pillar behind, confident smile, from below, cowboy shot, shrine, mountain, clouds"
+  },
+  {
+   "name": "f_suwako_1",
+   "seed": 91020,
+   "prompt": "masterpiece, best quality, 1girl, moriya suwako, touhou, blonde hair, medium hair, grey eyes, purplish blue dress, frog print, white large sleeves, white collar, light brown wide-brimmed hat, frog eyes on hat, white kneehighs, modest clothes, fully clothed, long skirt, covered legs, crouching on the ground, mischievous grin, frogs around her, cowboy shot, lake, sunlight, sparkles"
+  },
+  {
+   "name": "f_suwako_2",
+   "seed": 91021,
+   "prompt": "masterpiece, best quality, 1girl, moriya suwako, touhou, blonde hair, medium hair, grey eyes, purplish blue dress, frog print, white large sleeves, white collar, light brown wide-brimmed hat, frog eyes on hat, white kneehighs, modest clothes, fully clothed, long skirt, covered legs, crouching on the ground, mischievous grin, frogs around her, cowboy shot, lake, sunlight, sparkles"
+  },
+  {
+   "name": "f_suwako_3",
+   "seed": 91022,
+   "prompt": "masterpiece, best quality, 1girl, moriya suwako, touhou, blonde hair, medium hair, grey eyes, purplish blue dress, frog print, white large sleeves, white collar, light brown wide-brimmed hat, frog eyes on hat, white kneehighs, modest clothes, fully clothed, long skirt, covered legs, crouching on the ground, mischievous grin, frogs around her, cowboy shot, lake, sunlight, sparkles"
+  },
+  {
+   "name": "f_sanae_1",
+   "seed": 91030,
+   "prompt": "masterpiece, best quality, 1girl, kochiya sanae, touhou, green hair, long hair, yellow eyes, blue and white miko outfit, light blue polka dots, detached sleeves, snake-shaped hair ornament, frog hair clip, gohei, modest clothes, fully clothed, long skirt, covered legs, invoking a miracle, wind, determined smile, cowboy shot, shrine, blue sky, sparkles"
+  },
+  {
+   "name": "f_sanae_2",
+   "seed": 91031,
+   "prompt": "masterpiece, best quality, 1girl, kochiya sanae, touhou, green hair, long hair, yellow eyes, blue and white miko outfit, light blue polka dots, detached sleeves, snake-shaped hair ornament, frog hair clip, gohei, modest clothes, fully clothed, long skirt, covered legs, invoking a miracle, wind, determined smile, cowboy shot, shrine, blue sky, sparkles"
+  },
+  {
+   "name": "f_sanae_3",
+   "seed": 91032,
+   "prompt": "masterpiece, best quality, 1girl, kochiya sanae, touhou, green hair, long hair, yellow eyes, blue and white miko outfit, light blue polka dots, detached sleeves, snake-shaped hair ornament, frog hair clip, gohei, modest clothes, fully clothed, long skirt, covered legs, invoking a miracle, wind, determined smile, cowboy shot, shrine, blue sky, sparkles"
+  },
+  {
+   "name": "f_hina_1",
+   "seed": 91040,
+   "prompt": "masterpiece, best quality, 1girl, kagiyama hina, touhou, aquamarine hair, medium hair, aquamarine eyes, red frilly bows, red dress, white frills, large white kerchief, black boots, modest clothes, fully clothed, long skirt, covered legs, spinning around, swirling purple curse aura, dizzy smile, dutch angle, cowboy shot, forest, haze, dim light"
+  },
+  {
+   "name": "f_hina_2",
+   "seed": 91041,
+   "prompt": "masterpiece, best quality, 1girl, kagiyama hina, touhou, aquamarine hair, medium hair, aquamarine eyes, red frilly bows, red dress, white frills, large white kerchief, black boots, modest clothes, fully clothed, long skirt, covered legs, spinning around, swirling purple curse aura, dizzy smile, dutch angle, cowboy shot, forest, haze, dim light"
+  },
+  {
+   "name": "f_hina_3",
+   "seed": 91042,
+   "prompt": "masterpiece, best quality, 1girl, kagiyama hina, touhou, aquamarine hair, medium hair, aquamarine eyes, red frilly bows, red dress, white frills, large white kerchief, black boots, modest clothes, fully clothed, long skirt, covered legs, spinning around, swirling purple curse aura, dizzy smile, dutch angle, cowboy shot, forest, haze, dim light"
+  },
+  {
+   "name": "f_aya_1",
+   "seed": 91050,
+   "prompt": "masterpiece, best quality, 1girl, shameimaru aya, touhou, black hair, semi-long hair, red eyes, white blouse, black skirt, brown leaf print, black tokin, white feather puffs, hauchiwa fan, camera, modest clothes, fully clothed, long skirt, covered legs, leaning forward to take a photo, smirk, from side, cowboy shot, mountain, wind, sunlight"
+  },
+  {
+   "name": "f_aya_2",
+   "seed": 91051,
+   "prompt": "masterpiece, best quality, 1girl, shameimaru aya, touhou, black hair, semi-long hair, red eyes, white blouse, black skirt, brown leaf print, black tokin, white feather puffs, hauchiwa fan, camera, modest clothes, fully clothed, long skirt, covered legs, leaning forward to take a photo, smirk, from side, cowboy shot, mountain, wind, sunlight"
+  },
+  {
+   "name": "f_aya_3",
+   "seed": 91052,
+   "prompt": "masterpiece, best quality, 1girl, shameimaru aya, touhou, black hair, semi-long hair, red eyes, white blouse, black skirt, brown leaf print, black tokin, white feather puffs, hauchiwa fan, camera, modest clothes, fully clothed, long skirt, covered legs, leaning forward to take a photo, smirk, from side, cowboy shot, mountain, wind, sunlight"
+  },
+  {
+   "name": "f_nitori_1",
+   "seed": 91060,
+   "prompt": "masterpiece, best quality, 1girl, kawashiro nitori, touhou, blue hair, blue eyes, blue dress with many pockets, green hat, dark aquamarine backpack, golden key, blue wellington boots, cattail, modest clothes, fully clothed, long skirt, covered legs, tinkering with a small gadget, shy smile, from side, cowboy shot, river, water wheel, sunlight"
+  },
+  {
+   "name": "f_nitori_2",
+   "seed": 91061,
+   "prompt": "masterpiece, best quality, 1girl, kawashiro nitori, touhou, blue hair, blue eyes, blue dress with many pockets, green hat, dark aquamarine backpack, golden key, blue wellington boots, cattail, modest clothes, fully clothed, long skirt, covered legs, tinkering with a small gadget, shy smile, from side, cowboy shot, river, water wheel, sunlight"
+  },
+  {
+   "name": "f_nitori_3",
+   "seed": 91062,
+   "prompt": "masterpiece, best quality, 1girl, kawashiro nitori, touhou, blue hair, blue eyes, blue dress with many pockets, green hat, dark aquamarine backpack, golden key, blue wellington boots, cattail, modest clothes, fully clothed, long skirt, covered legs, tinkering with a small gadget, shy smile, from side, cowboy shot, river, water wheel, sunlight"
+  },
+  {
+   "name": "f_minoriko_1",
+   "seed": 91070,
+   "prompt": "masterpiece, best quality, 1girl, aki minoriko, touhou, dark blonde hair, red eyes, yellow blouse with poofy sleeves, red dress, black shoulder straps, red hat, blue grape ornament, modest clothes, fully clothed, long skirt, covered legs, holding a sweet potato, cheerful smile, cowboy shot, autumn field, rice ears, warm light"
+  },
+  {
+   "name": "f_minoriko_2",
+   "seed": 91071,
+   "prompt": "masterpiece, best quality, 1girl, aki minoriko, touhou, dark blonde hair, red eyes, yellow blouse with poofy sleeves, red dress, black shoulder straps, red hat, blue grape ornament, modest clothes, fully clothed, long skirt, covered legs, holding a sweet potato, cheerful smile, cowboy shot, autumn field, rice ears, warm light"
+  },
+  {
+   "name": "f_minoriko_3",
+   "seed": 91072,
+   "prompt": "masterpiece, best quality, 1girl, aki minoriko, touhou, dark blonde hair, red eyes, yellow blouse with poofy sleeves, red dress, black shoulder straps, red hat, blue grape ornament, modest clothes, fully clothed, long skirt, covered legs, holding a sweet potato, cheerful smile, cowboy shot, autumn field, rice ears, warm light"
+  },
+  {
+   "name": "f_shizuha_1",
+   "seed": 91080,
+   "prompt": "masterpiece, best quality, 1girl, aki shizuha, touhou, short hair, gold hair, gold eyes, long red dress, leaf pattern hem, white leaf ruffle, red autumn leaves in hair, modest clothes, fully clothed, long skirt, covered legs, scattering maple leaves, gentle sad smile, cowboy shot, autumn forest, falling leaves, orange light"
+  },
+  {
+   "name": "f_shizuha_2",
+   "seed": 91081,
+   "prompt": "masterpiece, best quality, 1girl, aki shizuha, touhou, short hair, gold hair, gold eyes, long red dress, leaf pattern hem, white leaf ruffle, red autumn leaves in hair, modest clothes, fully clothed, long skirt, covered legs, scattering maple leaves, gentle sad smile, cowboy shot, autumn forest, falling leaves, orange light"
+  },
+  {
+   "name": "f_shizuha_3",
+   "seed": 91082,
+   "prompt": "masterpiece, best quality, 1girl, aki shizuha, touhou, short hair, gold hair, gold eyes, long red dress, leaf pattern hem, white leaf ruffle, red autumn leaves in hair, modest clothes, fully clothed, long skirt, covered legs, scattering maple leaves, gentle sad smile, cowboy shot, autumn forest, falling leaves, orange light"
+  },
+  {
+   "name": "f_momiji_1",
+   "seed": 91090,
+   "prompt": "masterpiece, best quality, 1girl, inubashiri momiji, touhou, white hair, short hair, red eyes, wolf ears, red tokin, white long-sleeved shirt, large black skirt, red flame pattern, scimitar sword, white round shield with red maple leaf, modest clothes, fully clothed, long skirt, covered legs, guarding stance, alert expression, cowboy shot, waterfall, youkai mountain, daylight"
+  },
+  {
+   "name": "f_momiji_2",
+   "seed": 91091,
+   "prompt": "masterpiece, best quality, 1girl, inubashiri momiji, touhou, white hair, short hair, red eyes, wolf ears, red tokin, white long-sleeved shirt, large black skirt, red flame pattern, scimitar sword, white round shield with red maple leaf, modest clothes, fully clothed, long skirt, covered legs, guarding stance, alert expression, cowboy shot, waterfall, youkai mountain, daylight"
+  },
+  {
+   "name": "f_momiji_3",
+   "seed": 91092,
+   "prompt": "masterpiece, best quality, 1girl, inubashiri momiji, touhou, white hair, short hair, red eyes, wolf ears, red tokin, white long-sleeved shirt, large black skirt, red flame pattern, scimitar sword, white round shield with red maple leaf, modest clothes, fully clothed, long skirt, covered legs, guarding stance, alert expression, cowboy shot, waterfall, youkai mountain, daylight"
+  },
+  {
+   "name": "f_faith_1",
+   "seed": 91100,
+   "prompt": "masterpiece, best quality, scenery, no humans, moriya shrine, torii gate, stone steps, shimenawa rope, shide, ofuda talismans, offering box, autumn leaves, sunlight through trees, serene religious atmosphere, wide shot"
+  },
+  {
+   "name": "f_faith_2",
+   "seed": 91101,
+   "prompt": "masterpiece, best quality, scenery, no humans, moriya shrine, torii gate, stone steps, shimenawa rope, shide, ofuda talismans, offering box, autumn leaves, sunlight through trees, serene religious atmosphere, wide shot"
+  },
+  {
+   "name": "f_faith_3",
+   "seed": 91102,
+   "prompt": "masterpiece, best quality, scenery, no humans, moriya shrine, torii gate, stone steps, shimenawa rope, shide, ofuda talismans, offering box, autumn leaves, sunlight through trees, serene religious atmosphere, wide shot"
+  }
+ ]
+}
