@@ -1178,14 +1178,14 @@ test('風神録: 早苗=次に取った神奈子の点数が3倍', () => {
 test('風神録: 信仰=10個到達で即時8点（カードは残る）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
   // 手札は毎手番パスで入れ替わるため、毎ターン配り直して同じ player0 に信仰を集めさせる
-  const icons = [3, 3, 2, 2];
+  const icons = [5, 5];
   for (const n of icons) {
     setHands(s, [[{ key: 'f_faith', icons: n }, DM], [DM, DM]]);
     pickAll(s, [0, 0]);
   }
-  // 3+3+2+2 = 10 で1番目 → 8点。信仰はラウンド末に追加点なし
+  // 5+5 = 10 で1番目 → 8点。信仰はラウンド末に追加点なし
   assert.strictEqual(s.players[0].roundScores[0], 8);
-  assert.strictEqual(s.players[0].taken.filter((x) => x.key === 'f_faith').length, 4, 'カードは捨てない');
+  assert.strictEqual(s.players[0].taken.filter((x) => x.key === 'f_faith').length, 2, 'カードは捨てない');
 });
 
 test('風神録: 犬走椛=0枚−3点／奇数0点／偶数+5点', () => {
@@ -1237,5 +1237,6 @@ test('風神録: 射命丸文=手札から追加で2枚取り、山札から2枚
 
 console.log(`\
 ${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+
 
 

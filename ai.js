@@ -197,7 +197,10 @@
         return def.points * (partnerN > mine ? 0.9 : 0.4);
       }
       case 'uramaki': {
-        // 信仰: アイコンを集めて10個到達で即時得点。到達が近いほど価値が跳ねる
+        // 信仰: アイコンを集めて10個到達で即時得点。到達が近いほど価値が跳ねる。
+        // このラウンドで既に到達済み（または上位3枠が埋まった）なら、追加の信仰はほぼ無価値
+        const st = state.roundStats && state.roundStats[pi];
+        if ((st && st.faithCleared) || ((state.faithAwarded || 0) >= 3)) return 0.2;
         let total = 0;
         for (const inst of p.taken) {
           const d = state.cardMap[inst.key];
