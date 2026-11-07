@@ -231,17 +231,22 @@ function afterChange(room) {
   scheduleAutoPlay(room);
 }
 
-// 切断中の席が行動待ちなら、少し待って AI に代行させる（ゲーム停止防止）
+// 退席・AI 席が行動待ちなら、必要なタイミングで AI に代行させる。
+// 退席した人間には猶予（既定 2 分）があり、その間は再接続を待つ。
 function scheduleAutoPlay(room) {
-  if (room.autoTimer) return;
-  const waiting = room.seats.some((s, i) => (!s.connected || s.isAI) && room.needsAction(i));
-  if (!waiting) return;
-  const delay = room.seats.some((s, i) => s.isAI && room.needsAction(i)) ? 250 : 1500;
+  if (!room.state) return;
+  const delay = room.nextAutoPlayDelay();
+  if (delay === null) {
+    if (room.autoTimer) { clearTimeout(room.autoTimer); room.autoTimer = null; }
+    return;
+  }
+  if (room.autoTimer) { clearTimeout(room.autoTimer); room.autoTimer = null; }
   room.autoTimer = setTimeout(() => {
     room.autoTimer = null;
     if (!rooms.has(room.code)) return;
     if (room.autoPlayDisconnected()) afterChange(room);
-  }, delay);
+    else scheduleAutoPlay(room);
+  }, Math.max(0, delay));
 }
 
 function broadcastLobby(room) {

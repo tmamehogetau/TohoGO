@@ -1689,3 +1689,15 @@ body[data-stage="mountain"]{ --panel-a: rgba(18, 44, 34, 0.56); --panel-b: rgba(
 }
 .ai-controls .small:disabled { opacity: 0.4; }
 .online-player .tag-ai { margin-left: 2px; }
+
+/* 退席中プレイヤーの表示 */
+.chip-off {
+  font-size: 0.68rem;
+  color: #e8b0b0;
+  background: rgba(200, 80, 80, 0.18);
+  border: 1px solid rgba(200, 80, 80, 0.35);
+  border-radius: 999px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+.player-chip:has(.chip-off) { opacity: 0.75; }

@@ -11,6 +11,8 @@ const AI = require('./ai.js');
 const Data = require('./data.js');
 
 const MAX_PLAYERS = 5;
+// 退席してから AI が代行するまでの猶予（既定 2 分）
+const DISCONNECT_GRACE_MS = Number(process.env.DISCONNECT_GRACE_MS || 120000);
 const MIN_PLAYERS = 2;
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -67,6 +69,7 @@ function viewFor(room, seat) {
       sanaePending: p.sanaePending || 0,
       roundScores: p.roundScores,
       connected: !!(s && s.connected),
+      disconnectedAt: (s && s.disconnectedAt) || null,
       seat: oi,
     };
   });
@@ -132,6 +135,7 @@ function viewFor(room, seat) {
     peekNeeded: state.peekNeeded ? [!!state.peekNeeded[seat]] : null,
     peekCards: state.peekCards ? [state.peekCards[seat] || null] : null,
     mySeat: 0,
+    disconnectGraceMs: DISCONNECT_GRACE_MS,
     roomCode: room.code,
     deadline: room.deadline || null,
   };
@@ -236,6 +240,7 @@ class Room {
           return { ok: false, error: 'その名前は既に使われています' };
         }
         this.seats[seat].connected = true;
+        this.seats[seat].disconnectedAt = null;
         this.seats[seat].name = trimmed;
         return { ok: true, seat, playerId, isHost: this.seats[seat].isHost, reconnected: true };
       }
@@ -311,6 +316,7 @@ class Room {
     const s = this.seats[seat];
     if (!s) return;
     s.connected = false;
+    s.disconnectedAt = Date.now();
     this.touch();
     // ホスト切断時は接続中の次の人へ移譲
     if (s.isHost) {
@@ -354,7 +360,28 @@ class Room {
 
   // 切断中・AI の席を AI で埋める（ゲーム停止を防ぐ）
   autoPlayDisconnected() {
-    return this.autoPlaySeats((seat) => !this.seats[seat].connected || this.seats[seat].isAI);
+    const now = Date.now();
+    return this.autoPlaySeats((seat) => {
+      const s = this.seats[seat];
+      if (s.isAI) return true;
+      if (s.connected) return false;
+      return now - (s.disconnectedAt || 0) >= DISCONNECT_GRACE_MS;
+    });
+  }
+
+  // 退席した席が AI 代行に切り替わるまでの残りミリ秒（該当なしは null）
+  nextAutoPlayDelay() {
+    if (!this.state) return null;
+    let soonest = null;
+    for (let i = 0; i < this.seats.length; i++) {
+      if (!this.needsAction(i)) continue;
+      const s = this.seats[i];
+      if (s.isAI) return 250;
+      if (s.connected) continue;
+      const left = Math.max(0, (s.disconnectedAt || 0) + DISCONNECT_GRACE_MS - Date.now());
+      soonest = soonest === null ? left : Math.min(soonest, left);
+    }
+    return soonest;
   }
 
   // 時間切れ: 接続中も含めて全員代行
@@ -395,7 +422,7 @@ function stateIncludesSelection(state, seat) {
   return !!(state.selectNeeded && state.selectNeeded.includes(seat));
 }
 
-module.exports = { Room, viewFor, makeCode, MAX_PLAYERS, MIN_PLAYERS };
+module.exports = { Room, viewFor, makeCode, MAX_PLAYERS, MIN_PLAYERS, DISCONNECT_GRACE_MS };
 
 
 

@@ -5,6 +5,8 @@
 // 2 クライアントで join → start → 同時ピック → 解決 → 再接続 を検証する。
 
 process.env.PORT = process.env.PORT || '3115';
+// 退席 → AI 代行の猶予を短くしてテストする
+process.env.DISCONNECT_GRACE_MS = process.env.DISCONNECT_GRACE_MS || '300';
 const { WebSocket } = require('ws');
 const srv = require('../server.js');
 

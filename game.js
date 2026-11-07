@@ -888,8 +888,18 @@
       }
       const el = document.createElement('div');
       el.className = `player-chip${pi === 0 ? ' me' : ''}${picked ? ' picked' : ''}`;
+      const grace = STATE.disconnectGraceMs || 120000;
+      const offLeft = p.connected === false && p.disconnectedAt
+        ? Math.max(0, Math.ceil((p.disconnectedAt + grace - Date.now()) / 1000))
+        : null;
+      const offTag = offLeft === null
+        ? ''
+        : offLeft > 0
+          ? `<span class="chip-off">退席中（AIまで ${Math.floor(offLeft / 60)}:${String(offLeft % 60).padStart(2, '0')}）</span>`
+          : '<span class="chip-off">AI代行中</span>';
       el.innerHTML = `
         <span class="chip-name">${p.name}${pi === 0 && p.name !== 'あなた' ? '（あなた）' : ''}</span>
+        ${offTag}
         <span class="chip-round">${STATE.phase !== 'over' && roundPts ? `R${STATE.round + 1} +${roundPts}` : ''}</span>
         <span class="chip-tags">${tags.join(' ')}</span>
         <span class="chip-score">${Engine.scorePlayer(STATE, pi)}点</span>`;
@@ -1529,6 +1539,12 @@
 
   function init() {
     startKeepAlive();
+    // 退席中の席があるときはチップのカウントダウンを毎秒更新
+    setInterval(() => {
+      if (!STATE || STATE.phase === 'over') return;
+      if (!STATE.players.some((p) => p.connected === false)) return;
+      renderPlayerBar();
+    }, 1000);
     $('btn-start').addEventListener('click', startGame);
     $('input-name').addEventListener('keydown', (e) => {
       if (e.key !== 'Enter') return;
