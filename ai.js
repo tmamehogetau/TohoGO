@@ -207,6 +207,10 @@
         if (after >= th) return 6.5;
         return 0.7 * icons + (total >= th - 4 ? 1.2 : 0);
       }
+      case 'deckGrab': {
+        // 山札の上から 2 枚を取得（平均的なカード 2 枚ぶんの期待値）
+        return 3.2;
+      }
       case 'scoop': {
         // 文: 追加で2枚取って山札から2枚補充する。1枚ぶん以上の価値がある
         return 2.4;

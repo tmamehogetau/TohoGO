@@ -1242,26 +1242,6 @@ test('風神録: ラウンド結果の内訳合計がラウンド点と一致す
   assert.ok((r.extras || []).some((e) => e.key === 'f_faith'), '信仰の得点が内訳に出る');
 });
 
-test('風神録: 同じ手番に早苗を2枚取ると2回ぶん溜まる', () => {
-  const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
-  fixPeek(s);
-  setHands(s, [['f_aya', 'f_sanae', 'f_sanae', 'x_dummy'], ['x_dummy', 'x_dummy', 'x_dummy', 'x_dummy']]);
-  pickAll(s, [0, 0]); // 文を取得 → 取材で早苗2枚を取る
-  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { scoop: [0, 1] } });
-  assert.ok(r.ok, r.error);
-  assert.strictEqual(s.players[0].sanaePending, 2, '枚数ぶん溜まる（手番の制限は文だけ）');
-});
-
-test('風神録: 取材で取った文は効果が重ならない', () => {
-  const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
-  fixPeek(s);
-  setHands(s, [['f_aya', 'f_aya', 'x_dummy', 'x_dummy'], ['x_dummy', 'x_dummy', 'x_dummy', 'x_dummy']]);
-  pickAll(s, [0, 0]); // 文を取得 → 取材の選択フェーズ
-  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { scoop: [0, 1] } }); // 手札から文2とダミーを取る
-  assert.ok(r.ok, r.error);
-  assert.strictEqual(s.players[0].scoopPending || 0, 0, '2枚目の文は追加取材を積まない');
-});
-
 test('風神録: 早苗=枚数ぶん奇跡が起きる（1枚ずつ消費）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
   fixPeek(s);
@@ -1304,16 +1284,26 @@ test('風神録: 犬走椛=0枚−3点／奇数0点／偶数+5点', () => {
   assert.strictEqual(mk(3), 0);
 });
 
-test('風神録: 射命丸文=手札から追加で2枚取り、山札から2枚補充する', () => {
+test('風神録: 射命丸文=自身を山札の下へ戻し、山札の上から2枚取得する', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  s.deck = [{ key: 'f_kanako' }, { key: 'f_suwako' }, { key: 'f_sanae' }].concat(s.deck);
   setHands(s, [['f_aya', 'f_kanako', 'f_hina'], [DM, DM, DM]]);
-  pickAll(s, [0, 0]); // 文を取る → 選択フェーズ
-  assert.strictEqual(s.phase, 'select');
-  const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { scoop: [0, 1] } });
-  assert.ok(res.ok, res.error);
-  assert.strictEqual(s.players[0].taken.filter((x) => x.key === 'f_aya').length, 0, '文は手元に残らない');
-  assert.strictEqual(s.players[0].taken.length, 2, '追加で2枚取れている');
-  assert.strictEqual(s.players[0].hand.length, 2, '山札から2枚補充されている');
+  pickAll(s, [0, 0]); // 文を取る（選択フェーズは出ない）
+  assert.strictEqual(s.phase, 'pick', '追加選択は不要');
+  const taken = s.players[0].taken.map((x) => x.key);
+  assert.deepStrictEqual(taken, ['f_kanako', 'f_suwako'], '山札の上2枚を取得');
+  assert.strictEqual(s.players[0].taken.some((x) => x.key === 'f_aya'), false, '文は手元に残らない');
+  assert.strictEqual(s.deck[s.deck.length - 1].key, 'f_aya', '文は山札の下へ');
+  assert.strictEqual(s.players[0].hand.length, 2, '手札は減るだけ（補充しない）');
+});
+
+test('風神録: 射命丸文=山札から出た文は連鎖しない', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  s.deck = [{ key: 'f_aya' }, { key: 'f_suwako' }].concat(s.deck);
+  setHands(s, [['f_aya', 'f_kanako', 'f_hina'], [DM, DM, DM]]);
+  pickAll(s, [0, 0]);
+  const ayas = s.players[0].taken.filter((x) => x.key === 'f_aya').length;
+  assert.strictEqual(ayas, 1, '山札から出た文は手元に残るだけ（効果なし）');
 });
 
 

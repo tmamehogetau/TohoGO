@@ -405,6 +405,27 @@
         addLog(state, `${p.name}: にとりが次の調査に備えた`);
       }
 
+      // 射命丸文: 自身を山札の下へ戻し、山札の上から 2 枚を取得する
+      if (def.kind === 'deckGrab') {
+        if (p.inDeckGrab) {
+          // 連鎖しない: 山札から出た文は 0 点のカードとして手元に残る
+          inst.selectionDone = true;
+        } else {
+          const selfIdx = p.taken.indexOf(inst);
+          if (selfIdx >= 0) p.taken.splice(selfIdx, 1);
+          state.deck.push(inst);
+          p.inDeckGrab = true;
+          let got = 0;
+          for (let k = 0; k < (def.grab || 2) && state.deck.length > 0; k++) {
+            const card = state.deck.shift();
+            applyTake(state, pi, card);
+            got++;
+          }
+          p.inDeckGrab = false;
+          addLog(state, `${p.name}: 文が山札の下へ回り、山札の上から ${got} 枚を掴んだ`);
+        }
+      }
+
 
       // 即時点数はラウンド末に一括集計する（ここでは加点しない）。
       // コンボ（美鈴・藍・橙）の発動だけは取得順依存のため、取得時にフラグを記録する。
