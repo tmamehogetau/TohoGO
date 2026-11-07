@@ -189,7 +189,7 @@
     switch (def.kind) {
       case 'instant': {
         const parts = [`${def.points} 点`];
-        if (def.buffTargets) parts.push(`取得後・次に${def.buffTargets.map(nameOf).join('か')}を取ると、その点が 3 倍（1 回ずつ消費）`);
+        if (def.buffTargets) parts.push(`取得後、次に${def.buffTargets.map(nameOf).join('か')}を取ると 点数 3 倍（1 回につき 1 回）`);
         if (def.absentKeys) parts.push(def.absentKeys.includes(def.key)
           ? '他の人も同じ手番に同じ札を取ると 0 点（単独なら満点）'
           : `誰かが同時に${def.absentKeys.map(nameOf).join('か')}を取ると 0 点`);
@@ -206,41 +206,41 @@
         }
         return parts.join('／');
       }
-      case 'othersDiff': return `ラウンド末・(同じ手番に他の人が取った${nameOf(def.plusKey)}の枚数 − ${nameOf(def.minusKey)}の枚数) × ${def.mult} 点`;
-      case 'pairCond': return `ラウンド末・2 枚ごとに ${def.points} 点／2 枚ごとに自分の${nameOf('s_spring')}アイコン合計 -${def.reduceSpringIconsPerPair}（春の順位判定が下がる）`;
-      case 'maki': return `ラウンド末・このアイコンの合計を競う。最多 ${MAKI.first} 点／2位 ${MAKI.second} 点（同数は同順位で等分・次点はスキップ）`;
-      case 'temaki': return `ラウンド末・この枚数を競う。最多 +${def.most} 点／最少 ${def.least} 点（同数は全員で等分）`;
-      case 'springMost': return `ラウンド末・春の獲得数が全員最多なら、所持 1 枚ごとに +${def.most} 点`;
-      case 'springBoost': return '取得後・次に春を取ると、そのアイコン数ぶんの春と点を追加で獲得（同じラウンド内）';
+      case 'othersDiff': return `ラウンド末・他の人が同じ手番に取った${nameOf(def.plusKey)}の枚数と${nameOf(def.minusKey)}の枚数の差 × ${def.mult} 点`;
+      case 'pairCond': return `ラウンド末・2 枚ごとに ${def.points} 点。ただし 2 枚ごとに春アイコン -${def.reduceSpringIconsPerPair} される（春の競争で不利）`;
+      case 'maki': return `ラウンド末・アイコンの合計数を競う。1 位 ${MAKI.first} 点／2 位 ${MAKI.second} 点`;
+      case 'temaki': return `ラウンド末・枚数を競う。1 位 +${def.most} 点／最下位 ${def.least} 点`;
+      case 'springMost': return `ラウンド末・春の取得数が全員の 1 位なら、所持 1 枚につき +${def.most} 点`;
+      case 'springBoost': return '取得後、次に春を取るとアイコン数ぶんの点を追加でもらえる（同じラウンド内で 1 回）';
       case 'pair': return def.pairRamp
-        ? `ラウンド末・2 枚で 1 ペア。ゲーム通算で 1 ペア目 ${def.pairRamp} 点・2 ペア目 ${def.pairRamp + 1} 点・3 ペア目 ${def.pairRamp + 2} 点…と増える`
-        : `ラウンド末・2 枚で 1 ペア ${def.points} 点${gameEndBonusText(def)}`;
+        ? `ラウンド末・2 枚 1 ペア。1 ペア目 ${def.pairRamp} 点・2 ペア目 ${def.pairRamp + 1} 点…とゲームを通して増える`
+        : `ラウンド末・2 枚 1 ペア = ${def.points} 点${gameEndBonusText(def)}`;
       case 'aliceSet': {
         const tbl = def.table || [0, 1, 4, 9, 16];
-        return `ラウンド末・集めた${def.name}の種類数で得点。1 種 ${tbl[1]} 点／2 種 ${tbl[2]} 点／3 種 ${tbl[3]} 点／4 種 ${tbl[4]} 点`;
+        return `ラウンド末・違う人形の種類数で得点。1 種 ${tbl[1]} 点／2 種 ${tbl[2]} 点／3 種 ${tbl[3]} 点／4 種 ${tbl[4]} 点`;
       }
-      case 'set3': return `ラウンド末・3 枚で 1 セット ${def.points} 点${gameEndBonusText(def)}`;
-      case 'collect': return `ラウンド末・1/2/3/4/5+ 枚で ${def.table.join('/')} 点`;
-      case 'socialJoin': return 'ラウンド末・自分以外で大妖精かチルノを取ったプレイヤー 1 人につき +1 点';
-      case 'roundComboCount': return `ラウンド末・このラウンドに自分が継続カードを取るたび +${def.per} 点`;
-      case 'tofu': return `ラウンド末・1 枚 ${def.table[0]} 点／2 枚 ${def.table[1]} 点／3 枚以上 ${def.table[def.table.length - 1]} 点`;
-      case 'eel': return `ラウンド末・1 枚 ${def.first} 点／2 枚以上 +${def.more} 点（中途半端な 1 枚が祟り）`;
-      case 'pairWith': return `ラウンド末・${nameOf(def.partner)}とのペア 1 組につき ${def.points} 点`;
-      case 'uramaki': return `ラウンド中・信仰アイコンが ${def.threshold} 個に到達した順に ${def.rankPoints.join(' / ')} 点（同数は同順位・次点スキップ／カードは残る）`;
-      case 'scoop': return '取得時・手札から追加で 2 枚取り、山札から 2 枚を補充（このカードは山札の下へ）';
-      case 'swapNamed': return '次の取得後・カード名を指定し、他者の手札からランダムに 1 枚もらってこのカードを渡す（本体 0 点）';
-      case 'dessertParity': return `ゲーム末・0 枚なら ${def.zero} 点／偶数なら +${def.even} 点／奇数なら 0 点`;
-      case 'kindCount': return `ラウンド末・「取ったカードの種類数 ${def.offset >= 0 ? '+' : ''}${def.offset}」点`;
-      case 'letty': return `ラウンド末・(自分の冬の枚数 − 自分の春の個数) × ${def.mult} 点`;
-      case 'coop': return `取得した手番・自分以外が同じ手番で取得したリグル 1 枚につき +${def.points} 点（1 人だけなら 0 点）`;
-      case 'flip': return `取得時・手元のカードを任意枚数裏返せる（判定から外れ 1 枚 ${def.flipPoints} 点／ミスティア自身は対象外）`;
+      case 'set3': return `ラウンド末・3 枚 1 セット = ${def.points} 点${gameEndBonusText(def)}`;
+      case 'collect': return `ラウンド末・枚数が多いほど得点。${def.table.map((v, i) => `${i + 1} 枚 ${v} 点`).join('／')}…`;
+      case 'socialJoin': return 'ラウンド末・このラウンドに他の人が大妖精かチルノを取っていたら、その人数 × 1 点';
+      case 'roundComboCount': return `ラウンド末・このラウンドに継続カードを取った枚数 × ${def.per} 点`;
+      case 'tofu': return `ラウンド末・1 枚 ${def.table[0]} 点／2 枚 ${def.table[1]} 点。3 枚目を取ると全部 0 点`;
+      case 'eel': return `ラウンド末・1 枚だけだと ${def.first} 点。2 枚以上集めると +${def.more} 点`;
+      case 'pairWith': return `ラウンド末・${nameOf(def.partner)}と同じ枚数だけペアが成立し、1 組 ${def.points} 点`;
+      case 'uramaki': return `ラウンド中・信仰アイコン合計が ${def.threshold} に達した人から順に ${def.rankPoints[0]} 点・${def.rankPoints[1]} 点・${def.rankPoints[2]} 点`;
+      case 'scoop': return '取得時・手札から 2 枚追加で取り、山札から 2 枚引き直す（このカードは山札へ戻る）';
+      case 'swapNamed': return '次にカードを取ったあと、カード名を指定して誰かの手札と 1 枚交換できる（本体 0 点）';
+      case 'dessertParity': return `ゲーム末・0 枚 ${def.zero} 点／偶数枚 +${def.even} 点／奇数枚 0 点`;
+      case 'kindCount': return `ラウンド末・このラウンドに取ったカードの種類数 ${def.offset >= 0 ? '+' : ''}${def.offset} 点`;
+      case 'letty': return `ラウンド末・自分の冬の枚数から春の個数を引いた数 × ${def.mult} 点`;
+      case 'coop': return '取得した手番で、他の人も同時にリグルを取っていたら 1 人につき 1 点';
+      case 'flip': return `取得時・手元のカードを裏返せる。裏返すと通常効果を失い 1 枚 ${def.flipPoints} 点になる`;
       case 'copy': return '取得時・手元の他のカード 1 枚の効果をコピー';
-      case 'deckPeek': return `取得時・山札の上 ${def.peek} 枚を見て 1 枚獲得（残りは山札の下へ・使わなくてもよい）`;
+      case 'deckPeek': return `取得時・山札の上 ${def.peek} 枚を見て、その中から 1 枚もらえる`;
       case 'collectByTwo': return `ゲーム末・2 枚ごとに ${def.per2} 点／4 枚以上で +${def.bonusAt4}`;
       case 'parity': return `ゲーム末・偶数枚なら 2 枚ごとに ${def.per2Even} 点／奇数なら ${def.per2Odd} 点`;
-      case 'dessertLeast': return `ゲーム末・この継続カードの枚数が最少なら ${def.least} 点（同数は全員で等分）`;
-      case 'dessertIce': return `ゲーム末・${def.per} 枚ごとに +${def.points} 点`;
-      case 'dessertMostLeast': return `ゲーム末・所持枚数が最多なら +${def.most} 点／最少なら ${def.least} 点（同数は全員で等分）`;
+      case 'dessertLeast': return `ゲーム末・この継続カードの保有数が最少だと ${def.least} 点`;
+      case 'dessertIce': return `ゲーム末・${def.per} 枚集めるごとに +${def.points} 点`;
+      case 'dessertMostLeast': return `ゲーム末・最多なら +${def.most} 点／最少なら ${def.least} 点`;
       case 'dessertRound': return `ラウンド末・そのラウンドに取った 1 枚ごとに ${def.roundPenalty} 点／ゲーム末・最多なら 所持枚数 × ${def.endMostPer} 点`;
       default: return '';
     }
@@ -1512,6 +1512,7 @@
   // デバッグ・テスト用に公開（Game.state でヘッドレスエンジンの state を直接参照できる）
   window.Game = { startGame, renderAll, get state() { return STATE; } };
 })();
+
 
 
 
