@@ -33,29 +33,55 @@
     </div>
 
     <div id="mp-entry" class="hidden">
-      <button id="btn-create" class="secondary">ルームを作る</button>
-      <input id="input-code" placeholder="コード" maxlength="4" autocomplete="off">
-      <button id="btn-join" class="secondary">参加する</button>
+      <h2 class="panel-title">みんなで遊ぶ</h2>
+      <p class="note">ルームを作って友だちを招待するか、コードを入れて参加します。</p>
+
+      <button id="btn-create">ルームを作る（ホスト）</button>
+
+      <div class="mp-or"><span>または</span></div>
+
+      <div class="mp-join">
+        <input id="input-code" placeholder="ルームコード" maxlength="4" autocomplete="off">
+        <button id="btn-join" class="secondary">参加する</button>
+      </div>
       <div><button id="btn-mp-back" class="secondary back-btn">← 戻る</button></div>
     </div>
 
     <div id="online-lobby" class="hidden">
-      <p class="note">ルームコード: <strong id="online-code"></strong>（参加者に伝えてください）</p>
-      <div id="online-settings">
-        <label class="setting-row">ステージ
-          <select id="setting-incident"></select>
-        </label>
-        <label class="setting-row">取得時間
-          <select id="setting-timer">
-            <option value="30">30 秒</option>
-            <option value="60">60 秒</option>
-            <option value="0">無制限</option>
-          </select>
-        </label>
-        <p class="note" id="setting-hint">※ルームマスターのみ変更できます</p>
+      <h2 class="panel-title">ルーム <span id="online-room-state" class="room-state">待機中</span></h2>
+
+      <div class="room-code-row">
+        <span class="room-code-label">ルームコード</span>
+        <strong class="room-code-value" id="online-code">----</strong>
+        <button id="btn-copy-code" class="secondary small">コピー</button>
       </div>
-      <div id="online-players"></div>
-      <button id="btn-online-start" class="hidden">ゲームを始める</button>
+      <p class="note">このコードを参加者に伝えてください。</p>
+
+      <div class="online-grid">
+        <section class="online-section">
+          <h3>参加者 <span id="online-count" class="count"></span></h3>
+          <div id="online-players" class="online-players"></div>
+        </section>
+        <section class="online-section">
+          <h3>ルーム設定</h3>
+          <label class="setting-row">ステージ
+            <select id="setting-incident"></select>
+          </label>
+          <label class="setting-row">取得時間
+            <select id="setting-timer">
+              <option value="30">30 秒</option>
+              <option value="60">60 秒</option>
+              <option value="0">無制限</option>
+            </select>
+          </label>
+          <p class="note" id="setting-hint">※ルームマスターのみ変更できます</p>
+        </section>
+      </div>
+
+      <div class="online-actions">
+        <button id="btn-online-start" class="hidden">ゲームを始める</button>
+        <button id="btn-online-leave" class="secondary back-btn">ルームを出る</button>
+      </div>
       <p class="note" id="online-hint"></p>
     </div>
   </div>

@@ -46,6 +46,7 @@
     $('mode-select').classList.remove('hidden');
     $('solo-panel').classList.add('hidden');
     $('mp-entry').classList.add('hidden');
+    $('online-lobby').classList.add('hidden');
   }
 
   // ステージ紋章（assets/ui/<id>.webp）。おまかせは紋章なし
@@ -1381,6 +1382,36 @@
     return $('input-name').value.trim() || 'あなた';
   }
 
+  // ルームコードをコピー
+  function copyRoomCode() {
+    const code = $('online-code').textContent.trim();
+    const done = () => {
+      const btn = $('btn-copy-code');
+      const prev = btn.textContent;
+      btn.textContent = 'コピー済み';
+      setTimeout(() => { btn.textContent = prev; }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(done).catch(() => {});
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { /* noop */ }
+      ta.remove();
+    }
+  }
+
+  // ルームから抜けてモード選択へ戻る
+  function leaveOnlineLobby() {
+    try { Net.leave(); } catch (e) { /* 切断済みでも続行 */ }
+    ONLINE = false;
+    $('online-lobby').classList.add('hidden');
+    $('mp-entry').classList.remove('hidden');
+    showModeSelect();
+  }
+
   function createRoom() {
     Net.join(randomRoomCode(), lobbyName());
   }
@@ -1400,8 +1431,21 @@
     $('solo-panel').classList.add('hidden');
     $('mp-entry').classList.add('hidden');
     $('online-code').textContent = lobby.roomCode;
+    $('online-room-state').textContent = lobby.started ? '開始' : '待機中';
+    $('online-room-state').classList.toggle('started', !!lobby.started);
+    $('online-count').textContent = `${lobby.players.length} / ${lobby.maxPlayers} 人`;
     $('online-players').innerHTML = lobby.players
-      .map((p) => `<div class="online-player${p.seat === MY_SEAT ? ' me' : ''}">${p.isHost ? '★' : ''}${p.name}${p.connected ? '' : ' <span class="off">（切断）</span>'}</div>`)
+      .map((p) => {
+        const mine = p.seat === MY_SEAT;
+        const host = p.isHost ? '<span class="tag-host">ホスト</span>' : '';
+        const you = mine ? '<span class="tag-you">あなた</span>' : '';
+        const off = p.connected ? '' : '<span class="tag-off">切断</span>';
+        return `<div class="online-player${mine ? ' me' : ''}${p.connected ? '' : ' off'}">`
+          + `<span class="seat-no">${p.seat + 1}</span>`
+          + `<span class="player-name">${p.name}</span>`
+          + host + you + off
+          + '</div>';
+      })
       .join('');
     const me = lobby.players.find((p) => p.seat === MY_SEAT);
     const isHostMe = !!(me && me.isHost);
@@ -1484,6 +1528,8 @@
     $('btn-chopsticks').addEventListener('click', toggleChopsticks);
     $('btn-confirm-pick').addEventListener('click', confirmPick);
     $('btn-cardref').addEventListener('click', toggleCardRef);
+    $('btn-online-leave').addEventListener('click', leaveOnlineLobby);
+    $('btn-copy-code').addEventListener('click', copyRoomCode);
     $('btn-create').addEventListener('click', createRoom);
     $('btn-join').addEventListener('click', joinRoom);
     $('input-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') joinRoom(); });
