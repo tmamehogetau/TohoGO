@@ -1457,3 +1457,22 @@ body[data-stage="scarlet"] { --panel-a: rgba(56, 20, 28, 0.56); --panel-b: rgba(
 body[data-stage="spring"]  { --panel-a: rgba(60, 30, 46, 0.56); --panel-b: rgba(22, 12, 19, 0.78); }
 body[data-stage="eternal"] { --panel-a: rgba(24, 33, 62, 0.56); --panel-b: rgba(10, 13, 26, 0.78); }
 body[data-stage="mountain"]{ --panel-a: rgba(18, 44, 34, 0.56); --panel-b: rgba(8, 20, 15, 0.78); }
+
+/* 選択オーバーレイが行の高さで切れないように（overflow: hidden を解除） */
+.table-row {
+  overflow: visible;
+}
+/* オーバーレイは行より高くなってよい */
+#select-area.active {
+  overflow: visible;
+  max-height: none;
+}
+
+/* backdrop-filter で行がスタッキングコンテキストになるため、
+   選択オーバーレイが下の行に隠れないよう自分の行を前面に出す */
+.table-row.me {
+  z-index: 3;
+}
+#select-area.active {
+  z-index: 20;
+}
