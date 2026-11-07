@@ -59,6 +59,8 @@
 | f_shizuha | 短い金髪（赤い紅葉）・金目・赤いロングドレス（裾に葉模様）・白いリーフリボン | `aki_shizuha short_hair blonde_hair gold_eyes red_dress leaf_print autumn_leaves` | 穣子と髪色が近いので帽子と葡萄で差をつける |
 | f_momiji | 短い白髪・赤目・狼耳・赤いトキン・白い長袖シャツ＋黒いロングスカート（赤い炎模様）・長い刀＋紅葉の盾 | `inubashiri_momiji white_hair red_eyes wolf_ears red_tokin white_shirt black_skirt sword shield` | |
 | f_faith | （人物なし）守矢神社・鳥居・石段・しめ縄・御札・賽銭箱 | `no_humans moriya_shrine torii stone_steps shimenawa ofuda scenery` | 風景カード |
+- 風神録の採用案（2026-11-07・先輩の選択）: aya=1 / faith=3 / hina=3 / kanako=1（仁王立ち再生成） / minoriko=1 / momiji=1 / nitori=3 / sanae=3 / shizuha=3 / suwako=1
+
 
 ## 露出の方針
 
@@ -102,5 +104,6 @@
 | 玉兎 | 人間ではなく兎 | `no humans, rabbit, white fur, pounding mochi` に変更（人型の兎娘をやめた） |
 
 再生成は各3案（咲夜/橙/プリズム/慧音/玉兎＝15枚＋橙の作り直し6枚）。採用は `assemble-final.py` の `PICK` に反映済み。
+
 
 
