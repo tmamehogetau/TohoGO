@@ -362,12 +362,30 @@ test('紅霧: フランをスキップ後の小悪魔選択に古い破棄キー
   assert.strictEqual(s.phase, 'pick');
 });
 
-test('紅霧: 大妖精=自分以外でチルノを取った人数ぶん +1点', () => {
+test('紅霧: 大妖精=同じ手番にチルノを取った人数ぶん +1点', () => {
   const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'scarlet' });
   fixPeek(s);
-  cycle(s, [['k_daiyousei', 'x_dummy'], ['k_cirno', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0, 0]); // B がチルノ
+  cycle(s, [['k_daiyousei', 'x_dummy'], ['k_cirno', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0, 0]);
   cycle(s, [['x_dummy'], ['x_dummy'], ['x_dummy']], [0, 0, 0]); // ラウンド終了
-  assert.strictEqual(s.players[0].roundScores[0], 1, 'チルノを取った B の1人ぶん');
+  assert.strictEqual(s.players[0].roundScores[0], 1, '同じ手番でチルノを取った B の1人ぶん');
+});
+
+test('紅霧: 大妖精=別の手番のチルノは数えない', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  cycle(s, [['x_dummy', 'k_daiyousei'], ['k_cirno', 'x_dummy']], [0, 0]); // この手番は B だけチルノ
+  cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]);
+  // 手番1で A はダミー、手番2で A が大妖精 → 同じ手番にチルノを取った人はいない
+  assert.strictEqual(s.players[0].roundScores[0], 0);
+});
+
+test('紅霧: 大妖精=同じ手番の大妖精も数える（互いに+1）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  cycle(s, [['k_daiyousei', 'x_dummy'], ['k_daiyousei', 'x_dummy']], [0, 0]);
+  cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]);
+  assert.strictEqual(s.players[0].roundScores[0], 1);
+  assert.strictEqual(s.players[1].roundScores[0], 1);
 });
 
 test('紅霧: 大妖精=自分だけでは0点', () => {
@@ -377,19 +395,13 @@ test('紅霧: 大妖精=自分だけでは0点', () => {
   cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]);
   assert.strictEqual(s.players[0].roundScores[0], 0);
 });
-test('紅霧: 大妖精=フランで破棄したチルノは数えない', () => {
-  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+
+test('紅霧: 大妖精=同じ手番に2人がチルノなら+2', () => {
+  const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'scarlet' });
   fixPeek(s);
-  const F = 'k_meirin'; // 無害なダミー（即時1点）
-  cycle(s, [['k_cirno', F, F], [F, F, F]], [0, 0]); // チルノ取得
-  setHands(s, [['k_fran', F], [F, F]]);
-  pickAll(s, [0, 0]); // フラン取得 → 選択フェーズ
-  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { discard: 0 } }); // taken[0]=チルノを破棄
-  assert.ok(r.ok, r.error);
-  cycle(s, [['k_daiyousei', F], [F, F]], [0, 0]); // 大妖精取得
-  cycle(s, [['k_sakuya'], [F]], [0, 0]); // ラウンド終了
-  // フラン2 + 破棄2 + 咲夜3 + 大妖精0（自分以外に大妖精/チルノを取った人がいない）= 7
-  assert.strictEqual(s.players[0].roundScores[0], 7);
+  cycle(s, [['k_daiyousei', 'x_dummy'], ['k_cirno', 'x_dummy'], ['k_cirno', 'x_dummy']], [0, 0, 0]);
+  cycle(s, [['x_dummy'], ['x_dummy'], ['x_dummy']], [0, 0, 0]);
+  assert.strictEqual(s.players[0].roundScores[0], 2);
 });
 
 test('紅霧: 妖精メイド=多数決 最多4/最少−4', () => {

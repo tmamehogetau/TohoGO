@@ -221,7 +221,13 @@
       }
       case 'set3': return `ラウンド末・3 枚 1 セット = ${def.points} 点${gameEndBonusText(def)}`;
       case 'collect': return `ラウンド末・枚数が多いほど得点。${def.table.map((v, i) => `${i + 1} 枚 ${v} 点`).join('／')}…`;
-      case 'socialJoin': return `ラウンド末・このラウンドに他の人が${(def.joinKeys || []).map(nameOf).join('か')}を取っていたら、その人数 × ${def.per || 1} 点`;
+      case 'socialJoin': {
+        const names = (def.joinKeys || []).map(nameOf).join('か');
+        const per = def.per === undefined ? 1 : def.per;
+        return def.sameTurn
+          ? `取得した手番・同じ手番に他の人が${names}を取っていたら、その人数 × ${per} 点`
+          : `ラウンド末・このラウンドに他の人が${names}を取っていたら、その人数 × ${per} 点`;
+      }
       case 'roundComboCount': return `ラウンド末・このラウンドに継続カードを取った枚数 × ${def.per} 点`;
       case 'tofu': return `ラウンド末・1 枚 ${def.table[0]} 点／2 枚 ${def.table[1]} 点。3 枚目を取ると全部 0 点`;
       case 'eel': return `ラウンド末・1 枚だけだと ${def.first} 点。2 枚以上集めると +${def.more} 点`;
@@ -269,7 +275,11 @@
       case 'aliceSet': return '種類数で1/4/9/16点';
       case 'set3': return `3枚で${def.points}点`;
       case 'collect': return '枚数で加点';
-      case 'socialJoin': return `他人の${nameOf((def.joinKeys || [])[0])}で+${def.per || 1}`;
+      case 'socialJoin': {
+        const short = (def.joinKeys || []).map((k) => nameOf(k)).join('/');
+        const per = def.per === undefined ? 1 : def.per;
+        return def.sameTurn ? `同手番の${short}で+${per}` : `他人の${short}で+${per}`;
+      }
       case 'roundComboCount': return `継続カード毎+${def.per}`;
       case 'tofu': return `${def.table.join('/')}点`;
       case 'kindCount': return `種類数${def.offset >= 0 ? '+' : ''}${def.offset}`;

@@ -206,6 +206,7 @@
       const coopThisTurn = []; // この手番で同時に取得されたリグル（{ pi, inst }）
       const youmuThisTurn = []; // この手番で取得された妖夢
       const diffThisTurn = []; // この手番で取得された「他人の取得数で決まる」カード（レティ）
+      const socialThisTurn = []; // この手番で取得された「同じ手番の仲間で加点」カード（大妖精）
       for (let i = 0; i < state.playerCount; i++) {
         const idxs = [...state.picks[i]].sort((a, b) => b - a);
         const insts = idxs.map((idx) => state.players[i].hand.splice(idx, 1)[0]);
@@ -214,6 +215,7 @@
           applyTake(state, i, inst);
           const def = state.cardMap[inst.key];
           if (def && def.kind === 'coop') coopThisTurn.push({ pi: i, inst });
+          if (def && def.kind === 'socialJoin' && def.sameTurn) socialThisTurn.push({ pi: i, inst });
           if (def && def.kind === 'springSteal') youmuThisTurn.push({ pi: i, inst });
           if (def && def.kind === 'othersDiff') diffThisTurn.push({ pi: i, inst });
         }
@@ -226,6 +228,20 @@
       for (const { pi, inst } of coopThisTurn) {
         const others = coopThisTurn.filter((x) => x.pi !== pi).length;
         inst.coopPoints = others * coopPointValue(state.cardMap[inst.key]);
+      }
+      // 大妖精: 同じ手番に「自分以外」がチルノか大妖精を取った人数ぶん加点（手番内で確定）
+      for (const { pi, inst } of socialThisTurn) {
+        const def = state.cardMap[inst.key];
+        const keys = def.joinKeys || [];
+        let others = 0;
+        for (const lp of state.lastPicks) {
+          if (lp.pi === pi) continue;
+          if (lp.keys.some((k) => keys.includes(k))) others++;
+        }
+        inst.socialPoints = others * (def.per === undefined ? 1 : def.per);
+        if (inst.socialPoints > 0) {
+          addLog(state, `${state.players[pi].name}: 大妖精が同じ手番の仲間 ${others} 人に応えて +${inst.socialPoints} 点`);
+        }
       }
       // othersDiff（レティ）: 同じ手番に「他の人」が取った枚数の差で決まる
       for (const { pi, inst } of diffThisTurn) {
@@ -1161,8 +1177,15 @@
             break;
           }
           case 'socialJoin': {
-            // 自分以外で「大妖精かチルノ」を取ったプレイヤー1人につき +per 点（同じラウンド）
             const keys = def.joinKeys || [];
+            if (def.sameTurn) {
+              // 手番内で確定済みの点数を合算（取得した手番の仲間の人数）
+              kindPts = p.taken
+                .filter((inst) => inst.key === def.key && !inst.flipped && !inst.discarded)
+                .reduce((a, inst) => a + (inst.socialPoints || 0), 0);
+              break;
+            }
+            // 旧仕様（ラウンド内の他人の取得を数える）
             let others = 0;
             for (let j = 0; j < state.players.length; j++) {
               if (j === pi) continue;

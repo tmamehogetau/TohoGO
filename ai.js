@@ -230,14 +230,25 @@
         // 固定点（base）＋チルノなど対象継続カード1枚ごとの点
         return (def.base || 0) * 0.7 + def.per * (def.cumulative ? 1.2 : 0.7);
       case 'socialJoin': {
-        // 自分以外で大妖精かチルノを取っている人数ぶんもらえる（ラウンド末）
         const keys = def.joinKeys || [];
+        const per = def.per === undefined ? 1 : def.per;
+        if (def.sameTurn) {
+          // 同じ手番に他の人がチルノ/大妖精を出すか。手札に見えていれば確率 0.5 で見込む
+          let expect = 0;
+          for (let j = 0; j < state.players.length; j++) {
+            if (j === pi) continue;
+            const hand = state.players[j].hand || [];
+            if (hand.some((c) => keys.includes(typeof c === 'string' ? c : c.key))) expect += 0.5;
+          }
+          return expect * per;
+        }
+        // 旧仕様（ラウンド内の他人の取得を数える）
         let others = 0;
         for (let j = 0; j < state.players.length; j++) {
           if (j === pi) continue;
           if (state.players[j].taken.some((i) => keys.includes(i.key) && !i.discarded && !i.flipped)) others++;
         }
-        return (def.perCopy ? Math.max(1, countKey(p, def.key)) : 1) * (others + 0.5) * (def.per || 1);
+        return (def.perCopy ? Math.max(1, countKey(p, def.key)) : 1) * (others + 0.5) * per;
       }
       case 'tofu': {
         const at = (k) => (k <= 0 ? 0 : def.table[Math.min(k, def.table.length) - 1]);
