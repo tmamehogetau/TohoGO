@@ -173,7 +173,7 @@
       }
       case 'othersDiff': return `ラウンド末・(同じ手番に他の人が取った${nameOf(def.plusKey)}の枚数 − ${nameOf(def.minusKey)}の枚数) × ${def.mult} 点`;
       case 'pairCond': return `ラウンド末・2 枚ごとに ${def.points} 点／2 枚ごとに自分の${nameOf('s_spring')}アイコン合計 -${def.reduceSpringIconsPerPair}（春の順位判定が下がる）`;
-      case 'maki': return `ラウンド末・このアイコンの合計を競う。最多 ${MAKI.first} 点／2 位 ${MAKI.second} 点（同数は同順位で等分・次点はスキップ）`;
+      case 'maki': return `ラウンド末・このアイコンの合計を競う。最多 ${MAKI.first} 点／2位 ${MAKI.second} 点（同数は同順位で等分・次点はスキップ）`;
       case 'temaki': return `ラウンド末・この枚数を競う。最多 +${def.most} 点／最少 ${def.least} 点（同数は全員で等分）`;
       case 'springMost': return `ラウンド末・春の獲得数が全員最多なら、所持 1 枚ごとに +${def.most} 点`;
       case 'springBoost': return '取得後・次に春を取ると、そのアイコン数ぶんの春と点を追加で獲得（同じラウンド内）';
@@ -605,17 +605,17 @@
     } else if (STATE.phase === 'select') {
       statusEl.textContent = selectStatusText(selectTurn);
     } else if (STATE.picks[0]) {
-      statusEl.textContent = '他のプレイヤーの選択を待っている…';
+      statusEl.textContent = '他のプレイヤーの選択を待っています…';
     } else if (CHOPSTICKS_MODE) {
-      statusEl.textContent = `早飲みモード：2枚選んでね（${CHOP_SELECTED.length}/2 枚選択）`;
+      statusEl.textContent = `早飲みモード：2 枚選んでね（${CHOP_SELECTED.length}/2 枚選択）`;
     } else if (PICK_SELECTED !== null && p.hand[PICK_SELECTED]) {
-      statusEl.textContent = `「${cardLabel(defOf(p.hand[PICK_SELECTED].key))}」を選択中。決定ボタンで確定`;
+      statusEl.textContent = `「${cardLabel(defOf(p.hand[PICK_SELECTED].key))}」を選択中。「このカードを取る」で確定`;
     } else if (STATE.hidden) {
       statusEl.textContent = STATE.hiddenOwner === 0
-        ? '幻覚をかけている：出した番の全員のピックがうどんげに見えている'
-        : '幻覚がかかっている：出した番のピックがうどんげに見えている';
+        ? '幻覚をかけている：出した番の全員の取得がうどんげに見えている'
+        : '幻覚がかかっている：出した番の取得がうどんげに見えている';
     } else {
-      statusEl.textContent = '手札から 1 枚選んで決定ボタンを押してね';
+      statusEl.textContent = '手札から 1 枚選んで「このカードを取る」を押してね';
     }
 
     const chopBtn = $('btn-chopsticks');
@@ -649,7 +649,7 @@
 
   function selectStatusText(selectTurn) {
     const need = humanSelectNeeded();
-    if (!selectTurn) return '他のプレイヤーの選択を待っている…';
+    if (!selectTurn) return '他のプレイヤーの選択を待っています…';
     if (SEL_MODE === 'scoop') {
       const p0 = STATE.players[0];
       const want = Math.min(p0.scoopPending || 2, p0.hand.length);
@@ -658,16 +658,16 @@
     if (SEL_MODE === 'swapNamed') return '河城にとり：相手の手札から取りたいカード名を指定してね';
     if (SEL_MODE === 'flip') return `裏返すカードを選んでね（${SEL_SELECTED.length} 枚選択・任意枚数）`;
     if (SEL_MODE === 'discard') return SEL_SELECTED.length === 1
-      ? '破棄するカードを選択中。決定ボタンで確定'
+      ? '破棄するカードを選択中。「このカードを破棄する」で確定'
       : '破棄するカードを 1 枚選んでね';
     if (SEL_MODE === 'copy') return SEL_SELECTED.length === 1
-      ? 'コピーするカードを選択中。決定ボタンで確定'
+      ? 'コピーするカードを選択中。「この効果をコピーする」で確定'
       : 'コピーするカードを 1 枚選んでね';
     if (SEL_MODE === 'swap') return SEL_SELECTED.length === 1
-      ? '山札と交換するカードを選択中。決定ボタンで確定'
+      ? '山札と交換するカードを選択中。「このカードを山札と交換する」で確定'
       : '山札と交換するカードを 1 枚選んでね（永琳の薬）';
     if (SEL_MODE === 'peek') return SEL_SELECTED.length === 1
-      ? '獲得するカードを選択中。決定ボタンで確定'
+      ? '獲得するカードを選択中。「このカードを獲得する」で確定'
       : '山札の上 4 枚の中から獲得するカードを 1 枚選んでね';
     return '取得カードの効果を選択中…';
   }
@@ -1005,7 +1005,7 @@
       $('pass-indicator').textContent = '';
       return;
     }
-    $('round-indicator').textContent = `ラウンド ${STATE.round + 1} / ${STATE.incidentName}`;
+    $('round-indicator').textContent = `ラウンド ${STATE.round + 1}｜${STATE.incidentName}`;
     $('pass-indicator').textContent = STATE.passDir === 1 ? '手札は右隣へ流れる' : '手札は左隣へ流れる';
   }
 
@@ -1079,7 +1079,7 @@
             .join('');
           return `<div class="bp${r.pi === 0 ? ' banner-me' : ''}">
             <div class="bp-head"><span>${r.rank}位${rankCounts.get(r.rank) > 1 ? '（同率）' : ''} ${r.name}${r.pi === 0 ? '（あなた）' : ''}</span><span class="bp-total">${r.total}点</span></div>
-            <div class="bp-sub">デザート${r.desserts}枚 ／ ${rounds} ／ ゲーム末 ${geTotal >= 0 ? '+' : ''}${geTotal}</div>
+            <div class="bp-sub">デザート ${r.desserts} 枚 ／ ${rounds} ／ ゲーム末 ${geTotal >= 0 ? '+' : ''}${geTotal} 点</div>
             ${geList ? `<div class="bp-extras">${geList}</div>` : ''}
             ${desserts ? `<div class="bp-cards">${desserts}</div>` : ''}
           </div>`;
@@ -1090,7 +1090,7 @@
         <button class="secondary" data-act="lobby">ロビーへ戻る</button>
         <button class="secondary" data-act="close">結果を閉じる</button>
       </div>`;
-      el.innerHTML = `<h2>宴会が幕を閉じた</h2><div class="banner-players">${rows}</div>${actions}<p class="banner-note">同点はデザート枚数で判定 ・ クリックで閉じる</p>`;
+      el.innerHTML = `<h2>宴会が幕を閉じた</h2><div class="banner-players">${rows}</div>${actions}<p class="banner-note">同点はデザート枚数で判定／クリックで閉じる</p>`;
       el.classList.remove('hidden');
       el.onclick = (ev) => {
         if (ev.target.closest('button')) return;
@@ -1144,11 +1144,11 @@
         for (const e of byKey.values()) {
           if (!e.pts) continue;
           const def = e.def || defOf(e.key);
-          const cnt = e.count > 1 ? `（${e.count}枚）` : '';
-          const icons = e.icons > e.count ? `（${e.icons}個）` : '';
+          const cnt = e.count > 1 ? `（${e.count} 枚）` : '';
+          const icons = e.icons > e.count ? `（${e.icons} 個）` : '';
           const flag = e.flags.size ? `・${[...e.flags].join('・')}` : '';
           const label = def && def.group
-            ? `${def.name}（${e.types.size}種・${e.count}枚）${flag}`
+            ? `${def.name}（${e.types.size} 種・${e.count} 枚）${flag}`
             : `${def ? def.name : e.key}${cnt}${icons}${flag}`;
           pointRows.push(`<div class="bp-point"><span>${label}</span><b>${e.pts >= 0 ? '+' : ''}${e.pts}</b></div>`);
         }
@@ -1173,7 +1173,7 @@
         </div>`;
       })
       .join('');
-    el.innerHTML = `<h2>ラウンド ${b.round + 1} 結果</h2><div class="banner-players">${rows}</div><p class="banner-note">${ONLINE ? 'クリックで次へ（全員の準備を待っています）' : 'カードをクリックで次のラウンド開始'}</p>`;
+    el.innerHTML = `<h2>ラウンド ${b.round + 1} の結果</h2><div class="banner-players">${rows}</div><p class="banner-note">${ONLINE ? 'クリックで次へ（全員の準備を待っています）' : 'クリックで次のラウンドへ'}</p>`;
     el.classList.remove('hidden');
     el.onclick = () => {
       if (ONLINE) { Net.continueRound(); return; }
@@ -1455,7 +1455,7 @@
     onDisconnect() {
       if (!ONLINE) return;
       const st = $('hand-status');
-      if (st) st.textContent = '接続が切れたよ。自動で再接続しています…';
+      if (st) st.textContent = '接続が切れました。自動で再接続しています…';
     },
     onConnected() {},
   };
@@ -1465,6 +1465,10 @@
   // デバッグ・テスト用に公開（Game.state でヘッドレスエンジンの state を直接参照できる）
   window.Game = { startGame, renderAll, get state() { return STATE; } };
 })();
+
+
+
+
 
 
 

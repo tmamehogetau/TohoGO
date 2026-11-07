@@ -99,7 +99,7 @@
         log: [],
         hidden: false, // うどんげの情報隠蔽
       };
-      addLog(state, `異変「${incident.name}」・${incident.subtitle} 開始！ ${playerCount}人・手札${handSize}枚`);
+      addLog(state, `異変「${incident.name}」・${incident.subtitle} 開始！ ${playerCount} 人・手札 ${handSize} 枚`);
       if (intruderDef) addLog(state, `乱入者「${intruderDef.name}」が宴会に現れた…！`);
       dealRound(state);
       return state;
@@ -154,7 +154,7 @@
     // ---------------- ピック ----------------
 
     function pick(state, pi, idxs) {
-      if (state.phase !== 'pick') return err('ピックフェーズではない');
+      if (state.phase !== 'pick') return err('いまは取得のフェーズではない');
       const p = state.players[pi];
       if (!p) return err('プレイヤー不在');
       if (state.picks[pi] !== null) return err('すでに選択済み');
@@ -162,7 +162,7 @@
 
       // 手札 0 枚のときは空ピックで待機（早飲みで枚数がズレるため。デッドロック回避）
       if (idxs.length === 0) {
-        if (p.hand.length !== 0) return err('手札があるのに空ピック');
+        if (p.hand.length !== 0) return err('手札があるのに空の取得');
         state.picks[pi] = [];
         if (state.picks.every((x) => x !== null)) resolvePicks(state);
         return ok();
@@ -293,7 +293,7 @@
       if (hiddenActivated !== null) {
         state.hidden = true;
         state.hiddenOwner = hiddenActivated;
-        addLog(state, `${state.players[hiddenActivated].name}: 幻覚で全員のピックが見えなくなった`);
+        addLog(state, `${state.players[hiddenActivated].name}: 幻覚で全員の取得が見えなくなった`);
       }
       // 「うどんげを出した番」に公開されるカードがすべてうどんげとして見える
       // （出した本人は影響を受けない。以降のピックは通常どおり公開・ラウンド末に判定で解除）
@@ -360,7 +360,7 @@
         stats.springIcons += icons;
         p.youmuPts = (p.youmuPts || 0) + icons;
         inst.youmuBoost = icons;
-        addLog(state, `${p.name}: 妖夢の加護で春${icons}個と +${icons} 点`);
+        addLog(state, `${p.name}: 妖夢の加護で春 ${icons} 個と +${icons} 点`);
       }
 
       // 早苗の加護: 次に取る神奈子／諏訪子の点数を3倍にする（取り置きは先着順・重複は1回ずつ）
@@ -370,7 +370,7 @@
       } else if (def.buffable && (p.sanaePending || 0) > 0) {
         p.sanaePending -= 1;
         inst.triple = 3;
-        addLog(state, `${p.name}: 早苗の奇跡で${def.name}の点数が3倍になった`);
+        addLog(state, `${p.name}: 早苗の奇跡で${def.name}の点数が 3 倍になった`);
       }
 
       // 射命丸文: 追加で手札から取る（選択フェーズで解決）
@@ -393,7 +393,7 @@
           const owned = new Set(p.taken.map((i2) => i2.key));
           if (def.comboKeys.every((k) => owned.has(k))) {
             inst.instantCombo = true;
-            addLog(state, `${p.name}: ${def.name}は${def.comboKeys.map((k) => (state.cardMap[k] ? state.cardMap[k].name : k)).join('・')}と連携した（ラウンド末に+${def.comboBonus}点）`);
+            addLog(state, `${p.name}: ${def.name}は${def.comboKeys.map((k) => (state.cardMap[k] ? state.cardMap[k].name : k)).join('・')}と連携した（ラウンド末に +${def.comboBonus} 点）`);
           }
         }
       }
@@ -619,7 +619,7 @@
             inst.discarded = true;
             // 加算はラウンド末にまとめる（取得中に roundScores が動かないように）
             inst.franBonus = franBonus;
-            addLog(state, `${p.name}: フランが${cardName(idef) || inst.key}を破棄した（+${franBonus}点）`);
+            addLog(state, `${p.name}: フランが${cardName(idef) || inst.key}を破棄した（+${franBonus} 点）`);
           }
         }
 
@@ -662,7 +662,7 @@
             inst.flipped = true;
             flippedN++;
           }
-          if (flippedN) addLog(state, `${p.name}: 夜雀の歌で${flippedN}枚の価値が変わった（判定時に各${flipPoints}点）`);
+          if (flippedN) addLog(state, `${p.name}: 夜雀の歌で${flippedN} 枚の価値が変わった（判定時に各 ${flipPoints} 点）`);
         }
 
         // 慧音コピー
@@ -727,7 +727,7 @@
             drawn++;
           }
           p.scoopPending = Math.max(0, (p.scoopPending || 0) - pending);
-          addLog(state, `${p.name}: 文が${gotten.length}枚を追加取材し、山札から${drawn}枚を補充した`);
+          addLog(state, `${p.name}: 文が ${gotten.length} 枚を追加取材し、山札から ${drawn} 枚を補充した`);
         }
 
         // 河城にとり: 名前を指定して他者の手札からランダムに1枚もらい、にとりを渡す
@@ -913,7 +913,7 @@
       for (const ev of state.faithEvents || []) {
         if (ev.pi >= 0 && ev.pi < n) detail[ev.pi].push({ key: 'f_faith', label: `信仰（${ev.n}個・${ev.place}位）`, pts: ev.pts });
       }
-      addLog(state, `ラウンド${state.round + 1}終了`);
+      addLog(state, `ラウンド ${state.round + 1} 終了`);
 
       // 妹紅（dessertRound）は各ラウンド終了時に判定
       applyDessertRound(state, results);
@@ -1243,7 +1243,7 @@
         p.roundScores[state.round] += pts;
         const r = results.find((x) => x.pi === i);
         if (r) r.points += pts;
-        addLog(state, `${p.name}: 妹紅の炎に焼かれた（${pts >= 0 ? '+' : ''}${pts}点）`);
+        addLog(state, `${p.name}: 妹紅の炎に焼かれた（${pts >= 0 ? '+' : ''}${pts} 点）`);
       }
     }
 
@@ -1386,6 +1386,9 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = Engine;
   if (typeof window !== 'undefined') window.Engine = Engine;
 })();
+
+
+
 
 
 

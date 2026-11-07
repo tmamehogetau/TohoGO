@@ -244,7 +244,7 @@ class Room {
       return res.ok ? { ok: true } : { ok: false, error: res.error };
     }
 
-    if (this.state.phase !== 'pick') return { ok: false, error: 'いまはピックのフェーズではありません' };
+    if (this.state.phase !== 'pick') return { ok: false, error: 'いまは取得のフェーズではありません' };
     if (this.state.picks[seat] !== null) return { ok: false, error: 'すでに選択済みです' };
 
     let engineAction;
@@ -359,3 +359,4 @@ function stateIncludesSelection(state, seat) {
 }
 
 module.exports = { Room, viewFor, makeCode, MAX_PLAYERS, MIN_PLAYERS };
+
