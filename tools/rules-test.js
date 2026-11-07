@@ -1137,7 +1137,86 @@ test('select フェーズ: 人間の選択は AI 解決で埋められない', (
   assert.strictEqual(s.phase, 'select', '人間が選ぶまで select のまま');
 });
 
-console.log(`\n${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+// ================= 風神録メカニズム =================
+
+const DM = 'f_suwako'; // 風神録のダミー（即時2点・条件なし）
+
+test('風神録: 鍵山雛=1枚なら−3点、2枚以上なら+7点', () => {
+  const one = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  setHands(one, [['f_hina'], [DM]]);
+  pickAll(one, [0, 0]); // ラウンド終了
+  assert.strictEqual(one.players[0].roundScores[0], -3, '1枚は−3点');
+
+  const two = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  setHands(two, [['f_hina', 'f_hina'], [DM, DM]]);
+  pickAll(two, [0, 0]);
+  setHands(two, [['f_hina'], [DM]]);
+  pickAll(two, [0, 0]); // ラウンド終了
+  assert.strictEqual(two.players[0].roundScores[0], 7, '2枚以上は+7点');
+});
+
+test('風神録: 秋静葉=穣子とのペア1組につき5点', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  setHands(s, [['f_shizuha', 'f_minoriko'], [DM, DM]]);
+  pickAll(s, [0, 0]); // 静葉
+  setHands(s, [['f_minoriko'], [DM]]);
+  pickAll(s, [0, 0]); // ラウンド終了（静葉1・穣子1）
+  // 静葉5点 + 穣子の収集1点
+  assert.strictEqual(s.players[0].roundScores[0], 6);
+});
+
+test('風神録: 早苗=次に取った神奈子の点数が3倍', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  setHands(s, [['f_sanae', 'f_kanako'], [DM, DM]]);
+  pickAll(s, [0, 0]); // 早苗
+  setHands(s, [['f_kanako'], [DM]]);
+  pickAll(s, [0, 0]); // ラウンド終了
+  // 早苗1点 + 神奈子 3×3 = 9点
+  assert.strictEqual(s.players[0].roundScores[0], 10);
+});
+
+test('風神録: 信仰=10個到達で即時8点（カードは残る）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  // 手札は毎手番パスで入れ替わるため、毎ターン配り直して同じ player0 に信仰を集めさせる
+  const icons = [3, 3, 2, 2];
+  for (const n of icons) {
+    setHands(s, [[{ key: 'f_faith', icons: n }, DM], [DM, DM]]);
+    pickAll(s, [0, 0]);
+  }
+  // 3+3+2+2 = 10 で1番目 → 8点。信仰はラウンド末に追加点なし
+  assert.strictEqual(s.players[0].roundScores[0], 8);
+  assert.strictEqual(s.players[0].taken.filter((x) => x.key === 'f_faith').length, 4, 'カードは捨てない');
+});
+
+test('風神録: 犬走椛=0枚−3点／奇数0点／偶数+5点', () => {
+  const mk = (n) => {
+    const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+    for (let i = 0; i < n; i++) s.players[0].desserts.push(inst('f_momiji'));
+    for (let r = 0; r < 3; r++) {
+      setHands(s, [[DM, DM], [DM, DM]]);
+      pickAll(s, [0, 0]);
+      setHands(s, [[DM], [DM]]);
+      pickAll(s, [0, 0]);
+    }
+    return Engine.gameEndBreakdown(s, 0).filter((x) => x.key === 'f_momiji').reduce((a, b) => a + b.pts, 0);
+  };
+  assert.strictEqual(mk(0), -3);
+  assert.strictEqual(mk(1), 0);
+  assert.strictEqual(mk(2), 5);
+  assert.strictEqual(mk(3), 0);
+});
+
+test('風神録: 射命丸文=手札から追加で2枚取り、山札から2枚補充する', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  setHands(s, [['f_aya', 'f_kanako', 'f_hina'], [DM, DM, DM]]);
+  pickAll(s, [0, 0]); // 文を取る → 選択フェーズ
+  assert.strictEqual(s.phase, 'select');
+  const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { scoop: [0, 1] } });
+  assert.ok(res.ok, res.error);
+  assert.strictEqual(s.players[0].taken.filter((x) => x.key === 'f_aya').length, 0, '文は手元に残らない');
+  assert.strictEqual(s.players[0].taken.length, 2, '追加で2枚取れている');
+  assert.strictEqual(s.players[0].hand.length, 2, '山札から2枚補充されている');
+});
 
 
 
@@ -1154,4 +1233,8 @@ console.log(`\n${passed} tests passed${process.exitCode ? ' (with failures)' : '
 
 
 
+
+
+console.log(`\
+${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
 

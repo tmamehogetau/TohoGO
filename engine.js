@@ -118,6 +118,10 @@
         p.springBuff = 0;
         p.youmuPts = 0;
         p.youmuSpring = 0;
+        p.sanaePending = 0;
+        p.scoopPending = 0;
+        p.nitoriArmSeq = 0;
+        p.nitoriReady = false;
       }
       state.passDir = PASS_DIRS[state.round];
       state.picks = new Array(state.playerCount).fill(null);
@@ -127,7 +131,8 @@
       state.hiddenOwner = null;
       state.peekNeeded = null;
       state.peekCards = null;
-      state.roundStats = state.players.map(() => ({ springIcons: 0, dessertTaken: 0, intruderTaken: false }));
+      state.faithAwarded = 0;
+      state.roundStats = state.players.map(() => ({ springIcons: 0, dessertTaken: 0, intruderTaken: false, faithCleared: false }));
     }
 
     function dispatch(state, action) {
@@ -272,6 +277,17 @@
       }
       state.picks = new Array(state.playerCount).fill(null);
 
+      // にとり: 取り置きした「次の手番」が来たら、名前指定の選択を予約する
+      for (let i = 0; i < state.playerCount; i++) {
+        const p = state.players[i];
+        if (p.nitoriArmSeq && state.pickSeq > p.nitoriArmSeq) {
+          p.nitoriArmSeq = 0;
+          p.nitoriReady = true;
+        }
+      }
+      // 信仰: 取得直後に到達判定
+      checkFaithRace(state);
+
       // 幻覚の開始（免疫は「出した手番の 1 回ぶん」だけ。ラウンド内で別の人が出せば主も移る）
       if (hiddenActivated !== null) {
         state.hidden = true;
@@ -344,6 +360,28 @@
         p.youmuPts = (p.youmuPts || 0) + icons;
         inst.youmuBoost = icons;
         addLog(state, `${p.name}: 妖夢の加護で春${icons}個と +${icons} 点`);
+      }
+
+      // 早苗の加護: 次に取る神奈子／諏訪子の点数を3倍にする（取り置きは先着順・重複は1回ずつ）
+      if (def.buffTargets) {
+        p.sanaePending = (p.sanaePending || 0) + 1;
+        addLog(state, `${p.name}: 早苗が次の奇跡に備えた`);
+      } else if (def.buffable && (p.sanaePending || 0) > 0) {
+        p.sanaePending -= 1;
+        inst.triple = 3;
+        addLog(state, `${p.name}: 早苗の奇跡で${def.name}の点数が3倍になった`);
+      }
+
+      // 射命丸文: 追加で手札から取る（選択フェーズで解決）
+      if (def.kind === 'scoop') {
+        p.scoopPending = (p.scoopPending || 0) + (def.scoop || 2);
+        addLog(state, `${p.name}: 文が追加取材に入った`);
+      }
+
+      // 河城にとり: 次の取得後に、名前を指定して他者の手札と入れ替える
+      if (def.kind === 'swapNamed') {
+        p.nitoriArmSeq = state.pickSeq;
+        addLog(state, `${p.name}: にとりが次の調査に備えた`);
       }
 
 
@@ -423,7 +461,7 @@
             continue;
           }
           if (def.kind !== 'instant') continue;
-          inst.roundPts = inst.absentBlocked ? 0 : def.points; // 咲夜の同席判定
+          inst.roundPts = inst.absentBlocked ? 0 : def.points * (inst.triple || 1); // 咲夜の同席判定／早苗の3倍
           // 同じ手番の条件（永琳: 誰かが同じ手番に輝夜を取っていれば加点）
           inst.roundPts += inst.turnBonus || 0;
           inst.roundPts += inst.extraPts || 0; // 取得時に確定した追加点
@@ -457,7 +495,7 @@
 
     function selectionNeeded(state, pi) {
       const p = state.players[pi];
-      const need = { discard: false, flip: false, copy: false, peek: false, swap: false };
+      const need = { discard: false, flip: false, copy: false, peek: false, swap: false, scoop: false, swapNamed: false };
       for (const inst of p.taken) {
         const def = state.cardMap[inst.key];
         if (!def || inst.selectionDone) continue;
@@ -467,6 +505,8 @@
         if (def.kind === 'copy') need.copy = true;
         if (def.kind === 'deckPeek') need.peek = true;
       }
+      if ((p.scoopPending || 0) > 0 && p.hand.length > 0) need.scoop = true;
+      if (p.nitoriReady) need.swapNamed = true;
       return need;
     }
 
@@ -485,7 +525,7 @@
           const n = (peekDef && peekDef.peek) || 4;
           state.peekCards[i] = state.deck.splice(0, Math.min(n, state.deck.length));
         }
-        if (need.discard || need.flip || need.copy || need.peek || need.swap) needed.push(i);
+        if (need.discard || need.flip || need.copy || need.peek || need.swap || need.scoop || need.swapNamed) needed.push(i);
       }
       if (needed.length === 0) return;
       state.phase = 'select';
@@ -537,6 +577,18 @@
         if (!Number.isInteger(c.pick) || c.pick < 0 || c.pick >= (state.peekCards[pi] || []).length) {
           return err('山札から獲得するカードを選んでください');
         }
+      }
+      // 文の追加取材: 手札の idx を最大 scoop 枚
+      if (need.scoop && c.scoop !== null && c.scoop !== undefined) {
+        if (!Array.isArray(c.scoop)) return err('追加取得の指定が不正');
+        if (new Set(c.scoop).size !== c.scoop.length) return err('追加取得の対象が重複している');
+        for (const idx of c.scoop) {
+          if (!Number.isInteger(idx) || idx < 0 || idx >= p.hand.length) return err('無効な追加取得対象');
+        }
+      }
+      // にとりの名前指定: 文字列（未指定なら空振り）
+      if (need.swapNamed && c.named !== null && c.named !== undefined && typeof c.named !== 'string') {
+        return err('カード名の指定が不正');
       }
 
       state.selections[pi] = c;
@@ -647,12 +699,70 @@
           state.peekNeeded[i] = false;
         }
 
+        // 射命丸文: 手札から追加で n 枚獲得 → 文を山札の下へ → 山札から draw 枚を手札へ
+        if (need.scoop) {
+          const pending = p.scoopPending || 0;
+          const idxs = Array.isArray(c.scoop) ? [...new Set(c.scoop)].slice(0, Math.min(pending, p.hand.length)) : [];
+          const gotten = [];
+          for (const idx of idxs.sort((a, b) => b - a)) {
+            const inst = p.hand.splice(idx, 1)[0];
+            if (inst) { applyTake(state, i, inst); gotten.push(inst); }
+          }
+          // 文自身は山札の下へ戻す（手元には残らない）
+          const ayaIdx = p.taken.findIndex((x) => {
+            const d = map[x.key];
+            return d && d.kind === 'scoop' && !x.selectionDone;
+          });
+          if (ayaIdx >= 0) {
+            const aya = p.taken.splice(ayaIdx, 1)[0];
+            aya.selectionDone = true;
+            state.deck.push(aya);
+          }
+          const sdef = Object.values(map).find((d) => d.kind === 'scoop');
+          const drawN = (sdef && sdef.draw) || 2;
+          let drawn = 0;
+          for (let k = 0; k < drawN && state.deck.length; k++) {
+            p.hand.push(state.deck.shift());
+            drawn++;
+          }
+          p.scoopPending = Math.max(0, (p.scoopPending || 0) - pending);
+          addLog(state, `${p.name}: 文が${gotten.length}枚を追加取材し、山札から${drawn}枚を補充した`);
+        }
+
+        // 河城にとり: 名前を指定して他者の手札からランダムに1枚もらい、にとりを渡す
+        if (need.swapNamed) {
+          const named = typeof c.named === 'string' ? c.named : null;
+          p.nitoriReady = false;
+          const niIdx = p.taken.findIndex((x) => {
+            const d = map[x.key];
+            return d && d.kind === 'swapNamed';
+          });
+          if (named) {
+            const cands = [];
+            for (let j = 0; j < state.playerCount; j++) {
+              if (j === i) continue;
+              state.players[j].hand.forEach((inst, h) => { if (inst.key === named) cands.push({ j, h }); });
+            }
+            if (cands.length && niIdx >= 0) {
+              const pick = cands[Math.floor(Math.random() * cands.length)];
+              const got = state.players[pick.j].hand.splice(pick.h, 1)[0];
+              const nitori = p.taken.splice(niIdx, 1)[0];
+              state.players[pick.j].hand.push(nitori);
+              applyTake(state, i, got);
+              addLog(state, `${p.name}: にとりの調査で${cardName(map[got.key]) || got.key}を手に入れた`);
+            } else {
+              addLog(state, `${p.name}: 指定したカードは見つからず、にとりの調査は空振り`);
+            }
+          }
+        }
+
         // 選択済みフラグ（次ラウンドで再選択しないよう taken をマーク）
         for (const inst of p.taken) {
           const idef = map[inst.key];
           if (idef && (idef.discardBonus || idef.swap || idef.kind === 'flip' || idef.kind === 'copy' || idef.kind === 'deckPeek')) inst.selectionDone = true;
         }
       }
+      checkFaithRace(state); // にとりの入れ替えで信仰が動くことがある
       state.phase = 'pick';
       state.selectNeeded = null;
       state.selections = null;
@@ -695,6 +805,50 @@
     // 春アイコンの実効値（ラウンド末の順位判定用）
     function springIconTotal(state, p) {
       return Math.max(0, countKey(p, 's_spring') + (p.youmuSpring || 0) - lettyPairReduction(state, p));
+    }
+
+    // 信仰（uramaki）: アイコン合計がしきい値に到達したら即時得点するレース。
+    // カードは捨てず、到達の順番だけを記録する（にとりで減らされて再到達したら次の順位が入る）
+    function faithIconTotal(state, pi) {
+      const p = state.players[pi];
+      let n = 0;
+      for (const inst of p.taken) {
+        const def = state.cardMap[inst.key];
+        if (!def || def.kind !== 'uramaki') continue;
+        if (inst.flipped || inst.discarded) continue;
+        n += inst.icons || 1;
+      }
+      return n;
+    }
+
+    function checkFaithRace(state) {
+      const def = Object.values(state.cardMap).find((d) => d.kind === 'uramaki');
+      if (!def) return;
+      const threshold = def.threshold || 10;
+      const ranks = def.rankPoints || [8, 5, 2];
+      state.faithAwarded = state.faithAwarded || 0;
+      const cand = [];
+      for (let i = 0; i < state.playerCount; i++) {
+        const st = state.roundStats[i];
+        const n = faithIconTotal(state, i);
+        if (n < threshold) {
+          if (st.faithCleared) st.faithCleared = false; // 減らされたら再挑戦できる
+          continue;
+        }
+        if (st.faithCleared) continue;
+        cand.push({ pi: i, n });
+      }
+      if (!cand.length) return;
+      cand.sort((a, b) => b.n - a.n || a.pi - b.pi);
+      for (const { pi, n } of cand) {
+        if (state.faithAwarded >= ranks.length) break;
+        const pts = ranks[state.faithAwarded];
+        const place = state.faithAwarded + 1;
+        state.faithAwarded += 1;
+        state.roundStats[pi].faithCleared = true;
+        state.players[pi].roundScores[state.round] += pts;
+        addLog(state, `${state.players[pi].name}: 信仰が ${n} 個に到達（${place}番目・+${pts} 点）`);
+      }
     }
 
     // UI 用ユーティリティ: taken 内の key → 枚数マップ（裏返しカードも所持としては数える）
@@ -886,7 +1040,7 @@
         if (inst.flipped || inst.discarded) continue;
         const def = state.cardMap[inst.key];
         if (!def) continue;
-        if (['pair', 'pairCond', 'set3', 'collect', 'tofu', 'kindCount', 'letty', 'roundComboCount', 'socialJoin', 'aliceSet'].includes(def.kind)) {
+        if (['pair', 'pairCond', 'set3', 'collect', 'tofu', 'eel', 'pairWith', 'kindCount', 'letty', 'roundComboCount', 'socialJoin', 'aliceSet'].includes(def.kind)) {
           seenKinds[def.key] = true;
         }
       }
@@ -929,6 +1083,20 @@
           case 'tofu': {
             const idx = n >= def.table.length ? def.table.length - 1 : n - 1;
             kindPts = def.table[idx];
+            break;
+          }
+          case 'eel': {
+            // 祟り（雛）: 1枚だけならマイナス、2枚以上で大きく加点
+            kindPts = n === 1 ? def.first : def.more;
+            kindLabel = `${def.name}（${n}枚）`;
+            break;
+          }
+          case 'pairWith': {
+            // 相方とのペア 1 組につき points
+            const partnerN = countKey(p, def.partner);
+            const pairs = Math.min(n, partnerN);
+            kindPts = pairs * def.points;
+            if (pairs) kindLabel = `${def.name}（${pairs}組）`;
             break;
           }
           case 'kindCount': {
@@ -1081,9 +1249,15 @@
         if (cnt === max && def.most) out.push({ key: def.key, label: `${def.name}（最多${cnt}枚）`, pts: splitPts(def.most, mostN) });
         if (cnt === min && def.least) out.push({ key: def.key, label: `${def.name}（最少${cnt}枚）`, pts: splitPts(def.least, leastN) });
       }
-      // ゲーム末判定（霊夢・魔理沙）
+      // デザートの枚数パリティ（犬走椛）: 0枚 -3点 / 奇数 0点 / 偶数 +5点
       for (const def of Object.values(state.cardMap)) {
-        if (!def.gameEnd) continue;
+        if (def.kind !== 'dessertParity') continue;
+        const cnt = p.desserts.filter((i) => i.key === def.key).length;
+        const pts = cnt === 0 ? (def.zero || 0) : cnt % 2 === 0 ? (def.even || 0) : 0;
+        if (pts) out.push({ key: def.key, label: `${def.name}（${cnt}枚）`, pts });
+      }
+      // ゲーム末判定（霊夢・魔理沙）
+      for (const def of Object.values(state.cardMap)) {        if (!def.gameEnd) continue;
         const cnt = p.gameEndCounts[def.key] || 0;
         if (def.gameEndTotalAtLeast && cnt >= def.gameEndTotalAtLeast.count) {
           out.push({ key: def.key, label: `${def.name}（通算${cnt}枚）`, pts: def.gameEndTotalAtLeast.points });

@@ -5,6 +5,8 @@
 // IIFE で包む: ブラウザでは全 script が同一グローバルスコープのため、let 宣言の衝突を防ぐ。
 
 (function () {
+  // ブラウザでは process が無いため、環境変数は安全に参照する
+  const ENV = (typeof process !== 'undefined' && process.env) ? process.env : {};
   let DATA;
   if (typeof window !== 'undefined' && window.Data) DATA = window.Data;
   else DATA = require('./data.js');
@@ -72,9 +74,9 @@
   // 条件系（同席・乱入者・ペナルティ）は「今の自分の場」で満たしているかで価値を変える。
   // 理想重視モード（開発用）: DRAFT_AI_IDEAL=1 で全席、DRAFT_AI_IDEAL_SEAT=<席番号> でその席だけ
   function idealMode(pi) {
-    const seat = process.env.DRAFT_AI_IDEAL_SEAT;
+    const seat = ENV.DRAFT_AI_IDEAL_SEAT;
     if (seat !== undefined && seat !== '' && String(pi) === String(seat)) return true;
-    return process.env.DRAFT_AI_IDEAL === '1';
+    return ENV.DRAFT_AI_IDEAL === '1';
   }
 
   function baseCardValue(state, pi, card) {
@@ -90,6 +92,10 @@
     switch (def.kind) {
       case 'instant': {
         let value = def.points;
+        // 早苗の奇跡が残っていれば、神奈子／諏訪子の価値は3倍
+        if (def.buffable && (p.sanaePending || 0) > 0) value *= 3;
+        // 早苗自身は「次の奇跡」ぶんの期待値を少し上乗せして見る
+        if (def.buffTargets) value += 1.6;
         // 同じ手番の条件（永琳: 誰かが輝夜を出していれば加点）。確率は控えめに 0.5 で見積もる
         if (def.pointsIfPicked) {
           value += (def.pointsIfPicked.bonus || 1) * 0.5;
@@ -142,10 +148,10 @@
         const step = (k) => Math.max(0, at(k + 1) - at(k));
         let v = Math.max(0.2, step(mine));
         // 先読みモード（DRAFT_AI_LOOKAHEAD=1）: 2枚先の限界を半額で足す。閾値の白黒を避ける
-        if (process.env.DRAFT_AI_LOOKAHEAD === '1' || policyOf(pi) === 'adaptive') v = Math.max(0.2, step(mine) + 0.5 * step(mine + 1));
+        if (ENV.DRAFT_AI_LOOKAHEAD === '1' || policyOf(pi) === 'adaptive') v = Math.max(0.2, step(mine) + 0.5 * step(mine + 1));
         // 妨害モード（DRAFT_AI_BLOCK=1）: 相手が完成に近いほど「取って潰す」価値を足す。
         // 重み 0.4 = 相手の損の4割ぶんを自分の得に換算（損して得取る思考の近似）
-        if (process.env.DRAFT_AI_BLOCK === '1') {
+        if (ENV.DRAFT_AI_BLOCK === '1') {
           let oppMax = 0;
           for (let j = 0; j < state.players.length; j++) {
             if (j === pi) continue;
@@ -178,6 +184,37 @@
         // 累計ペア方式（霊夢）: 次のペアの点数はゲームが進むほど上がる
         const next = def.pairRamp ? def.pairRamp + (p.pairCount || 0) : def.points;
         return next * (need === 1 ? 0.7 : 0.3);
+      }
+      case 'eel': {
+        // 祟り（雛）: 1枚はマイナス、2枚で大きく加点。1枚目は「仕込み」として半分の価値で見る
+        if (mine === 0) return Math.max(0.2, (def.first + def.more) / 2);
+        if (mine === 1) return def.more - def.first;
+        return 0.2;
+      }
+      case 'pairWith': {
+        // 相方とペアで得点。相方を持っている枚数が多いほど取り得
+        const partnerN = countKey(p, def.partner);
+        return def.points * (partnerN > mine ? 0.9 : 0.4);
+      }
+      case 'uramaki': {
+        // 信仰: アイコンを集めて10個到達で即時得点。到達が近いほど価値が跳ねる
+        let total = 0;
+        for (const inst of p.taken) {
+          const d = state.cardMap[inst.key];
+          if (d && d.kind === 'uramaki' && !inst.flipped && !inst.discarded) total += inst.icons || 1;
+        }
+        const th = def.threshold || 10;
+        const after = total + icons;
+        if (after >= th) return 6.5;
+        return 0.7 * icons + (total >= th - 4 ? 1.2 : 0);
+      }
+      case 'scoop': {
+        // 文: 追加で2枚取って山札から2枚補充する。1枚ぶん以上の価値がある
+        return 2.4;
+      }
+      case 'swapNamed': {
+        // にとり: 指定が通れば相手の良い札を1枚もらえる。本体0点なので控えめに
+        return 1.4;
       }
       case 'set3': {
         const need = 3 - (mine % 3);
@@ -295,7 +332,7 @@
   //   adaptive = 状況適応（完成確率の先読み＋軽い妨害）
   //   denial   = 相手の得を潰すことを重視しつつ勝ちを狙う
   function policyOf(pi) {
-    const s = process.env.DRAFT_AI_POLICY_SEATS;
+    const s = ENV.DRAFT_AI_POLICY_SEATS;
     if (!s) return null;
     for (const part of s.split(',')) {
       const bits = part.split(':');
@@ -338,7 +375,7 @@
         if (pol === 'denial') {
           // 妨害は「相手の次の一段が大きいとき」だけ。小さい得のために picks を捨てない
           const og = opponentGain(state, pi, key);
-          const min = Number(process.env.DRAFT_AI_DENIAL_MIN || 4);
+          const min = Number(ENV.DRAFT_AI_DENIAL_MIN || 4);
           if (og >= min) value += 0.45 * og;
         } else if (pol === 'adaptive') value += 0.15 * opponentGain(state, pi, key);
         return { idx, value: value + Math.random() * 0.5 };
@@ -453,6 +490,31 @@
       if (best >= 0 && bestValue < 2) choice.swap = best;
     }
 
+    if (need.scoop) {
+      // 文の追加取材: 手札から価値の高い順に必要枚数
+      const pending = Math.min(p.scoopPending || 2, p.hand.length);
+      const ranked = p.hand
+        .map((inst, idx) => ({ idx, value: cardValue(state, pi, inst, style) }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, pending)
+        .map((x) => x.idx);
+      if (ranked.length) choice.scoop = ranked;
+    }
+
+    if (need.swapNamed) {
+      // にとり: 相手の手札にある中で一番価値の高いカード名を指定する（AI は手札を見られる）
+      let bestKey = null;
+      let bestValue = 0.4;
+      for (let j = 0; j < state.playerCount; j++) {
+        if (j === pi) continue;
+        for (const inst of state.players[j].hand) {
+          const v = cardValue(state, pi, inst, style);
+          if (v > bestValue) { bestValue = v; bestKey = inst.key; }
+        }
+      }
+      if (bestKey) choice.named = bestKey;
+    }
+
     return choice;
   }
 
@@ -462,6 +524,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = AI;
   if (typeof window !== 'undefined') window.AI = AI;
 })();
+
 
 
 

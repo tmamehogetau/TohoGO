@@ -70,6 +70,21 @@
   ];
   const ETERNAL_DESSERT = { key: 'y_moko', kind: 'dessertMostLeast', most: 6, least: -6, name: '藤原妹紅', icon: '火', color: '#d15a32', pool: 15 };
 
+  // ---------------- 風神録異変（風神録） ----------------
+  // 信仰の取り合い（到達レース）と厄の押し付けがテーマ
+  const MOUNTAIN_MAIN = [
+    { key: 'f_kanako', kind: 'instant', points: 3, buffable: true, name: '八坂神奈子', icon: '山', color: '#8d6e3a', count: 3 },
+    { key: 'f_suwako', kind: 'instant', points: 2, buffable: true, name: '洩矢諏訪子', icon: '蛙', color: '#5f8f3e', count: 5 },
+    { key: 'f_sanae', kind: 'instant', points: 1, buffTargets: ['f_kanako', 'f_suwako'], name: '東風谷早苗', icon: '奇', color: '#4a8fb8', count: 4 },
+    { key: 'f_hina', kind: 'eel', first: -3, more: 7, name: '鍵山雛', icon: '厄', color: '#8e3b6a', count: 8 },
+    { key: 'f_aya', kind: 'scoop', scoop: 2, draw: 2, name: '射命丸文', icon: '文', color: '#3a3a42', count: 3 },
+    { key: 'f_nitori', kind: 'swapNamed', name: '河城にとり', icon: '道', color: '#3d7ea6', count: 3 },
+    { key: 'f_minoriko', kind: 'collect', table: [1, 3, 6, 10, 15], name: '秋穣子', icon: '穣', color: '#c8a44a', count: 8 },
+    { key: 'f_shizuha', kind: 'pairWith', partner: 'f_minoriko', points: 5, name: '秋静葉', icon: '紅', color: '#c85a3a', count: 8 },
+    { key: 'f_faith', kind: 'uramaki', iconCounts: { 1: 4, 2: 5, 3: 3 }, threshold: 10, rankPoints: [8, 5, 2], name: '信仰', icon: '信', color: '#d8c07a', count: 12 },
+  ];
+  const MOUNTAIN_DESSERT = { key: 'f_momiji', kind: 'dessertParity', zero: -3, even: 5, name: '犬走椛', icon: '狼', color: '#a85a3a', pool: 15 };
+
   // ---------------- パック ----------------
   const INCIDENTS = {
     scarlet: {
@@ -99,9 +114,18 @@
       dessert: ETERNAL_DESSERT,
       intruders: ETERNAL_INTRUDERS,
     },
+    mountain: {
+      id: 'mountain',
+      name: '風神録異変',
+      subtitle: '守矢の御柱祭',
+      theme: '信仰と厄払い',
+      main: MOUNTAIN_MAIN,
+      dessert: MOUNTAIN_DESSERT,
+      intruders: null,
+    },
   };
 
-  const INCIDENT_IDS = ['scarlet', 'spring', 'eternal'];
+  const INCIDENT_IDS = ['scarlet', 'spring', 'eternal', 'mountain'];
 
   function incidentById(id) {
     return INCIDENTS[id] || null;

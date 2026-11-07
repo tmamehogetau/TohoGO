@@ -8,8 +8,9 @@
   let CHOPSTICKS_MODE = false;
   let CHOP_SELECTED = []; // pick2 モード中の選択 idx
   let PICK_SELECTED = null; // 通常ピックで選択中の idx（決定ボタンで確定）
-  let SEL_MODE = null;    // 取得時選択: 'discard' | 'flip' | 'copy' | 'peek' | null
+  let SEL_MODE = null;    // 取得時選択: 'discard' | 'flip' | 'copy' | 'peek' | 'scoop' | 'swapNamed' | null
   let SEL_SELECTED = [];  // flip モード中の選択 idx
+  let SEL_NAMED = null;   // にとり: 指定したカード名
   let STAGED_CHOICE = null; // 段階選択中の確定済み choice（全モード揃ったら choose で送る）
 
   const $ = (id) => document.getElementById(id);
@@ -166,6 +167,12 @@
       case 'socialJoin': return 'ラウンド末・自分以外で大妖精かチルノを取ったプレイヤー 1 人につき +1 点';
       case 'roundComboCount': return `このラウンドに自分がデザートを取るたび +${def.per} 点`;
       case 'tofu': return `1 枚 ${def.table[0]} 点・2 枚 ${def.table[1]} 点・3 枚以上 ${def.table[def.table.length - 1]} 点`;
+      case 'eel': return `1 枚 ${def.first} 点／2 枚以上 +${def.more} 点（中途半端な1枚が祟り）`;
+      case 'pairWith': return `ラウンド末・${nameOf(def.partner)}とのペア 1 組につき ${def.points} 点`;
+      case 'uramaki': return `ラウンド中・信仰アイコンが ${def.threshold} 個に到達した順に ${def.rankPoints.join(' / ')} 点（カードは残る）`;
+      case 'scoop': return '取得時・手札から追加で 2 枚取り、山札から 2 枚補充（このカードは山札の下へ）';
+      case 'swapNamed': return '次の取得後・カード名を指定して他者の手札からランダムに 1 枚もらい、このカードを渡す（本体0点）';
+      case 'dessertParity': return `ゲーム末・0 枚なら ${def.zero} 点／偶数なら +${def.even} 点／奇数なら 0 点`;
       case 'kindCount': return `ラウンド末・「取ったカードの種類数 ${def.offset >= 0 ? '+' : ''}${def.offset}」点`;
       case 'letty': return `ラウンド末・(自分の冬の枚数 − 自分の春の個数) × ${def.mult} 点`;
       case 'coop': return `取得した手番に、自分以外が同じ手番で取得したリグル 1 枚につき +${def.points} 点（1 人だけなら 0 点）`;
@@ -342,7 +349,7 @@
   function humanSelectNeeded() {
     // エンジンの selectionNeeded と同じ判定を UI 側で行う
     const p = STATE.players[0];
-    const need = { discard: false, flip: false, copy: false, peek: false, swap: false };
+    const need = { discard: false, flip: false, copy: false, peek: false, swap: false, scoop: false, swapNamed: false };
     for (const inst of p.taken) {
       const def = defOf(inst.key);
       if (!def || inst.selectionDone) continue;
@@ -352,15 +359,18 @@
       if (def.kind === 'copy') need.copy = true;
       if (def.kind === 'deckPeek') need.peek = true;
     }
+    if ((p.scoopPending || 0) > 0 && p.hand.length > 0) need.scoop = true;
+    if (p.nitoriReady) need.swapNamed = true;
     return need;
   }
 
   function enterSelectMode() {
     const need = humanSelectNeeded();
     // 蓄積済み choice に含まれていないモードを優先順に選ぶ
-    const order = ['discard', 'copy', 'swap', 'flip', 'peek'];
+    const order = ['scoop', 'swapNamed', 'discard', 'copy', 'swap', 'flip', 'peek'];
     SEL_MODE = order.find((m) => need[m] && !modeStaged(m)) || null;
     SEL_SELECTED = [];
+    SEL_NAMED = null;
     return SEL_MODE;
   }
 
@@ -409,7 +419,7 @@
   }
 
   // 選択モード → choice オブジェクトのキー（小悪魔の山札確認だけ pick になる）
-  const CHOICE_KEY = { discard: 'discard', copy: 'copy', swap: 'swap', flip: 'flip', peek: 'pick' };
+  const CHOICE_KEY = { discard: 'discard', copy: 'copy', swap: 'swap', flip: 'flip', peek: 'pick', scoop: 'scoop', swapNamed: 'named' };
 
   // select フェーズの決定ボタン: 現在のモードを確定して choice に積む。
   // 他に未選択の必要があれば次のモードへ移り、すべて揃ったら choose で一括送信する
@@ -430,13 +440,20 @@
     } else if (SEL_MODE === 'peek') {
       if (SEL_SELECTED.length !== 1) return;
       choice.pick = SEL_SELECTED[0];
+    } else if (SEL_MODE === 'scoop') {
+      // 文の追加取材: 手札から 2 枚（端数は残り枚数）
+      const want = Math.min(STATE.players[0].scoopPending || 2, STATE.players[0].hand.length);
+      if (SEL_SELECTED.length !== want) return;
+      choice.scoop = [...SEL_SELECTED];
+    } else if (SEL_MODE === 'swapNamed') {
+      choice.named = SEL_NAMED || null;
     } else {
       return;
     }
 
     // 残りの必要モードがあれば次へ進む
     const need = humanSelectNeeded();
-    const order = ['discard', 'copy', 'swap', 'flip', 'peek'];
+    const order = ['scoop', 'swapNamed', 'discard', 'copy', 'swap', 'flip', 'peek'];
     const next = order.find((m) => need[m] && (m === 'flip' ? !Array.isArray(choice.flip) : choice[CHOICE_KEY[m]] === undefined));
     if (next) {
       STAGED_CHOICE = choice;
@@ -461,7 +478,7 @@
     if (SEL_MODE === 'flip') choice.flip = [];
     // discard/copy/peek は choice に含めない = 「使わない」扱い（エンジンは未指定を許容）
     const need = humanSelectNeeded();
-    const order = ['discard', 'copy', 'swap', 'flip', 'peek'];
+    const order = ['scoop', 'swapNamed', 'discard', 'copy', 'swap', 'flip', 'peek'];
     const next = order.find((m) => need[m] && (m === 'flip' ? !Array.isArray(choice.flip) : choice[CHOICE_KEY[m]] === undefined) && m !== SEL_MODE);
     if (next) {
       STAGED_CHOICE = choice;
@@ -612,6 +629,12 @@
   function selectStatusText(selectTurn) {
     const need = humanSelectNeeded();
     if (!selectTurn) return '他の幹事の選択を待っている…';
+    if (SEL_MODE === 'scoop') {
+      const p0 = STATE.players[0];
+      const want = Math.min(p0.scoopPending || 2, p0.hand.length);
+      return `射命丸文の取材：追加で取るカードを選んでね（${SEL_SELECTED.length}/${want} 枚）`;
+    }
+    if (SEL_MODE === 'swapNamed') return '河城にとり：相手の手札から取りたいカード名を指定してね';
     if (SEL_MODE === 'flip') return `裏返すカードを選んでね（${SEL_SELECTED.length} 枚選択・任意枚数）`;
     if (SEL_MODE === 'discard') return SEL_SELECTED.length === 1
       ? '破棄するカードを選択中。決定ボタンで確定'
@@ -678,6 +701,39 @@
         el.addEventListener('click', () => onTakenClick(idx));
         list.appendChild(el);
       });
+    } else if (SEL_MODE === 'scoop' && selectTurn) {
+      // 射命丸文: 手札から追加で 2 枚選ぶ
+      const want = Math.min(p.scoopPending || 2, p.hand.length);
+      p.hand.forEach((card, idx) => {
+        const el = cardEl(card.key, card.icons);
+        if (SEL_SELECTED.includes(idx)) el.classList.add('selected');
+        el.classList.add('clickable');
+        el.addEventListener('click', () => {
+          const at = SEL_SELECTED.indexOf(idx);
+          if (at >= 0) SEL_SELECTED.splice(at, 1);
+          else if (SEL_SELECTED.length < want) SEL_SELECTED.push(idx);
+          renderAll();
+        });
+        list.appendChild(el);
+      });
+    } else if (SEL_MODE === 'swapNamed' && selectTurn) {
+      // 河城にとり: 相手の手札にあるカード名を指定する
+      const keys = Object.keys(STATE.cardMap).filter((k) => k !== STATE.dessert.key);
+      const sel = document.createElement('select');
+      sel.className = 'name-select';
+      const opt0 = document.createElement('option');
+      opt0.value = '';
+      opt0.textContent = '（指定しない）';
+      sel.appendChild(opt0);
+      keys.forEach((k) => {
+        const o = document.createElement('option');
+        o.value = k;
+        o.textContent = nameOf(k);
+        sel.appendChild(o);
+      });
+      sel.value = SEL_NAMED || '';
+      sel.addEventListener('change', () => { SEL_NAMED = sel.value || null; });
+      list.appendChild(sel);
     } else {
       p.taken.forEach((card, idx) => {
         const el = cardEl(card.key, card.icons, 'taken', card);
@@ -703,9 +759,14 @@
     btnRow.className = 'select-btn-row';
     if (SEL_MODE && selectTurn) {
       const confirmBtn = document.createElement('button');
-      confirmBtn.disabled = SEL_MODE !== 'flip' && SEL_SELECTED.length !== 1;
+      const wantN = SEL_MODE === 'scoop' ? Math.min(p.scoopPending || 2, p.hand.length) : 1;
+      confirmBtn.disabled = SEL_MODE === 'flip' || SEL_MODE === 'swapNamed' ? false : SEL_SELECTED.length !== wantN;
       if (SEL_MODE === 'flip') {
         confirmBtn.textContent = `裏返しを決定（${SEL_SELECTED.length} 枚）`;
+      } else if (SEL_MODE === 'scoop') {
+        confirmBtn.textContent = `この ${wantN} 枚を追加で取る`;
+      } else if (SEL_MODE === 'swapNamed') {
+        confirmBtn.textContent = 'この名前で調査する';
       } else if (SEL_MODE === 'discard') {
         const bonus = (p.taken.map((inst) => defOf(inst.key)).find((d) => d.discardBonus) || {}).discardBonus || 2;
         confirmBtn.textContent = `このカードを破棄する（+${bonus} 点）`;
@@ -1375,6 +1436,9 @@
   // デバッグ・テスト用に公開（Game.state でヘッドレスエンジンの state を直接参照できる）
   window.Game = { startGame, renderAll, get state() { return STATE; } };
 })();
+
+
+
 
 
 
