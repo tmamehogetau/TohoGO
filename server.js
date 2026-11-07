@@ -236,7 +236,8 @@ setInterval(() => {
 
 const PORT = process.env.PORT || 3010;
 server.listen(PORT, () => {
-  console.log(`幻想宴会ドラフト server: http://localhost:${PORT}`);
+  console.log(`東方数紙業 server: http://localhost:${PORT}`);
 });
 
 module.exports = { server, wss, rooms };
+

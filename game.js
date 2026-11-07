@@ -64,12 +64,32 @@
     }
   }
 
+  // ソロのAI席名: 東方キャラからランダムに3人（プレイヤー名と重複しないように）
+  const AI_NAME_POOL = [
+    '霊夢', '魔理沙', '妖夢', '咲夜', 'レミリア', '紫', '幽々子', '輝夜', '永琳', 'てゐ',
+    '早苗', '神奈子', '諏訪子', '萃香', '文', 'にとり', '椛', '雛', '穣子', '静葉',
+  ];
+  function aiSeatNames(count, exclude, cardNames) {
+    const pool = AI_NAME_POOL.filter((n) => n !== exclude
+      && !(cardNames || []).some((cn) => cn && cn.includes(n)));
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, count);
+  }
+
   function startGame() {
-    const name = $('input-name').value.trim() || '幹事';
-    const incident = $('solo-incident').value;
-    const opts = incident ? { incident } : {};
+    const name = $('input-name').value.trim() || 'あなた';
+    // おまかせのときは先に異変を決めて、席名がカード名と被らないようにする
+    const incident = $('solo-incident').value
+      || Data.INCIDENT_IDS[Math.floor(Math.random() * Data.INCIDENT_IDS.length)];
+    const inc = Data.incidentById(incident);
+    const cardNames = inc
+      ? inc.main.map((c) => c.name).concat([inc.dessert.name], (inc.intruders || []).map((c) => c.name))
+      : [];
     ONLINE = false;
-    STATE = Engine.newGame(4, [name, '萃香', '魔理沙', 'にとり'], opts);
+    STATE = Engine.newGame(4, [name].concat(aiSeatNames(3, name, cardNames)), { incident });
     CHOPSTICKS_MODE = false;
     CHOP_SELECTED = [];
     PICK_SELECTED = null;
@@ -584,7 +604,7 @@
     } else if (STATE.phase === 'select') {
       statusEl.textContent = selectStatusText(selectTurn);
     } else if (STATE.picks[0]) {
-      statusEl.textContent = '他の幹事の選択を待っている…';
+      statusEl.textContent = '他のプレイヤーの選択を待っている…';
     } else if (CHOPSTICKS_MODE) {
       statusEl.textContent = `早飲みモード：2枚選んでね（${CHOP_SELECTED.length}/2 枚選択）`;
     } else if (PICK_SELECTED !== null && p.hand[PICK_SELECTED]) {
@@ -628,7 +648,7 @@
 
   function selectStatusText(selectTurn) {
     const need = humanSelectNeeded();
-    if (!selectTurn) return '他の幹事の選択を待っている…';
+    if (!selectTurn) return '他のプレイヤーの選択を待っている…';
     if (SEL_MODE === 'scoop') {
       const p0 = STATE.players[0];
       const want = Math.min(p0.scoopPending || 2, p0.hand.length);
@@ -807,7 +827,7 @@
       const el = document.createElement('div');
       el.className = `player-chip${pi === 0 ? ' me' : ''}${picked ? ' picked' : ''}`;
       el.innerHTML = `
-        <span class="chip-name">${pi === 0 ? 'あなた' : ''}${p.name}</span>
+        <span class="chip-name">${p.name}${pi === 0 ? '（あなた）' : ''}</span>
         <span class="chip-round">${STATE.phase !== 'over' && roundPts ? `R${STATE.round + 1} +${roundPts}` : ''}</span>
         <span class="chip-tags">${tags.join(' ')}</span>
         <span class="chip-score">${Engine.scorePlayer(STATE, pi)}点</span>`;
@@ -886,7 +906,7 @@
       const label = document.createElement('div');
       label.className = 'row-label';
       const nameSpan = document.createElement('span');
-      nameSpan.textContent = `${pi === 0 ? 'あなた' : ''}${p.name} の取ったカード`;
+      nameSpan.textContent = `${p.name}${pi === 0 ? '（あなた）' : ''} の取ったカード`;
       label.appendChild(nameSpan);
       // 追跡リソース（春合計・兎枚数など）
       for (const t of trackedTags(pi)) {
@@ -1057,7 +1077,7 @@
             .map((d) => cardEl(d.key, null, 'mini banner-card').outerHTML)
             .join('');
           return `<div class="bp${r.pi === 0 ? ' banner-me' : ''}">
-            <div class="bp-head"><span>${r.rank}位${rankCounts.get(r.rank) > 1 ? '（同率）' : ''} ${r.pi === 0 ? 'あなた' : ''}${r.name}</span><span class="bp-total">${r.total}点</span></div>
+            <div class="bp-head"><span>${r.rank}位${rankCounts.get(r.rank) > 1 ? '（同率）' : ''} ${r.name}${r.pi === 0 ? '（あなた）' : ''}</span><span class="bp-total">${r.total}点</span></div>
             <div class="bp-sub">デザート${r.desserts}枚 ／ ${rounds} ／ ゲーム末 ${geTotal >= 0 ? '+' : ''}${geTotal}</div>
             ${geList ? `<div class="bp-extras">${geList}</div>` : ''}
             ${desserts ? `<div class="bp-cards">${desserts}</div>` : ''}
@@ -1138,7 +1158,7 @@
         if (!pointRows.length) pointRows.push('<div class="bp-point"><span>なし</span><b>+0</b></div>');
         pointRows.push(`<div class="bp-point bp-point-total"><span>合計</span><b>${r.points >= 0 ? '+' : ''}${r.points}</b></div>`);
         return `<div class="bp${r.pi === 0 ? ' banner-me' : ''}">
-          <div class="bp-head"><span>${r.pi === 0 ? 'あなた' : r.name}</span><span class="bp-total">${r.points >= 0 ? '+' : ''}${r.points}点</span></div>
+          <div class="bp-head"><span>${r.name}${r.pi === 0 ? '（あなた）' : ''}</span><span class="bp-total">${r.points >= 0 ? '+' : ''}${r.points}点</span></div>
           <div class="bp-body">
             <div class="bp-col">
               <div class="bp-col-title">取得カード</div>
@@ -1436,6 +1456,8 @@
   // デバッグ・テスト用に公開（Game.state でヘッドレスエンジンの state を直接参照できる）
   window.Game = { startGame, renderAll, get state() { return STATE; } };
 })();
+
+
 
 
 
