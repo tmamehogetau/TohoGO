@@ -1226,9 +1226,10 @@
             const keys = def.joinKeys || [];
             if (def.sameTurn) {
               // 手番内で確定済みの点数を合算（取得した手番の仲間の人数）
-              kindPts = p.taken
-                .filter((inst) => inst.key === def.key && !inst.flipped && !inst.discarded)
-                .reduce((a, inst) => a + (inst.socialPoints || 0), 0);
+              const cards = p.taken.filter((inst) => inst.key === def.key && !inst.flipped && !inst.discarded);
+              // バナーでもカードごとの点数を出せるように、確定値を個体にも残す
+              for (const inst of cards) inst.roundPts = inst.socialPoints || 0;
+              kindPts = cards.reduce((a, inst) => a + (inst.socialPoints || 0), 0);
               break;
             }
             // 旧仕様（ラウンド内の他人の取得を数える）

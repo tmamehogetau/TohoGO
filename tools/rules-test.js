@@ -398,6 +398,9 @@ test('紅霧: 大妖精=同じ手番にチルノを取った人数ぶん +1点',
   cycle(s, [['k_daiyousei', 'x_dummy'], ['k_cirno', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0, 0]);
   cycle(s, [['x_dummy'], ['x_dummy'], ['x_dummy']], [0, 0, 0]); // ラウンド終了
   assert.strictEqual(s.players[0].roundScores[0], 1, '同じ手番でチルノを取った B の1人ぶん');
+  // バナーでも、確定済みの点数がカード個体に乗っている（出た時点で決まる点をカードに出す）
+  const bannerCard = s.roundBanner.results[0].cards.find((c) => c.key === 'k_daiyousei');
+  assert.strictEqual(bannerCard.pts, 1, 'バナーの大妖精カードにも +1 が乗る');
 });
 
 test('紅霧: 大妖精=別の手番のチルノは数えない', () => {

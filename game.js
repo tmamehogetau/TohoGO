@@ -663,11 +663,19 @@
     return el;
   }
 
+  // 手札のカードに出す「確定済みの点数」（即時点のみ。条件で変わるものは場に出てから出す）
+  function handPtsOf(inst) {
+    const def = inst && defOf(inst.key);
+    if (!def || def.kind !== 'instant') return null;
+    return typeof def.points === 'number' ? def.points : null;
+  }
+
   // 取得行に表示する「確定済み点数」（即時系カードのみ・破棄/裏返しはタグが代わりに表示される）
   function roundPtsOf(inst, pi) {
     const def = defOf(inst.key);
     if (!def || inst.flipped || inst.discarded) return null;
     if (def.kind === 'coop') return inst.coopPoints || null; // リグルは取得した手番で確定
+    if (def.kind === 'socialJoin' && def.sameTurn) return inst.socialPoints || null; // 大妖精も手番内で確定
     if (def.kind !== 'instant') return null;
     let pts = def.points;
     if (inst.triple) pts *= inst.triple; // 早苗の加護（次の奇跡を 3 倍）
@@ -727,7 +735,8 @@
     confirmBtn.classList.toggle('hidden', !canConfirm);
 
     p.hand.forEach((card, idx) => {
-      const el = cardEl(card.key, card.icons);
+      // 出た時点で点数が確定するカード（即時点）は、手札の時点でその点数をカード面に出す
+      const el = cardEl(card.key, card.icons, '', null, handPtsOf(card));
       const selected = CHOP_SELECTED.includes(idx) || PICK_SELECTED === idx;
       if (selected) el.classList.add('selected');
       // 配り・流れ込みアニメ（deal は枚数分ずらして1枚ずつ配られる演出）
@@ -868,7 +877,7 @@
             return;
           }
         }
-        const el = cardEl(card.key, card.icons, 'taken', card);
+        const el = cardEl(card.key, card.icons, 'taken', card, roundPtsOf(card, 0));
         const isSel = SEL_SELECTED.includes(idx);
         if (isSel) el.classList.add('selected');
         if (selectTurn) {
