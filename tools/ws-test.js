@@ -59,14 +59,25 @@ const isState = (m) => m.type === 'state';
 (async () => {
   const a = connect();
   await a.open();
-  a.send({ type: 'join', code: 'TEST', name: 'A' });
+  a.send({ type: 'create', name: 'A' });
   const j1 = await a.next((m) => m.type === 'joined');
   assert(j1.seat === 0 && j1.isHost, 'host got seat 0');
-  assert(j1.roomCode === 'TEST', 'room code kept as requested');
+  assert(/^[A-Z2-9]{4}$/.test(j1.roomCode), 'server issues the room code: ' + j1.roomCode);
+  const CODE = j1.roomCode;
+  assert(!srv.rooms.has('TEST'), 'room is not created from a client supplied code');
+
+  // 存在しないコードは作らずにエラー（タイプミスで幽霊ルームが増えない）
+  const nope = connect();
+  await nope.open();
+  nope.send({ type: 'join', code: 'ZZZZ', name: 'X' });
+  const eJoin = await nope.next((m) => m.type === 'error');
+  assert(/見つかりません/.test(eJoin.message), 'unknown room code is rejected: ' + eJoin.message);
+  assert(!srv.rooms.has('ZZZZ'), 'unknown code does not create a room');
+  nope.ws.close();
 
   const b = connect();
   await b.open();
-  b.send({ type: 'join', code: 'TEST', name: 'B' });
+  b.send({ type: 'join', code: CODE, name: 'B' });
   const j2 = await b.next((m) => m.type === 'joined');
   assert(j2.seat === 1 && !j2.isHost, 'guest got seat 1');
 
@@ -104,7 +115,7 @@ const isState = (m) => m.type === 'state';
   await new Promise((r) => setTimeout(r, 150));
   const b2 = connect();
   await b2.open();
-  b2.send({ type: 'join', code: 'TEST', name: 'B', playerId: j2.playerId });
+  b2.send({ type: 'join', code: CODE, name: 'B', playerId: j2.playerId });
   const j3 = await b2.next((m) => m.type === 'joined');
   assert(j3.seat === 1 && j3.reconnected === true, 'reconnect restores seat 1');
   const sb2 = (await b2.next(isState)).view;
@@ -113,11 +124,12 @@ const isState = (m) => m.type === 'state';
   // ルーム設定（異変・取得時間）と手番タイマー
   const s1 = connect();
   await s1.open();
-  s1.send({ type: 'join', code: 'SET1', name: 'H' });
-  await s1.next((m) => m.type === 'joined');
+  s1.send({ type: 'create', name: 'H' });
+  const js1 = await s1.next((m) => m.type === 'joined');
+  const SETCODE = js1.roomCode;
   const s2 = connect();
   await s2.open();
-  s2.send({ type: 'join', code: 'SET1', name: 'G' });
+  s2.send({ type: 'join', code: SETCODE, name: 'G' });
   await s2.next((m) => m.type === 'joined');
 
   s1.send({ type: 'setSettings', settings: { timerSeconds: 30, incident: 'scarlet' } });
@@ -137,7 +149,7 @@ const isState = (m) => m.type === 'state';
   const st = (await s1.next(isState)).view;
   assert(st.incidentId === 'scarlet', 'start uses room incident setting');
 
-  const room = srv.rooms.get('SET1');
+  const room = srv.rooms.get(SETCODE);
   room.clearTimer();
   room.settings.timerSeconds = 1;
   room.armTimer();
@@ -148,15 +160,16 @@ const isState = (m) => m.type === 'state';
   const delay = (ms) => new Promise((r) => setTimeout(r, ms));
   const h = connect();
   await h.open();
-  h.send({ type: 'join', code: 'GHOST', name: 'H' });
-  await h.next((m) => m.type === 'joined');
+  h.send({ type: 'create', name: 'H' });
+  const jh = await h.next((m) => m.type === 'joined');
+  const GHOST = jh.roomCode;
   const g1 = connect();
   await g1.open();
-  g1.send({ type: 'join', code: 'GHOST', name: 'G1' });
+  g1.send({ type: 'join', code: GHOST, name: 'G1' });
   await g1.next((m) => m.type === 'joined');
   const g2 = connect();
   await g2.open();
-  g2.send({ type: 'join', code: 'GHOST', name: 'G2' });
+  g2.send({ type: 'join', code: GHOST, name: 'G2' });
   await g2.next((m) => m.type === 'joined');
   g2.ws.close();
   await delay(200);

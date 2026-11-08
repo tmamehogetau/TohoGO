@@ -69,7 +69,10 @@ function viewFor(room, seat) {
       sanaePending: p.sanaePending || 0,
       roundScores: p.roundScores,
       connected: !!(s && s.connected),
-      disconnectedAt: (s && s.disconnectedAt) || null,
+      // 残り時間はサーバーで計算して渡す（端末の時計がずれても正しく出る）
+      disconnectRemainMs: s && s.disconnectedAt
+        ? Math.max(0, s.disconnectedAt + DISCONNECT_GRACE_MS - Date.now())
+        : null,
       seat: oi,
     };
   });
@@ -135,9 +138,9 @@ function viewFor(room, seat) {
     peekNeeded: state.peekNeeded ? [!!state.peekNeeded[seat]] : null,
     peekCards: state.peekCards ? [state.peekCards[seat] || null] : null,
     mySeat: 0,
-    disconnectGraceMs: DISCONNECT_GRACE_MS,
     roomCode: room.code,
-    deadline: room.deadline || null,
+    // 手番の残り時間（ミリ秒）。クライアントは受信時刻からの経過を引いて表示する
+    deadlineRemainMs: room.deadline ? Math.max(0, room.deadline - Date.now()) : null,
   };
   return view;
 }
@@ -230,7 +233,13 @@ class Room {
   // 戻り値: { ok:true, seat, playerId, isHost, reconnected } / { ok:false, error }
   join(name, playerId) {
     this.touch();
-    const trimmed = String(name || '').trim().slice(0, 12);
+    // 名前は UI のいたる所に出るので、制御文字と HTML 記号を落としてから保存する
+    // （表示側のエスケープと二重で守る。12 文字上限はレイアウト都合）
+    const trimmed = String(name || '')
+      .replace(/[\u0000-\u001f\u007f]/g, '')
+      .replace(/[^\p{L}\p{N} _\-・]/gu, '')
+      .trim()
+      .slice(0, 12);
     if (!trimmed) return { ok: false, error: '名前を入力してください' };
 
     if (playerId) {
@@ -242,6 +251,7 @@ class Room {
         this.seats[seat].connected = true;
         this.seats[seat].disconnectedAt = null;
         this.seats[seat].name = trimmed;
+        this.reassignHost();
         return { ok: true, seat, playerId, isHost: this.seats[seat].isHost, reconnected: true };
       }
     }
@@ -253,10 +263,11 @@ class Room {
     const id = crypto.randomUUID();
     const isHost = this.seats.length === 0;
     this.seats.push({ id, name: trimmed, connected: true, isHost });
-    return { ok: true, seat: this.seats.length - 1, playerId: id, isHost, reconnected: false };
+    this.reassignHost();
+    return { ok: true, seat: this.seats.length - 1, playerId: id, isHost: this.seats[this.seats.length - 1].isHost, reconnected: false };
   }
 
-  start(seat, incident) {
+  start(seat) {
     this.touch();
     if (this.started) return { ok: false, error: 'すでに開始しています' };
     const s = this.seats[seat];
@@ -319,11 +330,20 @@ class Room {
     s.connected = false;
     s.disconnectedAt = Date.now();
     this.touch();
-    // ホスト切断時は接続中の次の人へ移譲
-    if (s.isHost) {
-      const next = this.seats.find((x) => x.connected);
-      if (next) { s.isHost = false; next.isHost = true; }
-    }
+    // ホストは「接続中の人間」が持つ。AI 席へは渡さない（渡すと開始も設定変更もできなくなる）
+    this.reassignHost();
+  }
+
+  // 接続中の人間にホストが居なければ、最初の接続済み人間が引き継ぐ。
+  // 名前を変えて入り直す・別ブラウザで入り直すと playerId を失って新席になるため、
+  // 切断したホストの席にフラグが残ったままだと start が永久に通らなくなる。その復旧経路。
+  reassignHost() {
+    const humans = this.seats.filter((s) => s.connected && !s.isAI);
+    if (!humans.length) return false;
+    if (humans.some((s) => s.isHost)) return false;
+    for (const s of this.seats) s.isHost = false;
+    humans[0].isHost = true;
+    return true;
   }
 
   view(seat) {

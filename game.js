@@ -16,8 +16,17 @@
 
   const $ = (id) => document.getElementById(id);
 
+  // HTML 文字列に埋め込む値は必ずこれを通す（プレイヤー名など外部由来の文字列）
+  const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ESC_MAP[c]);
+  }
+
   let ONLINE = false; // 対戦モード（サーバー権威）
   let MY_SEAT = 0;
+  // サーバーから受け取った瞬間の単調時計。残り時間の表示はここからの経過で減らす
+  // （サーバーとクライアントの時計がずれていても正しく数えられる）
+  let VIEW_ANCHOR_AT = 0;
 
   // 自分の行動。対戦中はサーバーへ送り、ホットシート中はエンジンへ直接適用する
   function actHuman(action) {
@@ -432,6 +441,9 @@
 
   // ---- 取得時選択（select フェーズ）の入力 ----
 
+  // 複数モードが同時に必要なときに、この順で 1 つずつ聞く（engine.js の selectionNeeded と対）
+  const SEL_ORDER = ['scoop', 'swapNamed', 'discard', 'copy', 'swap', 'flip', 'peek'];
+
   function humanSelectNeeded() {
     // エンジンの selectionNeeded と同じ判定を UI 側で行う
     const p = STATE.players[0];
@@ -453,8 +465,7 @@
   function enterSelectMode() {
     const need = humanSelectNeeded();
     // 蓄積済み choice に含まれていないモードを優先順に選ぶ
-    const order = ['scoop', 'swapNamed', 'discard', 'copy', 'swap', 'flip', 'peek'];
-    SEL_MODE = order.find((m) => need[m] && !modeStaged(m)) || null;
+    SEL_MODE = SEL_ORDER.find((m) => need[m] && !modeStaged(m)) || null;
     SEL_SELECTED = [];
     SEL_NAMED = null;
     return SEL_MODE;
@@ -539,8 +550,7 @@
 
     // 残りの必要モードがあれば次へ進む
     const need = humanSelectNeeded();
-    const order = ['scoop', 'swapNamed', 'discard', 'copy', 'swap', 'flip', 'peek'];
-    const next = order.find((m) => need[m] && (m === 'flip' ? !Array.isArray(choice.flip) : choice[CHOICE_KEY[m]] === undefined));
+    const next = SEL_ORDER.find((m) => need[m] && (m === 'flip' ? !Array.isArray(choice.flip) : choice[CHOICE_KEY[m]] === undefined));
     if (next) {
       STAGED_CHOICE = choice;
       SEL_MODE = next;
@@ -564,8 +574,7 @@
     if (SEL_MODE === 'flip') choice.flip = [];
     // discard/copy/peek は choice に含めない = 「使わない」扱い（エンジンは未指定を許容）
     const need = humanSelectNeeded();
-    const order = ['scoop', 'swapNamed', 'discard', 'copy', 'swap', 'flip', 'peek'];
-    const next = order.find((m) => need[m] && (m === 'flip' ? !Array.isArray(choice.flip) : choice[CHOICE_KEY[m]] === undefined) && m !== SEL_MODE);
+    const next = SEL_ORDER.find((m) => need[m] && (m === 'flip' ? !Array.isArray(choice.flip) : choice[CHOICE_KEY[m]] === undefined) && m !== SEL_MODE);
     if (next) {
       STAGED_CHOICE = choice;
       SEL_MODE = next;
@@ -879,7 +888,9 @@
     const wrap = $('player-bar');
     wrap.innerHTML = '';
     STATE.players.forEach((p, pi) => {
-      const picked = STATE.picks[pi] !== null;
+      const pick = STATE.picks[pi];
+      // オンラインは真偽値（サーバー契約）、ホットシートは配列/null なので両方を受ける
+      const picked = pick === true || Array.isArray(pick);
       const roundPts = p.roundScores[STATE.round];
       const tags = [];
       if (p.chopsticks > 0) tags.push(`早×${p.chopsticks}`);
@@ -891,9 +902,10 @@
       }
       const el = document.createElement('div');
       el.className = `player-chip${pi === 0 ? ' me' : ''}${picked ? ' picked' : ''}`;
-      const grace = STATE.disconnectGraceMs || 120000;
-      const offLeft = p.connected === false && p.disconnectedAt
-        ? Math.max(0, Math.ceil((p.disconnectedAt + grace - Date.now()) / 1000))
+      // 退席猶予はサーバー計算の残りミリ秒。受信時刻からの経過だけ引いて表示する
+      const elapsed = VIEW_ANCHOR_AT ? performance.now() - VIEW_ANCHOR_AT : 0;
+      const offLeft = (p.connected === false && typeof p.disconnectRemainMs === 'number')
+        ? Math.max(0, Math.ceil((p.disconnectRemainMs - elapsed) / 1000))
         : null;
       const offTag = offLeft === null
         ? ''
@@ -901,7 +913,7 @@
           ? `<span class="chip-off">退席中（AIまで ${Math.floor(offLeft / 60)}:${String(offLeft % 60).padStart(2, '0')}）</span>`
           : '<span class="chip-off">AI代行中</span>';
       el.innerHTML = `
-        <span class="chip-name">${p.name}${pi === 0 && p.name !== 'あなた' ? '（あなた）' : ''}</span>
+        <span class="chip-name">${esc(p.name)}${pi === 0 && p.name !== 'あなた' ? '（あなた）' : ''}</span>
         ${offTag}
         <span class="chip-round">${STATE.phase !== 'over' && roundPts ? `R${STATE.round + 1} +${roundPts}` : ''}</span>
         <span class="chip-tags">${tags.join(' ')}</span>
@@ -1152,7 +1164,7 @@
             .map((d) => cardEl(d.key, null, 'mini banner-card').outerHTML)
             .join('');
           return `<div class="bp${r.pi === 0 ? ' banner-me' : ''}">
-            <div class="bp-head"><span>${r.rank}位${rankCounts.get(r.rank) > 1 ? '（同率）' : ''} ${r.name}${r.pi === 0 && r.name !== 'あなた' ? '（あなた）' : ''}</span><span class="bp-total">${r.total}点</span></div>
+            <div class="bp-head"><span>${r.rank}位${rankCounts.get(r.rank) > 1 ? '（同率）' : ''} ${esc(r.name)}${r.pi === 0 && r.name !== 'あなた' ? '（あなた）' : ''}</span><span class="bp-total">${r.total}点</span></div>
             <div class="bp-sub">継続カード ${r.desserts} 枚 ／ ${rounds} ／ ゲーム末 ${geTotal >= 0 ? '+' : ''}${geTotal} 点</div>
             ${geList ? `<div class="bp-extras">${geList}</div>` : ''}
             ${desserts ? `<div class="bp-cards">${desserts}</div>` : ''}
@@ -1185,7 +1197,8 @@
     }
     if (!STATE.roundBanner) { el.classList.add('hidden'); return; }
     const b = STATE.roundBanner;
-    const rows = b.results
+    // 並べ替えはコピーに対して行う（state 側の配列を書き換えない）
+    const rows = [...b.results]
       .sort((a, x) => x.points - a.points)
       .map((r) => {
         const cards = (r.cards || [])
@@ -1233,7 +1246,7 @@
         if (!pointRows.length) pointRows.push('<div class="bp-point"><span>なし</span><b>+0</b></div>');
         pointRows.push(`<div class="bp-point bp-point-total"><span>合計</span><b>${r.points >= 0 ? '+' : ''}${r.points}</b></div>`);
         return `<div class="bp${r.pi === 0 ? ' banner-me' : ''}">
-          <div class="bp-head"><span>${r.name}${r.pi === 0 && r.name !== 'あなた' ? '（あなた）' : ''}</span><span class="bp-total">${r.points >= 0 ? '+' : ''}${r.points}点</span></div>
+          <div class="bp-head"><span>${esc(r.name)}${r.pi === 0 && r.name !== 'あなた' ? '（あなた）' : ''}</span><span class="bp-total">${r.points >= 0 ? '+' : ''}${r.points}点</span></div>
           <div class="bp-body">
             <div class="bp-col">
               <div class="bp-col-title">取得カード</div>
@@ -1396,11 +1409,6 @@
 
   // ---- 対戦（サーバー権威） ----
 
-  function randomRoomCode() {
-    const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    return Array.from({ length: 4 }, () => A[Math.floor(Math.random() * A.length)]).join('');
-  }
-
   function lobbyName() {
     return $('input-name').value.trim() || 'あなた';
   }
@@ -1436,13 +1444,23 @@
   }
 
   function createRoom() {
-    Net.join(randomRoomCode(), lobbyName());
+    setMpStatus('');
+    Net.create(lobbyName());
   }
 
   function joinRoom() {
     const code = $('input-code').value.trim().toUpperCase();
     if (!code) { $('input-code').focus(); return; }
+    setMpStatus('');
     Net.join(code, lobbyName());
+  }
+
+  // 参加/作成の結果を行内に出す（ルーム未発見などを alert で潰さない）
+  function setMpStatus(text) {
+    const el = $('mp-status');
+    if (!el) return;
+    el.textContent = text || '';
+    el.classList.toggle('hidden', !text);
   }
 
   function showOnlineLobby(lobby) {
@@ -1466,7 +1484,7 @@
         const ai = p.isAI ? '<span class="tag-ai">AI</span>' : '';
         return `<div class="online-player${mine ? ' me' : ''}${p.connected ? '' : ' off'}">`
           + `<span class="seat-no">${p.seat + 1}</span>`
-          + `<span class="player-name">${p.name}</span>`
+          + `<span class="player-name">${esc(p.name)}</span>`
           + host + you + ai + off
           + '</div>';
       })
@@ -1523,12 +1541,20 @@
   function updateTimerIndicator() {
     const el = $('timer-indicator');
     if (!el) return;
-    if (!ONLINE || !STATE || !STATE.deadline) {
+    if (!ONLINE || !STATE) {
       el.classList.add('hidden');
       el.textContent = '';
       return;
     }
-    const left = Math.max(0, Math.ceil((STATE.deadline - Date.now()) / 1000));
+    // サーバーが「残りミリ秒」を送る。受信時刻からの経過を引くので、端末の時計がずれていても正しい
+    const remain = typeof STATE.deadlineRemainMs === 'number' ? STATE.deadlineRemainMs : null;
+    if (remain === null) {
+      el.classList.add('hidden');
+      el.textContent = '';
+      return;
+    }
+    const elapsed = VIEW_ANCHOR_AT ? performance.now() - VIEW_ANCHOR_AT : 0;
+    const left = Math.max(0, Math.ceil((remain - elapsed) / 1000));
     el.classList.remove('hidden');
     el.textContent = `残り ${left}秒`;
   }
@@ -1619,6 +1645,7 @@
     onState(view) {
       const hadBanner = !!(STATE && STATE.roundBanner);
       STATE = view;
+      VIEW_ANCHOR_AT = performance.now(); // 残り時間の基準点（時計ずれの影響を受けない）
       if (hadBanner && !view.roundBanner) DEAL_ANIM = true;
       if (view.picks && view.picks[0]) {
         PICK_SELECTED = null;
@@ -1637,6 +1664,7 @@
     onError(message) {
       const hint = $('online-hint');
       if (hint && !$('online-lobby').classList.contains('hidden')) hint.textContent = message;
+      else if (!$('mp-entry').classList.contains('hidden')) setMpStatus(message);
       else alert(message);
     },
     onDisconnect() {
