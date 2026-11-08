@@ -646,9 +646,20 @@
     if (roundPts !== null && roundPts !== undefined) {
       el.insertAdjacentHTML('beforeend', `<div class="card-tag tag-pts">${roundPts}点</div>`);
     }
+    // ツールチップ: 基本の説明に、その個体の実際の点数（同席で 0 点・条件で +1 など）を添える
+    const basePts = def && typeof def.points === 'number' ? def.points : null;
+    let ptsNote = '';
+    if (inst) {
+      if (inst.discarded) ptsNote = '／今回 0 点（破棄）';
+      else if (inst.flipped) ptsNote = '／今回 2 点（裏返し）';
+      else if (roundPts !== null && roundPts !== undefined && basePts !== null && roundPts !== basePts) {
+        ptsNote = `／今回 ${roundPts} 点`;
+        if (inst.absentBlocked) ptsNote += '（同じ手番に咲夜が 2 枚以上）';
+      }
+    }
     el.title = inst && inst.copied
-      ? `慧音のコピー・${cardLabel(def)}：${descOf(def)}`
-      : `${cardLabel(def)}：${descOf(def)}`;
+      ? `慧音のコピー・${cardLabel(def)}：${descOf(def)}${ptsNote}`
+      : `${cardLabel(def)}：${descOf(def)}${ptsNote}`;
     return el;
   }
 
@@ -659,12 +670,13 @@
     if (def.kind === 'coop') return inst.coopPoints || null; // リグルは取得した手番で確定
     if (def.kind !== 'instant') return null;
     let pts = def.points;
+    if (inst.triple) pts *= inst.triple; // 早苗の加護（次の奇跡を 3 倍）
     if (inst.instantCombo && def.comboBonus) pts += def.comboBonus; // 取得時コンボ（美鈴）
     if (def.comboAtEnd && def.comboBonus && def.comboKeys
       && def.comboKeys.every((k) => STATE.players[pi].taken.some((i) => i.key === k && !i.flipped && !i.discarded))) {
       pts += def.comboBonus; // ラウンド末コンボ（藍・橙）
     }
-    if (def.absentBlocked) pts = 0; // 咲夜の同席判定
+    if (inst.absentBlocked) pts = 0; // 咲夜の同席判定（個体のフラグを見る）
     if (inst.turnBonus) pts += inst.turnBonus; // 永琳: 同じ手番に輝夜が出ていたときの加点
     if (inst.extraPts) pts += inst.extraPts; // 永琳の調合など、取得時に確定した追加点
     return pts;
@@ -1424,6 +1436,9 @@
     if (target.inst && target.inst.discarded) tags.push('破棄');
     if (target.inst && target.inst.flipped) tags.push('裏返し（2点）');
     if (target.inst && target.inst.copied) tags.push('慧音のコピー');
+    if (target.inst && target.inst.absentBlocked) tags.push('今回 0 点（同席）');
+    if (target.inst && target.inst.triple) tags.push(`今回 ${(def.points || 0) * target.inst.triple} 点（加護）`);
+    if (target.inst && target.inst.turnBonus) tags.push(`今回 +${target.inst.turnBonus} 点`);
     el.innerHTML = `
       <div class="preview-card"><img src="assets/cards/${def.key}.webp" alt="" onerror="this.parentElement.classList.add('no-art')"></div>
       <div class="preview-name">${cardLabel(def)}${tags.length ? `<span class="preview-tag">${tags.join('・')}</span>` : ''}</div>
