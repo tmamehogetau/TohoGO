@@ -1416,6 +1416,26 @@ test('永夜: 慧音のコピーはラウンド中だけ存在し、ラウンド
   assert.strictEqual(Zones.countAll(s).y_kaguya, beforeCopy, 'ラウンド末にコピーは消える（山札へ戻らない）');
 });
 
+test('永夜: 幻覚で伏せられたカードをコピーしてもコピーは伏せられたまま', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal' });
+  fixPeek(s);
+  setHands(s, [['y_kaguya', DY], ['y_reisen', DY]]);
+  pickAll(s, [0, 0]); // A: 輝夜 / B: 鈴仙（幻覚）
+  const kaguya = s.players[0].taken.find((i) => i.key === 'y_kaguya');
+  assert.strictEqual(kaguya.hiddenTaken, true, '幻覚で伏せられている');
+  assert.strictEqual(kaguya.hiddenBy, 1, '伏せたのは鈴仙を出した B');
+
+  setHands(s, [['y_keine', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // A: 慧音 → コピーの選択
+  assert.strictEqual(s.phase, 'select');
+  const ki = s.players[0].taken.findIndex((i) => i.key === 'y_kaguya');
+  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { copy: ki } });
+  assert.ok(r.ok, r.error);
+  const copy = s.players[0].taken.find((i) => i.copied);
+  assert.strictEqual(copy.hiddenTaken, true, 'コピーも伏せられたまま（幻覚を貫通しない）');
+  assert.strictEqual(copy.hiddenBy, 1, '伏せた本人も引き継ぐ');
+});
+
 test('永夜: 裏返したカードをコピーすると 2 点だけのカードになる', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal' });
   fixPeek(s);

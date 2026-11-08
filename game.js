@@ -143,6 +143,7 @@
     SEL_SELECTED = [];
     FINAL_CLOSED = false;
     DEAL_ANIM = true; // 初回配りアニメ
+    SHOWN_ROUND = -1; // 開始アニメをラウンド 1 から出し直す
     HAND_SIG = '';
     HAND_COUNT = null;
     STAGED_CHOICE = null;
@@ -317,29 +318,41 @@
     }
   }
 
-  // ---- 数アイコン（春＝桜 / 玉兎＝兎） ----
+  // ---- 数アイコン（春＝桜 / 玉兎＝兎 / 信仰＝鳥居） ----
   const COUNT_ICON_SVG = {
     spring: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><ellipse cx="12" cy="5.4" rx="3.5" ry="4.3"/><ellipse cx="12" cy="5.4" rx="3.5" ry="4.3" transform="rotate(72 12 12)"/><ellipse cx="12" cy="5.4" rx="3.5" ry="4.3" transform="rotate(144 12 12)"/><ellipse cx="12" cy="5.4" rx="3.5" ry="4.3" transform="rotate(216 12 12)"/><ellipse cx="12" cy="5.4" rx="3.5" ry="4.3" transform="rotate(288 12 12)"/></g><circle cx="12" cy="12" r="2.1" fill="#f6d67a"/></svg>',
     rabbit: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><ellipse cx="8.6" cy="6" rx="2.1" ry="5"/><ellipse cx="15.4" cy="6" rx="2.1" ry="5"/><circle cx="12" cy="15.4" r="6.1"/></g><circle cx="9.9" cy="14.4" r="0.9" fill="#2a2532"/><circle cx="14.1" cy="14.4" r="0.9" fill="#2a2532"/><circle cx="12" cy="17.1" r="0.8" fill="#c98ba8"/></svg>',
+    faith: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="2.4" y="4.6" width="19.2" height="2.6" rx="1.1"/><rect x="4.6" y="9.2" width="14.8" height="2.2" rx="1"/><rect x="7.1" y="11.4" width="2.5" height="8.8" rx="1"/><rect x="14.4" y="11.4" width="2.5" height="8.8" rx="1"/></g></svg>',
   };
   function countIconKind(def) {
     if (!def) return null;
     if (def.key === 's_spring') return 'spring';
     if (def.key === 'y_rabbit') return 'rabbit';
+    if (def.kind === 'uramaki') return 'faith';
     return null;
   }
-  // カード面の右上に出すアイコン数バッジ（春・玉兎だけ）
+  // カード面の右上に出すアイコン数バッジ（春・玉兎・信仰）
   function countBadge(def, icons) {
     const kind = countIconKind(def);
     if (!kind || !icons) return '';
-    const n = Math.max(1, Math.min(3, Number(icons)));
-    return `<span class="card-count" title="アイコン ${icons} 個">${COUNT_ICON_SVG[kind].repeat(n)}</span>`;
+    const max = kind === 'faith' ? 5 : 3; // 信仰は 1 枚に最大 5 個ぶん乗る
+    const n = Math.max(1, Math.min(max, Number(icons)));
+    return `<span class="card-count card-count-${kind}" title="アイコン ${icons} 個">${COUNT_ICON_SVG[kind].repeat(n)}</span>`;
+  }
+
+  // 背景色に対して読みやすい文字色（明るい背景なら濃色）を返す
+  function readableInk(hex) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+    if (!m) return '#fff';
+    const n = parseInt(m[1], 16);
+    const lum = (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+    return lum > 0.62 ? '#2a2532' : '#fff';
   }
 
 
   // ---- 人間の入力 ----
 
-  // クリックは選択のトグルのみ。確定は決定ボタン（confirmPick）で行う（ミスクリック防止）
+  // 1 回目のクリックで選択、同じカードをもう一度クリックすると確定（決定ボタンでも可）
   function onHandClick(idx) {
     if (!STATE || STATE.phase !== 'pick' || STATE.picks[0]) return;
     const p = STATE.players[0];
@@ -356,8 +369,12 @@
       return;
     }
 
-    if (PICK_SELECTED === idx) PICK_SELECTED = null;
-    else PICK_SELECTED = idx;
+    if (PICK_SELECTED === idx) {
+      // 選択中のカードをもう一度クリック＝そのカードを取る（決定ボタンと同じ）
+      confirmPick();
+      return;
+    }
+    PICK_SELECTED = idx;
     renderAll();
   }
 
@@ -830,6 +847,15 @@
       list.appendChild(sel);
     } else {
       p.taken.forEach((card, idx) => {
+        // 幻覚で伏せられたカードは、コピー対象の一覧でも中身を見せない（うどんげとして出す）
+        if (hiddenFromViewer(card)) {
+          const masked = defOf('y_reisen') ? cardEl('y_reisen', null, 'taken', { masked: true }) : null;
+          if (masked) {
+            masked.classList.add('not-target');
+            list.appendChild(masked);
+            return;
+          }
+        }
         const el = cardEl(card.key, card.icons, 'taken', card);
         const isSel = SEL_SELECTED.includes(idx);
         if (isSel) el.classList.add('selected');
@@ -970,6 +996,20 @@
       const icon = def.kind === 'maki' ? COUNT_ICON_SVG[countIconKind(def)] : '';
       tags.push({ icon, label: `${def.kind === 'maki' ? '' : def.icon}${n}`, color: def.color });
     }
+    // 守矢神社: 信仰アイコンの現在値（しきい値に届くと順位点）
+    const faithDef = Object.values(STATE.cardMap).find((d) => d.kind === 'uramaki');
+    if (faithDef) {
+      let n = 0;
+      for (const inst of shown) {
+        if (inst.key === faithDef.key && !inst.flipped) n += inst.icons || 1;
+      }
+      const need = faithDef.threshold || 10;
+      tags.push({
+        icon: COUNT_ICON_SVG.faith,
+        label: STATE.roundStats && STATE.roundStats[pi] && STATE.roundStats[pi].faithCleared ? `${n}（到達）` : `${n}/${need}`,
+        color: faithDef.color,
+      });
+    }
     return tags;
   }
 
@@ -995,11 +1035,13 @@
       const nameSpan = document.createElement('span');
       nameSpan.textContent = `${p.name}${pi === 0 && p.name !== 'あなた' ? '（あなた）' : ''}の取ったカード`;
       label.appendChild(nameSpan);
-      // 追跡リソース（春合計・兎枚数など）
+      // 追跡リソース（春合計・兎枚数・信仰値など）
       for (const t of trackedTags(pi)) {
         const tag = document.createElement('span');
         tag.className = 'row-tag';
         tag.style.background = t.color;
+        // 玉兎（生成り）のように明るい色でも文字が沈まないように、背景に応じて文字色を変える
+        tag.style.color = readableInk(t.color);
         tag.innerHTML = (t.icon || '') + `<span>${t.label}</span>`;
         label.appendChild(tag);
       }
@@ -1039,7 +1081,7 @@
           let baseKey = null;
           let baseIcons = null;
           let verb = '';
-          if (def.kind === 'copy' && copiedInst) {
+          if (def.kind === 'copy' && copiedInst && !hiddenFromViewer(copiedInst)) {
             baseKey = copiedInst.key;
             baseIcons = copiedInst.icons;
             verb = 'コピー';
@@ -1093,6 +1135,26 @@
     }
     $('round-indicator').textContent = `ラウンド ${STATE.round + 1}｜${STATE.incidentName}`;
     $('pass-indicator').textContent = STATE.passDir === 1 ? '手札は右隣へ流れる' : '手札は左隣へ流れる';
+  }
+
+  // ---- ラウンド開始アニメーション ----
+  // ラウンドが変わるたびに、中央へ「ラウンド N＋ステージ名」を出してフェードさせる
+  // （同時に配りアニメ = DEAL_ANIM も立てる）。入力は妨げない（pointer-events: none）
+  let SPLASH_TIMER = null;
+  let SHOWN_ROUND = -1; // 直近でスプラッシュを出したラウンド番号
+
+  function showRoundSplash() {
+    const el = $('round-splash');
+    if (!el) return;
+    el.innerHTML = `<div class="rs-box">`
+      + `<div class="rs-stage">${esc(STATE.incidentName || '')}</div>`
+      + `<div class="rs-round">ラウンド ${STATE.round + 1}</div>`
+      + '</div>';
+    el.classList.remove('hidden', 'show');
+    void el.offsetWidth; // アニメーションを最初から再生し直す
+    el.classList.add('show');
+    clearTimeout(SPLASH_TIMER);
+    SPLASH_TIMER = setTimeout(() => el.classList.add('hidden'), 1700);
   }
 
   let FINAL_CLOSED = false; // 最終結果バナーを一度閉じたら再表示しない
@@ -1318,7 +1380,7 @@
         txt.className = 'ref-text';
         const kind = countIconKind(def);
         const compo = kind && def.iconCounts
-          ? `<div class="ref-compo">${Object.entries(def.iconCounts).map(([c, num]) => `<span class="ref-compo-item">${COUNT_ICON_SVG[kind].repeat(Number(c))}<span>×${num}</span></span>`).join('')}</div>`
+          ? `<div class="ref-compo ref-compo-${kind}">${Object.entries(def.iconCounts).map(([c, num]) => `<span class="ref-compo-item">${COUNT_ICON_SVG[kind].repeat(Number(c))}<span>×${num}</span></span>`).join('')}</div>`
           : '';
         const variantsHtml = variants.length > 1
           ? `<div class="ref-variants">${variants.map((d) => `<span>${d.variant || d.name}</span>`).join('')}</div>`
@@ -1395,6 +1457,13 @@
 
   function renderAll() {
     autoSkipIfEmpty();
+    // ラウンドが変わった瞬間（開始・バナーを閉じた時）に開始アニメを出す。
+    // ラウンド番号は結果バナーの生成と同時に進むため、バナー表示中は出さない
+    if (STATE && STATE.phase !== 'over' && !STATE.roundBanner && STATE.round !== SHOWN_ROUND) {
+      SHOWN_ROUND = STATE.round;
+      DEAL_ANIM = true; // 配り直しのアニメも一緒に出す
+      showRoundSplash();
+    }
     renderRound();
     renderHand();
     renderPlayerBar();

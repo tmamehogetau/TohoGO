@@ -702,6 +702,12 @@
             // コピーも「その手番にプレイされた 1 枚」として同席・条件の判定に参加する
             // （本家スシゴーパーティーの特別注文と同じ。判定は applyTurnConditions でまとめて行う）
             const copy = { key: inst.key, icons: inst.icons, copied: true, playedTurn: state.pickSeq };
+            // 幻覚で伏せられたカードをコピーしたら、コピーも伏せたままにする
+            // （コピーだけ素の顔で出ると、うどんげの幻覚を貫通して中身がバレる）
+            if (inst.hiddenTaken) {
+              copy.hiddenTaken = true;
+              copy.hiddenBy = inst.hiddenBy;
+            }
             if (inst.flipped) {
               // 裏返したカードをコピーすると、コピーも裏返し（名前も効果も無い 2 点だけのカード）になる。
               // 判定・通算・統計には載せない（名前で参照される効果も引き継がない）

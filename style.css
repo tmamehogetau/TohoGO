@@ -440,6 +440,8 @@ main {
 .card-count svg { width: 12px; height: 12px; display: block; }
 .card-count-rabbit { color: #f2e9da; }
 .card-count-spring { color: #f7a8c8; }
+.card-count-faith { color: #f0d69a; }
+.card-count-faith svg { width: 9px; height: 9px; } /* 1 枚に最大 5 個ぶん乗るので詰める */
 .card-desc {
   font-size: 0.55rem;
   line-height: 1.3;
@@ -653,6 +655,7 @@ main {
 .ref-compo { display: flex; gap: 10px; margin-top: 4px; }
 .ref-compo-spring { color: #f7a8c8; }
 .ref-compo-rabbit { color: #f2e9da; }
+.ref-compo-faith { color: #f0d69a; }
 .ref-compo-item { display: inline-flex; align-items: center; gap: 2px; }
 .ref-compo-item svg { width: 12px; height: 12px; }
 .ref-compo-item span { font-size: 0.7rem; color: var(--text-dim); }
@@ -925,6 +928,63 @@ button.secondary:hover { border-color: var(--gold-soft); }
 .dessert-box .box-label {
   color: var(--gold);
   letter-spacing: 0.06em;
+}
+
+/* --- ラウンド開始アニメーション --- */
+#round-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: none;
+  text-align: center;
+  opacity: 0;
+}
+#round-splash.show { animation: roundSplash 1.7s ease forwards; }
+#round-splash .rs-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 46px 18px;
+  border-radius: 14px;
+  background: rgba(10, 8, 14, 0.84);
+  border: 1px solid rgba(217, 194, 122, 0.38);
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.6);
+}
+#round-splash .rs-box::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 9px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(217, 194, 122, 0.55), transparent);
+}
+#round-splash .rs-stage {
+  color: #cfc4b2;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+}
+#round-splash .rs-round {
+  color: var(--gold);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-shadow: 0 6px 28px rgba(0, 0, 0, 0.85), 0 0 22px rgba(217, 194, 122, 0.35);
+}
+@keyframes roundSplash {
+  0% { opacity: 0; transform: translateY(16px) scale(0.94); filter: blur(3px); }
+  14% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  72% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-10px) scale(1.02); }
 }
 
 /* --- ラウンド結果バナー --- */
