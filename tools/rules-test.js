@@ -1459,7 +1459,29 @@ test('風神録: にとりが破棄されていたら名前指定は出ない', 
   ni.discarded = true;
   s.players[0].nitoriReady = true;
   assert.strictEqual(Engine.selectionNeeded(s, 0).swapNamed, false, '破棄済みのにとりでは発動しない');
-  assert.strictEqual(s.players[0].nitoriReady, false, '使えないフラグは落とす');
+  // 問い合わせは状態を書き換えない（落とすのは選択フェーズの開始時）
+  assert.strictEqual(s.players[0].nitoriReady, true, 'selectionNeeded は取り置きを消さない');
+  setHands(s, [['x_dummy'], ['x_dummy']]);
+  pickAll(s, [0, 0]);
+  assert.strictEqual(s.players[0].nitoriReady, false, '選択フェーズの開始で使えない取り置きを落とす');
+});
+
+test('春: 慧音がコピーした春カードも表示用アイコンに載る（M5）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'spring' });
+  fixPeek(s);
+  // 現行データに慧音は居ないが、将来「慧音＋春カード」の異変を足したときの再発検知
+  s.cardMap['y_keine'] = { key: 'y_keine', kind: 'copy', name: '上白沢慧音', icon: '史', color: '#4a7ea6' };
+  setHands(s, [[{ key: 's_spring', icons: 2 }, DS], [DS, DS]]);
+  pickAll(s, [0, 0]); // 春 2 個を取る
+  setHands(s, [['y_keine', DS], [DS, DS]]);
+  pickAll(s, [0, 0]); // 慧音 → コピーの選択
+  assert.strictEqual(s.phase, 'select');
+  const si = s.players[0].taken.findIndex((i) => i.key === 's_spring');
+  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { copy: si } });
+  assert.ok(r.ok, r.error);
+  const p = s.players[0];
+  assert.strictEqual(Engine.springIconTotal(s, p), 4, 'コピーした春 2 個も判定に入る');
+  assert.strictEqual(s.roundStats[0].springIcons, 4, '表示用アイコンも同じ数（M5）');
 });
 
 test('風神録で4人AI完走（にとりの名前指定＝Math.random を含む現役経路）', () => {

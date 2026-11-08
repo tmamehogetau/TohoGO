@@ -360,7 +360,7 @@ Windows の PowerShell 5.1 は node の UTF-8 出力を化けさせるので、`
 
 - `tools/room-test.js`（ルーム単体）・`tools/serve-test.js`（配信/不正 URL/heartbeat）・
   `tools/consistency-test.js`（枚数保存則）・`tools/zones.js`（共通 util）を追加。
-  `npm run test:all` で 6 本まとめて実行（104 + 13 + serve + ws + 保存則 96 ゲーム + フルゲーム E2E）
+  `npm run test:all` で 6 本まとめて実行（105 + 13 + serve + ws + 保存則 96 ゲーム + フルゲーム E2E）
 - `tools/ws-game-test.js`: **3 人 × 3 ラウンドをサーバー経由で完走**する E2E。
   ラウンドバナー/次へ・切断 → AI 代行・同じ playerId での再接続・他人の手札が漏れないこと・
   エラーが返らないことを検証する（`npm run test:ws-game`）
@@ -376,8 +376,14 @@ Windows の PowerShell 5.1 は node の UTF-8 出力を化けさせるので、`
   従来はコピーが元の価値をそのまま持っていた（コピーの `flipped` が立たず、裏返しの 2 点と
   コピーの実カード価値が両立していた）。`rules-test` の「裏返したカードをコピーすると 2 点だけの
   カードになる」で固定し、変異テストで検出力を確認済み
-- 残課題: コピーした春カードは `roundStats.springIcons` に乗らない（現状は慧音が春異変に居ないため
-  表面化しない）、`selectionNeeded` が `p.nitoriReady` を書き換える
+- **M5: コピーした春カードを表示用アイコンにも積む**。従来は判定（`springIconTotal`）だけが
+  コピーを数え、UI バッジ用の `roundStats.springIcons` がズレていた。`rules-test` の
+  「慧音がコピーした春カードも表示用アイコンに載る（M5）」で固定（現行データでは慧音が春異変に
+  居ないため、カードを注入して将来の再発を検知する形）
+- **M6: `selectionNeeded` を問い合わせ専用にする**。使えない取り置き（`p.nitoriReady`）の後始末を
+  `beginSelectionPhase` に移した（AI からも呼ばれる関数なので、getter に副作用を持たせない）
+- コピーは `takenSeq` を持たない（「その手番に取ったカード」ではないので同時取得判定に載せない）。
+  `engine.js` の古いコメント（妖夢の奪取）も削除
 
 **計測（先輩の判断材料）**
 

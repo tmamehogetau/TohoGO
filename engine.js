@@ -519,7 +519,6 @@
           return d && d.kind === 'swapNamed' && !x.discarded && !x.flipped;
         });
         if (liveNitori) need.swapNamed = true;
-        else p.nitoriReady = false;
       }
       return need;
     }
@@ -531,6 +530,9 @@
       state.peekCards = state.peekCards || new Array(state.playerCount).fill(null);
       for (let i = 0; i < state.playerCount; i++) {
         const need = selectionNeeded(state, i);
+        // にとりの取り置きは、本体が破棄/裏返しされていたら消費せずに落とす。
+        // selectionNeeded は問い合わせ専用（AI からも呼ばれる）なので、状態の書き換えはここで行う
+        if (state.players[i].nitoriReady && !need.swapNamed) state.players[i].nitoriReady = false;
         if (need.peek) {
           // 小悪魔の山札確認: 山札の上 N 枚（def.peek）を候補として取り出す
           // （解決時に peekNeeded は false に戻るため、同ラウンドに別枚の小悪魔を取っても再発動する）
@@ -685,7 +687,9 @@
           const inst = p.taken[c.copy];
           const idef = map[inst.key];
           if (idef && idef.kind !== 'copy') {
-            const copy = { key: inst.key, icons: inst.icons, copied: true, takenSeq: state.pickSeq };
+            // takenSeq は載せない（コピーは「その手番に取ったカード」ではないため、
+            // 同じ手番判定や同時取得の対象にしない）
+            const copy = { key: inst.key, icons: inst.icons, copied: true };
             if (inst.flipped) {
               // 裏返したカードをコピーすると、コピーも裏返し（名前も効果も無い 2 点だけのカード）になる。
               // 判定・通算・統計には載せない（名前で参照される効果も引き継がない）
@@ -693,6 +697,9 @@
               p.taken.push(copy);
               addLog(state, `${p.name}: 白沢の知恵で裏返ったカードを写した（2 点だけ）`);
             } else {
+              // 春アイコンは表示用バッジ（roundStats.springIcons）にも積む。
+              // 判定側（springIconTotal）は taken から数えるので、ここを落とすと表示と判定がズレる
+              if (inst.key === 's_spring') state.roundStats[i].springIcons += inst.icons || 1;
               if (copy.key === state.dessert.key) state.roundStats[i].dessertTaken += 1;
               if (idef.gameEnd) p.gameEndCounts[copy.key] = (p.gameEndCounts[copy.key] || 0) + 1;
               p.taken.push(copy);
@@ -1073,7 +1080,7 @@
         });
       }
       // springMost（幽々子）: 春アイコンが最多のラウンドだけ、所持 1 枚ごとに加点
-      // 妖夢の奪取は roundStats に反映済み。判定は springIconTotal（春マキと同一の定義）に揃える
+      // 判定は springIconTotal（春マキと同一の定義）に揃える
       const springEffective = state.players.map((p) => springIconTotal(state, p));
       const springMax = Math.max(...springEffective);
       if (springMax > 0) {
