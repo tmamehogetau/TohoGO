@@ -1225,9 +1225,28 @@
 
   function renderBanner() {
     const el = $('banner');
+    el.classList.remove('banner-mini');
     // ゲーム終了: 最終結果バナー（スコアテーブル廃止に伴いここで表示）
     if (STATE.phase === 'over' && !STATE.roundBanner) {
-      if (FINAL_CLOSED) { el.classList.add('hidden'); return; }
+      if (FINAL_CLOSED) {
+        // 閉じたあとも行き止まりにしない: 画面下に操作バーだけ残す
+        el.className = 'banner-mini';
+        el.innerHTML = `<span class="mini-note">ゲーム終了</span>
+          <button data-act="reopen">結果を見る</button>
+          ${ONLINE ? '' : '<button data-act="again">もう一度遊ぶ</button>'}
+          <button class="secondary" data-act="lobby">ロビーへ戻る</button>`;
+        el.onclick = null;
+        el.querySelectorAll('[data-act]').forEach((btn) => {
+          btn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            const act = btn.dataset.act;
+            if (act === 'reopen') { FINAL_CLOSED = false; renderAll(); return; }
+            if (act === 'again') { startGame(); return; }
+            if (act === 'lobby') { backToLobby(); }
+          });
+        });
+        return;
+      }
       // 順位と同点処理は Engine 側の定義（合計点 → 継続カード枚数 → 同率）に従う
       const ranked = Engine.finalRanking(STATE);
       const rankCounts = new Map();
