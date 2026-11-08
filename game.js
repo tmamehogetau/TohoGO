@@ -141,7 +141,6 @@
     PICK_SELECTED = null;
     SEL_MODE = null;
     SEL_SELECTED = [];
-    FINAL_CLOSED = false;
     DEAL_ANIM = true; // 初回配りアニメ
     SHOWN_ROUND = -1; // 開始アニメをラウンド 1 から出し直す
     HAND_SIG = '';
@@ -159,7 +158,6 @@
     }
     ONLINE = false;
     STATE = null;
-    FINAL_CLOSED = false;
     delete document.body.dataset.stage;
     $('app').classList.add('hidden');
     $('lobby').classList.remove('hidden');
@@ -1178,7 +1176,6 @@
     SPLASH_TIMER = setTimeout(() => el.classList.add('hidden'), 1700);
   }
 
-  let FINAL_CLOSED = false; // 最終結果バナーを一度閉じたら再表示しない
   let FLY_FROMS = []; // FLIP アニメ用: 確定した手札カードの中心座標
   let SELECT_AREA = null; // 取得時選択欄の要素（table-rows 再構築で detached になるため参照を保持）
   let HAND_SIG = ''; // 前回 render 時の手札シグネチャ（パス・配りアニメの判定用）
@@ -1225,28 +1222,8 @@
 
   function renderBanner() {
     const el = $('banner');
-    el.classList.remove('banner-mini');
     // ゲーム終了: 最終結果バナー（スコアテーブル廃止に伴いここで表示）
     if (STATE.phase === 'over' && !STATE.roundBanner) {
-      if (FINAL_CLOSED) {
-        // 閉じたあとも行き止まりにしない: 画面下に操作バーだけ残す
-        el.className = 'banner-mini';
-        el.innerHTML = `<span class="mini-note">ゲーム終了</span>
-          <button data-act="reopen">結果を見る</button>
-          ${ONLINE ? '' : '<button data-act="again">もう一度遊ぶ</button>'}
-          <button class="secondary" data-act="lobby">ロビーへ戻る</button>`;
-        el.onclick = null;
-        el.querySelectorAll('[data-act]').forEach((btn) => {
-          btn.addEventListener('click', (ev) => {
-            ev.stopPropagation();
-            const act = btn.dataset.act;
-            if (act === 'reopen') { FINAL_CLOSED = false; renderAll(); return; }
-            if (act === 'again') { startGame(); return; }
-            if (act === 'lobby') { backToLobby(); }
-          });
-        });
-        return;
-      }
       // 順位と同点処理は Engine 側の定義（合計点 → 継続カード枚数 → 同率）に従う
       const ranked = Engine.finalRanking(STATE);
       const rankCounts = new Map();
@@ -1276,23 +1253,20 @@
       const actions = `<div class="banner-actions">
         ${ONLINE ? '' : '<button data-act="again">もう一度遊ぶ</button>'}
         <button class="secondary" data-act="lobby">ロビーへ戻る</button>
-        <button class="secondary" data-act="close">結果を閉じる</button>
       </div>`;
-      el.innerHTML = `<h2>ゲーム終了</h2><div class="banner-players">${rows}</div>${actions}<p class="banner-note">同点は継続カード枚数で判定／クリックで閉じる</p>`;
+      // 閉じても盤面は空なので、結果は閉じずにここから必ず移動してもらう（行き止まりを作らない）
+      const note = ONLINE
+        ? `同点は継続カード枚数で判定／ルーム ${esc(ROOM_CODE)}（ロビーへ戻ると退出します）`
+        : '同点は継続カード枚数で判定';
+      el.innerHTML = `<h2>ゲーム終了</h2><div class="banner-players">${rows}</div>${actions}<p class="banner-note">${note}</p>`;
       el.classList.remove('hidden');
-      el.onclick = (ev) => {
-        if (ev.target.closest('button')) return;
-        FINAL_CLOSED = true;
-        renderAll();
-      };
+      el.onclick = null;
       el.querySelectorAll('[data-act]').forEach((btn) => {
         btn.addEventListener('click', (ev) => {
           ev.stopPropagation();
           const act = btn.dataset.act;
           if (act === 'again') { startGame(); return; }
-          if (act === 'lobby') { backToLobby(); return; }
-          FINAL_CLOSED = true;
-          renderAll();
+          if (act === 'lobby') { backToLobby(); }
         });
       });
       return;

@@ -529,33 +529,6 @@ main {
 #banner div.banner-me { color: var(--gold); font-weight: bold; }
 #banner .banner-note { color: var(--text-dim); font-size: 0.85rem; margin-top: 18px; }
 
-/* 結果を閉じたあとの操作バー（行き止まり防止） */
-#banner.banner-mini {
-  inset: auto 0 14px 0;
-  width: fit-content;
-  max-width: 94vw;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: rgba(16, 13, 20, 0.94);
-  border: 1px solid var(--gold-soft);
-  box-shadow: var(--shadow-lg);
-  cursor: default;
-  z-index: 12;
-  overflow: visible;
-}
-#banner.banner-mini .mini-note {
-  color: var(--gold);
-  font-size: 0.9rem;
-  letter-spacing: 0.08em;
-  margin-right: 4px;
-}
-#banner.banner-mini button { font-size: 0.85rem; padding: 6px 12px; }
-
 /* リザルトの内訳（獲得カードと配点） */
 .banner-players { display: flex; flex-direction: column; gap: 10px; width: min(860px, 94vw); }
 #banner .bp {
