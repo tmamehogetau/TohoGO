@@ -44,7 +44,7 @@ npm start
 
 ```bash
 npm test
-# ルールテスト（109 テスト）を実行
+# ルールテスト（110 テスト）を実行
 npm run test:room
 # ルーム管理の単体テスト（ホスト移譲・claim・view 契約・残り時間）
 npm run test:ws
@@ -55,8 +55,10 @@ npm run test:serve
 # 配信の許可リスト・不正 URL 耐性・WS 死活監視（.git や .tmp を配らないこと）
 npm run test:consistency
 # カード枚数の保存則（全異変 × 2/3/4 人 × seed。-- で --full を渡すと全 sweep）
+npm run test:exploit
+# 搾取テスト（「咲夜を取るだけ」の席が AI 3 人に勝ち越さないか。400 ゲーム）
 npm run test:all
-# 上記をまとめて実行（CI 相当）
+# 上記をまとめて実行（CI 相当。exploit は重いので個別に）
 ```
 
 ## ステージセットシステム

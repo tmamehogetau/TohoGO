@@ -11,6 +11,7 @@
     "test:ws-game": "node tools/ws-game-test.js",
     "test:serve": "node tools/serve-test.js",
     "test:consistency": "node tools/consistency-test.js",
+    "test:exploit": "node tools/exploit-test.js --games 400",
     "test:all": "node tools/rules-test.js && node tools/room-test.js && node tools/consistency-test.js && node tools/serve-test.js && node tools/ws-test.js && node tools/ws-game-test.js",
     "sim": "node tools/sim.js",
     "attrib": "node tools/attrib.js",

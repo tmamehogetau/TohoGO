@@ -1576,5 +1576,19 @@ test('永夜: コピーしたリグルは同席判定に数えられ、相手の
   assert.strictEqual(B.roundScores[0], 1 + 1, 'B は自分のリグル 1 点 + 鈴仙 1 点');
 });
 
+// ================= AI の評価（搾取されないこと） =================
+
+test('AI: 咲夜を捨てない（同席を恐れて 0 点扱いにしない）', () => {
+  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'scarlet' });
+  fixPeek(s);
+  const base = AI.cardValue(s, 0, 'k_sakuya');
+  assert.ok(base > 1.5, `咲夜の評価が低すぎる: ${base}`);
+  assert.ok(base < 3, `普通の 3 点札より僅かに低いくらいでよい: ${base}`);
+  // 他の誰かがこのラウンドに咲夜を取っていても、同席判定とは無関係なので評価を落とさない
+  s.players[1].taken.push({ key: 'k_sakuya' });
+  const after = AI.cardValue(s, 0, 'k_sakuya');
+  assert.ok(after > 1.5, `他人が取った後でも捨てない: ${after}`);
+});
+
 console.log(`\
 ${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);

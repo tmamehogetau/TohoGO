@@ -19,6 +19,10 @@
   const AI = (() => {
   const { RULES } = DATA;
 
+  // 咲夜（同席 0 点）の価値にかける係数。1.0 だと普通の 3 点札と同じ扱い。
+  // 同席の読み合いぶんだけ僅かに安く見るが、捨てない（捨てると相手に 3 点を配り続ける）
+  const SAKUYA_FACTOR = 0.6;
+
   // 手元の枚数。engine.countKey と同じくアイコン合計で数える（マキ・ペアの判定と揃える）
   function countKey(p, key) {
     let n = 0;
@@ -101,10 +105,16 @@
           value += (def.pointsIfPicked.bonus || 1) * 0.5;
         }
         // 同席条件（咲夜）: 同じ手番に他プレイヤーも同じ札を出すと 0 点。
-        // 同時性は読めないので、このラウンドに他の人が咲夜を持っているかで大きく割り引く
+        // 「誰かが既に取ったか」は同席判定と無関係なので材料にしない（それを見ると
+        // 一度でも取られたら咲夜を捨ててしまい、取り続ける相手に 3 点を渡し続ける）。
+        // 同席の読み合いぶんだけ少し割り引いて、普通の 3 点札より僅かに低く見る
         if (def.absentKeys) {
-          const blocked = others.some((j) => def.absentKeys.some((k) => countKey(state.players[j], k) > 0));
-          value = blocked ? 0.2 : value * 0.85;
+          if (def.absentKeys.includes(def.key)) {
+            value *= SAKUYA_FACTOR;
+          } else {
+            const blocked = others.some((j) => def.absentKeys.some((k) => countKey(state.players[j], k) > 0));
+            value = blocked ? 0.2 : value * 0.85;
+          }
         }
         // zeroIfTaken（レティ）: 同じ手番に条件カードを取られると 0 点。期待値を割り引く
         if (def.zeroIfTaken) value *= 0.5;
