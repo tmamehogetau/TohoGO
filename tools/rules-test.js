@@ -1488,5 +1488,52 @@ test('風神録で4人AI完走（にとりの名前指定＝Math.random を含�
   fullRun('mountain', null);
 });
 
+// ================= コピーは「その手番にプレイされた 1 枚」（本家の特別注文と同じ） =================
+
+test('永夜: コピーは同じ手番の条件付き加点にも参加する（永琳+輝夜）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal' });
+  fixPeek(s);
+  const A = s.players[0];
+  setHands(s, [['y_kaguya', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // A: 輝夜
+  setHands(s, [['y_eirin', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // A: 永琳（この手番に輝夜は出ていないので +1 なし）
+  setHands(s, [['y_keine', DY], ['y_kaguya', DY]]);
+  pickAll(s, [0, 0]); // A: 慧音 / B: 輝夜（同じ手番）
+  assert.strictEqual(s.phase, 'select');
+  const ei = A.taken.findIndex((i) => i.key === 'y_eirin');
+  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { copy: ei } });
+  assert.ok(r.ok, r.error);
+  const copy = A.taken.find((i) => i.copied);
+  assert.strictEqual(copy.turnBonus, 1, 'コピーも同じ手番の輝夜に反応する');
+
+  cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]);
+  // 輝夜 3 + 永琳 2 + 慧音 0 + コピー（永琳 2 + 同席 1）= 8
+  assert.strictEqual(A.roundScores[0], 8, 'コピーした永琳も 2+1 点で計上される');
+});
+
+test('永夜: コピーしたリグルは同席判定に数えられ、相手のリグルも加点される', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal' });
+  fixPeek(s);
+  const A = s.players[0];
+  const B = s.players[1];
+  setHands(s, [['y_riggle', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // A: リグル（1 人だけなので 0 点）
+  setHands(s, [['y_keine', DY], ['y_riggle', DY]]);
+  pickAll(s, [0, 0]); // A: 慧音 / B: リグル（同じ手番）
+  assert.strictEqual(s.phase, 'select');
+  const ri = A.taken.findIndex((i) => i.key === 'y_riggle');
+  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { copy: ri } });
+  assert.ok(r.ok, r.error);
+  const copy = A.taken.find((i) => i.copied);
+  assert.strictEqual(copy.coopPoints, 1, 'コピーしたリグルは同席の B のリグル 1 枚ぶん');
+  const bRiggle = B.taken.find((i) => i.key === 'y_riggle');
+  assert.strictEqual(bRiggle.coopPoints, 1, '相手のリグルもコピーを同席として数える');
+
+  cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]);
+  assert.strictEqual(A.roundScores[0], 1, '1 手番目のリグルは 0 点、コピーは 1 点');
+  assert.strictEqual(B.roundScores[0], 1 + 1, 'B は自分のリグル 1 点 + 鈴仙 1 点');
+});
+
 console.log(`\
 ${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);

@@ -203,41 +203,18 @@
       state.pickSeq = (state.pickSeq || 0) + 1;
       state.lastPicks = [];
       let hiddenActivated = null; // このピックでうどんげを出したプレイヤー
-      const coopThisTurn = []; // この手番で同時に取得されたリグル（{ pi, inst }）
-      const socialThisTurn = []; // この手番で取得された「同じ手番の仲間で加点」カード（大妖精）
       for (let i = 0; i < state.playerCount; i++) {
         const idxs = [...state.picks[i]].sort((a, b) => b - a);
         const insts = idxs.map((idx) => state.players[i].hand.splice(idx, 1)[0]);
         insts.reverse();
         for (const inst of insts) {
           applyTake(state, i, inst);
-          const def = state.cardMap[inst.key];
-          if (def && def.kind === 'coop') coopThisTurn.push({ pi: i, inst });
-          if (def && def.kind === 'socialJoin' && def.sameTurn) socialThisTurn.push({ pi: i, inst });
+          // 「その手番にプレイしたカード」の印。効果で後から得たカードとは区別する
+          inst.playedTurn = state.pickSeq;
         }
         state.lastPicks.push({ pi: i, keys: insts.map(instKey) });
         // うどんげは「出した番」に発動する（小悪魔の山札確認で獲得した場合は発動しない）
         if (insts.some((inst) => inst.key === 'y_reisen')) hiddenActivated = i;
-      }
-      // リグル: 同じ手番に「自分以外」が取得したリグル 1 枚につき points 点。
-      // 1 人だけでは 0 点、2 人同時なら互いに 1 点ずつという譲り合いの賭けになる
-      for (const { pi, inst } of coopThisTurn) {
-        const others = coopThisTurn.filter((x) => x.pi !== pi).length;
-        inst.coopPoints = others * coopPointValue(state.cardMap[inst.key]);
-      }
-      // 大妖精: 同じ手番に「自分以外」がチルノか大妖精を取った人数ぶん加点（手番内で確定）
-      for (const { pi, inst } of socialThisTurn) {
-        const def = state.cardMap[inst.key];
-        const keys = def.joinKeys || [];
-        let others = 0;
-        for (const lp of state.lastPicks) {
-          if (lp.pi === pi) continue;
-          if (lp.keys.some((k) => keys.includes(k))) others++;
-        }
-        inst.socialPoints = others * (def.per === undefined ? 1 : def.per);
-        if (inst.socialPoints > 0) {
-          addLog(state, `${state.players[pi].name}: 大妖精が同じ手番の仲間 ${others} 人に応えて +${inst.socialPoints} 点`);
-        }
       }
       // othersDiff（レティ型の「他人の取得数との差」）と springSteal（春の奪取）は
       // 現行データにカードが無く、判定を持たないため削除した（2026-11）。
@@ -283,10 +260,11 @@
 
       if (state.players.every((p) => p.hand.length === 0)) {
         beginSelectionPhase(state);
-        if (state.phase !== 'select') endRound(state);
+        // 選択が無ければこの時点で手番の判定を確定させる（コピーが生まれる場合は選択後に回す）
+        if (state.phase !== 'select') { applyTurnConditions(state); endRound(state); }
       } else {
         beginSelectionPhase(state);
-        if (state.phase !== 'select') passHands(state);
+        if (state.phase !== 'select') { applyTurnConditions(state); passHands(state); }
       }
     }
 
@@ -301,7 +279,6 @@
         stats.dessertTaken++;
       }
 
-      inst.takenSeq = state.pickSeq;
       p.taken.push(inst);
 
       // 春アイコンの記録（幽々子・レティ・妖夢の判定に使用）
@@ -392,25 +369,61 @@
       }
     }
 
-    // 咲夜の同時ピック判定は resolvePicks の全員分取得後に判定する
-    function applySamePickConditions(state) {
-      for (const lp of state.lastPicks) {
-        const pi = lp.pi;
+    // その手番にプレイされたカードのキー（プレイヤー別）。
+    // 手番で選んだカード・慧音のコピー・文の追加取材・小悪魔の山札確認・にとりの入れ替えが該当し、
+    // 永琳の交換（自分のカードを差し替える効果）はプレイではないので含めない。
+    function turnPlays(state) {
+      const plays = [];
+      for (let pi = 0; pi < state.playerCount; pi++) {
+        const keys = [];
+        for (const inst of state.players[pi].taken) {
+          if (inst.playedTurn !== state.pickSeq) continue;
+          if (inst.flipped || inst.discarded) continue;
+          keys.push(inst.key);
+        }
+        plays.push(keys);
+      }
+      return plays;
+    }
+
+    // その手番の判定（同席 0 点・条件付き加点・同席の仲間・リグルの譲り合い）をまとめて適用する。
+    // 慧音のコピーも「その手番にプレイされた 1 枚」として数えるため、コピーを作り終えてから呼ぶ
+    // （本家スシゴーパーティーの特別注文と同じ扱い）。
+    function applyTurnConditions(state) {
+      const plays = turnPlays(state);
+      const allKeys = plays.flat();
+      for (let pi = 0; pi < state.playerCount; pi++) {
         const p = state.players[pi];
         for (const inst of p.taken) {
+          if (inst.playedTurn !== state.pickSeq) continue;
+          if (inst.flipped || inst.discarded) continue;
           const def = state.cardMap[inst.key];
-          if (!def || def.kind !== 'instant' || (!def.absentKeys && !def.zeroIfTaken && !def.pointsIfPicked)) continue;
-          if (inst.absentChecked) continue;
-          // その手番に取ったカードだけを判定する（山札確認などで後から得たカードを誤判定しない）
-          if (inst.takenSeq !== state.pickSeq) continue;
-          inst.absentChecked = true;
-          const others = state.lastPicks.filter((x) => x.pi !== pi).flatMap((x) => x.keys);
-          const allKeys = state.lastPicks.flatMap((x) => x.keys);
-          let blocked = def.absentKeys ? others.some((k) => def.absentKeys.includes(k)) : false;
-          // 自分自身を条件にしている札（咲夜）: 「この手番に1枚だけ」なので、
-          // 同じプレイヤーが早飲みで2枚出した場合も0点にする
+          if (!def) continue;
+          // リグル: 同じ手番に「自分以外」がプレイしたリグル 1 枚につき points 点
+          if (def.kind === 'coop') {
+            const others = plays.reduce((n, keys, j) => (j === pi ? n : n + keys.filter((k) => k === inst.key).length), 0);
+            inst.coopPoints = others * coopPointValue(def);
+          }
+          // 大妖精: 同じ手番に「自分以外」がチルノか大妖精をプレイした人数ぶん加点
+          if (def.kind === 'socialJoin' && def.sameTurn) {
+            const joinKeys = def.joinKeys || [];
+            const others = plays.reduce((n, keys, j) => (
+              j === pi || !keys.some((k) => joinKeys.includes(k)) ? n : n + 1
+            ), 0);
+            inst.socialPoints = others * (def.per === undefined ? 1 : def.per);
+            if (inst.socialPoints > 0) {
+              addLog(state, `${p.name}: 大妖精が同じ手番の仲間 ${others} 人に応えて +${inst.socialPoints} 点`);
+            }
+          }
+          if (def.kind !== 'instant') continue;
+          if (!def.absentKeys && !def.zeroIfTaken && !def.pointsIfPicked) continue;
+          let blocked = false;
           if (def.absentKeys && def.absentKeys.includes(def.key)) {
+            // 自分自身を条件にしている札（咲夜）: 「この手番に 1 枚だけ」。
+            // コピーも 1 枚として数えるので、コピーされただけでも同席扱いになる
             blocked = allKeys.filter((k) => k === def.key).length > 1;
+          } else if (def.absentKeys) {
+            blocked = plays.some((keys, j) => j !== pi && keys.some((k) => def.absentKeys.includes(k)));
           }
           // zeroIfTaken: 同じ手番に誰か（自分含む）が指定カードを取ったら 0 点
           if (def.zeroIfTaken && allKeys.includes(def.zeroIfTaken)) blocked = true;
@@ -524,7 +537,6 @@
     }
 
     function beginSelectionPhase(state) {
-      applySamePickConditions(state);
       const needed = [];
       state.peekNeeded = state.peekNeeded || new Array(state.playerCount).fill(false);
       state.peekCards = state.peekCards || new Array(state.playerCount).fill(null);
@@ -687,9 +699,9 @@
           const inst = p.taken[c.copy];
           const idef = map[inst.key];
           if (idef && idef.kind !== 'copy') {
-            // takenSeq は載せない（コピーは「その手番に取ったカード」ではないため、
-            // 同じ手番判定や同時取得の対象にしない）
-            const copy = { key: inst.key, icons: inst.icons, copied: true };
+            // コピーも「その手番にプレイされた 1 枚」として同席・条件の判定に参加する
+            // （本家スシゴーパーティーの特別注文と同じ。判定は applyTurnConditions でまとめて行う）
+            const copy = { key: inst.key, icons: inst.icons, copied: true, playedTurn: state.pickSeq };
             if (inst.flipped) {
               // 裏返したカードをコピーすると、コピーも裏返し（名前も効果も無い 2 点だけのカード）になる。
               // 判定・通算・統計には載せない（名前で参照される効果も引き継がない）
@@ -715,9 +727,8 @@
           const chosen = Number.isInteger(c.pick) ? candidates[c.pick] : null;
           if (chosen) {
             applyTake(state, i, chosen);
-            // リグルを山札確認で得た場合は手番ではないので、同時取得はいない = 0 点
-            const cdef = map[chosen.key];
-            if (cdef && cdef.kind === 'coop') chosen.coopPoints = 0;
+            // 山札確認で選んだ 1 枚は「その手番にプレイした」扱い（本家のメニューと同じ）
+            chosen.playedTurn = state.pickSeq;
             // 小悪魔のタイルに「獲得したカード」を重ねて表示するための目印
             chosen.peekedGain = true;
             const peeker = [...p.taken]
@@ -741,7 +752,7 @@
           p.inScoop = true;
           for (const idx of idxs.sort((a, b) => b - a)) {
             const inst = p.hand.splice(idx, 1)[0];
-            if (inst) { applyTake(state, i, inst); gotten.push(inst); }
+            if (inst) { applyTake(state, i, inst); inst.playedTurn = state.pickSeq; gotten.push(inst); }
           }
           p.inScoop = false;
           // 文自身は山札の下へ戻す（手元には残らない）
@@ -785,6 +796,7 @@
               const nitori = p.taken.splice(niIdx, 1)[0];
               state.players[pick.j].hand.push(nitori);
               applyTake(state, i, got);
+              got.playedTurn = state.pickSeq; // 本家のスプーンと同じく、その手番のプレイとして扱う
               addLog(state, `${p.name}: にとりの調査で${cardName(map[got.key]) || got.key}を手に入れた`);
             } else {
               addLog(state, `${p.name}: 指定したカードは見つからず、にとりの調査は空振り`);
@@ -798,6 +810,7 @@
           if (idef && (idef.discardBonus || idef.swap || idef.kind === 'flip' || idef.kind === 'copy' || idef.kind === 'deckPeek')) inst.selectionDone = true;
         }
       }
+      applyTurnConditions(state); // この手番にプレイされたカード（コピー含む）の判定を確定
       checkFaithRace(state); // にとりの入れ替えで信仰が動くことがある
       state.phase = 'pick';
       state.selectNeeded = null;
@@ -986,12 +999,14 @@
           delete inst.instantCombo;
           delete inst.selectionDone;
           delete inst.copied;
+          delete inst.playedTurn;
           // ラウンド内だけ有効な加点・フラグ（山札に戻って次ラウンド再使用されるため必ず消す）
           delete inst.triple;
           delete inst.turnBonus;
           delete inst.extraPts;
           delete inst.franBonus;
           delete inst.coopPoints;
+          delete inst.socialPoints;
           delete inst.diffPoints;
           delete inst.springGain;
           delete inst.youmuBoost;
