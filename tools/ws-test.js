@@ -75,6 +75,16 @@ const isState = (m) => m.type === 'state';
   assert(!srv.rooms.has('ZZZZ'), 'unknown code does not create a room');
   nope.ws.close();
 
+  // create で join に失敗したら空ルームを残さない（名前不正の連打で上限を埋めさせない）
+  const roomsBefore = srv.rooms.size;
+  const badCreate = connect();
+  await badCreate.open();
+  badCreate.send({ type: 'create', name: '   ' });
+  const eCreate = await badCreate.next((m) => m.type === 'error');
+  assert(/名前を入力してください/.test(eCreate.message), 'create with an empty name is rejected: ' + eCreate.message);
+  assert(srv.rooms.size === roomsBefore, 'failed create does not leave an orphan room');
+  badCreate.ws.close();
+
   const b = connect();
   await b.open();
   b.send({ type: 'join', code: CODE, name: 'B' });

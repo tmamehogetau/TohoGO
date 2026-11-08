@@ -229,7 +229,11 @@ function onCreate(ws, msg) {
     return send(ws, { type: 'error', message: 'いまはルームを作成できません。時間をおいて試してください' });
   }
   const result = room.join(msg.name, null);
-  if (!result.ok) return send(ws, { type: 'error', message: result.error });
+  if (!result.ok) {
+    // join に失敗したら空ルームを残さない（名前不正の連打で上限 200 を埋めさせない）
+    rooms.delete(room.code);
+    return send(ws, { type: 'error', message: result.error });
+  }
   return attach(ws, room, result);
 }
 
