@@ -360,13 +360,24 @@ Windows の PowerShell 5.1 は node の UTF-8 出力を化けさせるので、`
 
 - `tools/room-test.js`（ルーム単体）・`tools/serve-test.js`（配信/不正 URL/heartbeat）・
   `tools/consistency-test.js`（枚数保存則）・`tools/zones.js`（共通 util）を追加。
-  `npm run test:all` で 6 本まとめて実行（103 + 13 + serve + ws + 保存則 96 ゲーム + フルゲーム E2E）
+  `npm run test:all` で 6 本まとめて実行（104 + 13 + serve + ws + 保存則 96 ゲーム + フルゲーム E2E）
 - `tools/ws-game-test.js`: **3 人 × 3 ラウンドをサーバー経由で完走**する E2E。
   ラウンドバナー/次へ・切断 → AI 代行・同じ playerId での再接続・他人の手札が漏れないこと・
   エラーが返らないことを検証する（`npm run test:ws-game`）
 - heartbeat の terminate 経路は `sweepHeartbeat(clients)` を切り出して偽クライアントで単体テスト
 - フラン破棄の回帰テストは「ラウンド末に +2 が入らない」を直接見る形に修正（変異テストで検出力を確認済み）
 - 風神録の 4 人 AI 完走を追加（にとりの `Math.random` 解決が CI に乗る）
+
+**マージ後の追加修正（`5c278ae` 以降）**
+
+- `onCreate` で `join` に失敗したときに空ルームが残っていた（名前不正の連打で上限 200 を埋められる）。
+  join 失敗時に `rooms.delete` で回収。`ws-test` に検証を追加
+- **裏返したカードをコピーすると、コピーも裏返し（名前も効果も無い 2 点だけのカード）** になる。
+  従来はコピーが元の価値をそのまま持っていた（コピーの `flipped` が立たず、裏返しの 2 点と
+  コピーの実カード価値が両立していた）。`rules-test` の「裏返したカードをコピーすると 2 点だけの
+  カードになる」で固定し、変異テストで検出力を確認済み
+- 残課題: コピーした春カードは `roundStats.springIcons` に乗らない（現状は慧音が春異変に居ないため
+  表面化しない）、`selectionNeeded` が `p.nitoriReady` を書き換える
 
 **計測（先輩の判断材料）**
 

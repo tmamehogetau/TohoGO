@@ -1416,6 +1416,35 @@ test('永夜: 慧音のコピーはラウンド中だけ存在し、ラウンド
   assert.strictEqual(Zones.countAll(s).y_kaguya, beforeCopy, 'ラウンド末にコピーは消える（山札へ戻らない）');
 });
 
+test('永夜: 裏返したカードをコピーすると 2 点だけのカードになる', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal' });
+  fixPeek(s);
+  setHands(s, [['y_kaguya', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // 輝夜（即時 3 点）を取る
+  setHands(s, [['y_mystia', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // ミスティア → 裏返しの選択
+  assert.strictEqual(s.phase, 'select');
+  const ki = s.players[0].taken.findIndex((i) => i.key === 'y_kaguya');
+  let r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [ki] } });
+  assert.ok(r.ok, r.error);
+  assert.strictEqual(s.players[0].taken[ki].flipped, true, '輝夜が裏返っている');
+
+  setHands(s, [['y_keine', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // 慧音 → コピーの選択
+  assert.strictEqual(s.phase, 'select');
+  r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { copy: ki } });
+  assert.ok(r.ok, r.error);
+  const copy = s.players[0].taken.find((i) => i.copied);
+  assert.ok(copy, 'コピーが 1 枚できている');
+  assert.strictEqual(copy.key, 'y_kaguya');
+  assert.strictEqual(copy.flipped, true, '裏返したカードのコピーは裏返しになる');
+
+  // ラウンド末: 裏返し 2 枚（輝夜＋コピー）× 2 点だけ。輝夜の 3 点も、コピーで 3 点を稼ぐこともない
+  cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]);
+  assert.strictEqual(s.players[0].taken.length, 0, 'ラウンド末にコピーは消える');
+  assert.strictEqual(s.players[0].roundScores[0], 4, '裏返しコピーは 2 点だけ（実カードの価値は乗らない）');
+});
+
 test('風神録: にとりが破棄されていたら名前指定は出ない', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
   fixPeek(s);

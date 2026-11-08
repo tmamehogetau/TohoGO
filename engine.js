@@ -686,10 +686,18 @@
           const idef = map[inst.key];
           if (idef && idef.kind !== 'copy') {
             const copy = { key: inst.key, icons: inst.icons, copied: true, takenSeq: state.pickSeq };
-            if (copy.key === state.dessert.key) state.roundStats[i].dessertTaken += 1;
-            if (idef.gameEnd) p.gameEndCounts[copy.key] = (p.gameEndCounts[copy.key] || 0) + 1;
-            p.taken.push(copy);
-            addLog(state, `${p.name}: 白沢の知恵で${cardName(idef)}の効果を模した`);
+            if (inst.flipped) {
+              // 裏返したカードをコピーすると、コピーも裏返し（名前も効果も無い 2 点だけのカード）になる。
+              // 判定・通算・統計には載せない（名前で参照される効果も引き継がない）
+              copy.flipped = true;
+              p.taken.push(copy);
+              addLog(state, `${p.name}: 白沢の知恵で裏返ったカードを写した（2 点だけ）`);
+            } else {
+              if (copy.key === state.dessert.key) state.roundStats[i].dessertTaken += 1;
+              if (idef.gameEnd) p.gameEndCounts[copy.key] = (p.gameEndCounts[copy.key] || 0) + 1;
+              p.taken.push(copy);
+              addLog(state, `${p.name}: 白沢の知恵で${cardName(idef)}の効果を模した`);
+            }
           }
         }
 
