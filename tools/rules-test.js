@@ -8,6 +8,8 @@ const assert = require('assert');
 const Engine = require('../engine.js');
 const { RULES, INCIDENTS, buildMainDeck, buildDessertPool } = require('../data.js');
 const AI = require('../ai.js');
+const Zones = require('./zones.js');
+const Consistency = require('./consistency-test.js');
 
 let passed = 0;
 function test(name, fn) {
@@ -360,8 +362,16 @@ test('紅霧: フランをスキップ後の小悪魔選択に古い破棄キー
   // UI に古い discard モードが残った場合を想定し、discard と pick を同時に送る
   const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { discard: 0, pick: 0 } });
   assert.ok(r.ok, r.error);
-  assert.strictEqual(s.players[0].roundScores[0], 0, '不要な破棄では +2 されない');
+  // フランの +2 はラウンド末加算なので、roundScores をその場で見ても回帰は捕まらない。
+  // 「破棄そのものが起きていない」ことを直接確かめる
+  assert.strictEqual(s.players[0].taken.filter((i) => i.discarded).length, 0, '破棄は起きていない');
+  assert.strictEqual(s.players[0].taken.filter((i) => i.franBonus).length, 0, 'フランの加点フラグも付かない');
   assert.strictEqual(s.phase, 'pick');
+  // ラウンドを閉じても、内訳にフランの破棄加点（+2）が現れない
+  cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]);
+  const row = s.roundBanner.results.find((x) => x.pi === 0);
+  assert.ok(!row.extras.some((e) => e.key === 'k_fran'), '内訳にフランの破棄加点が無い');
+  assert.strictEqual(s.players[0].roundScores[0], 3, '美鈴 1 点＋フラン 2 点のみ（破棄の +2 は入らない）');
 });
 
 test('紅霧: 大妖精=同じ手番にチルノを取った人数ぶん +1点', () => {
@@ -1341,10 +1351,91 @@ test('風神録: 射命丸文=山札から出た文は連鎖しない', () => {
 
 
 
+// ================= 保存則・春指標（2026-11 レビュー対応） =================
+
+test('春: 春アイコンは判定と表示で同一の指標を使う（全ラウンド）', () => {
+  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'spring' });
+  fixPeek(s);
+  const check = () => {
+    for (let pi = 0; pi < 4; pi++) {
+      const p = s.players[pi];
+      // 表示用の roundStats.springIcons と、判定用の springIconTotal が同じ入力を指していること。
+      // 破棄/裏返し/コピーされた春カードが生まれると、この等式が崩れてテストが落ちる（M5 の再発検知）
+      assert.strictEqual(
+        Engine.springIconTotal(s, p),
+        Math.max(0, s.roundStats[pi].springIcons - Engine.lettyPairReduction(s, p)),
+        `R${s.round + 1} 席${pi}: springIconTotal（判定用）が roundStats.springIcons（表示用）と一致`,
+      );
+    }
+  };
+  let guard = 0;
+  while (s.phase !== 'over' && guard++ < 2000) {
+    if (s.phase === 'select') {
+      for (const pi of s.selectNeeded) {
+        if (s.selections[pi] === null) Engine.dispatch(s, { kind: 'choose', pi, choice: AI.selectChoice(s, pi) });
+      }
+    } else {
+      for (let pi = 0; pi < 4; pi++) aiDispatch(s, pi);
+    }
+    // 終局後は taken だけが空になり roundStats は最終ラウンドの値が残る（dealRound が来ない）ため対象外
+    if (s.phase !== 'over') check();
+  }
+  assert.strictEqual(s.phase, 'over');
+});
+
+test('保存則: 全異変・全人数でラウンド境界のカード枚数が変わらない', () => {
+  const res = Consistency.check({ playerCounts: [2, 3, 4], seeds: [1, 2, 3] });
+  const detail = res.violations
+    .slice(0, 3)
+    .map((v) => `${v.incident} ${v.playerCount}人 seed${v.seed} ${v.tag}: `
+      + v.diff.map((d) => `${d.key} 期待${d.expected} 実際${d.actual}`).join(' / '))
+    .join(' | ');
+  assert.strictEqual(res.violations.length, 0, `保存則違反 ${res.violations.length} 件: ${detail}`);
+  assert.ok(res.games >= 36, `検査したゲーム数 ${res.games}`);
+});
+
+test('永夜: 慧音のコピーはラウンド中だけ存在し、ラウンド末に消える（山札が膨らまない）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal' });
+  fixPeek(s);
+  setHands(s, [['y_kaguya', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // 先に輝夜を取る（コピー対象ができる）
+  setHands(s, [['y_keine', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // 慧音 → コピーの選択フェーズ
+  assert.strictEqual(s.phase, 'select');
+  const beforeCopy = Zones.countAll(s).y_kaguya; // コピー前の実枚数（setHands の注入分もここで吸収）
+  const idx = s.players[0].taken.findIndex((i) => i.key === 'y_kaguya');
+  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { copy: idx } });
+  assert.ok(r.ok, r.error);
+  const copies = s.players[0].taken.filter((i) => i.copied);
+  assert.strictEqual(copies.length, 1, 'コピーが 1 枚できている');
+  assert.strictEqual(copies[0].key, 'y_kaguya');
+  assert.strictEqual(Zones.countAll(s).y_kaguya, beforeCopy + 1, 'ラウンド中は判定用に 1 枚多い');
+  // ラウンドを閉じる
+  cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]);
+  assert.strictEqual(s.players[0].taken.length, 0);
+  assert.strictEqual(Zones.countAll(s).y_kaguya, beforeCopy, 'ラウンド末にコピーは消える（山札へ戻らない）');
+});
+
+test('風神録: にとりが破棄されていたら名前指定は出ない', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  fixPeek(s);
+  setHands(s, [['f_nitori', 'x_dummy'], ['x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0]);
+  const ni = s.players[0].taken.find((i) => i.key === 'f_nitori');
+  assert.ok(ni, 'にとりを取得');
+  // 通常は次の取得後に名前指定が出る
+  s.players[0].nitoriReady = true;
+  assert.strictEqual(Engine.selectionNeeded(s, 0).swapNamed, true);
+  // 破棄されていたら出さない（フラン破棄との組み合わせは将来の異変追加で起こり得る）
+  ni.discarded = true;
+  s.players[0].nitoriReady = true;
+  assert.strictEqual(Engine.selectionNeeded(s, 0).swapNamed, false, '破棄済みのにとりでは発動しない');
+  assert.strictEqual(s.players[0].nitoriReady, false, '使えないフラグは落とす');
+});
+
+test('風神録で4人AI完走（にとりの名前指定＝Math.random を含む現役経路）', () => {
+  fullRun('mountain', null);
+});
+
 console.log(`\
 ${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
-
-
-
-
-

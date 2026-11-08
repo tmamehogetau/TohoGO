@@ -224,8 +224,12 @@
         return def.points * (need === 1 ? 0.8 : need === 2 ? 0.4 : 0.2);
       }
       case 'springMost': {
-        const othersMax = Math.max(0, ...others.map((j) => state.roundStats[j].springIcons));
-        return stats.springIcons > othersMax ? def.most * 0.45 : def.most * 0.18;
+        // 判定と同じ指標（engine.springIconTotal）で比較する。
+        // roundStats.springIcons を見ると、破棄・裏返し・コピーの扱いが判定とズレる
+        const E = engineOf();
+        const ownSpring = E.springIconTotal(state, p);
+        const othersMax = Math.max(0, ...others.map((j) => E.springIconTotal(state, state.players[j])));
+        return ownSpring > othersMax ? def.most * 0.45 : def.most * 0.18;
       }
       case 'springBoost':
         // 次の春でアイコン数ぶんの春と点。春がまだ手元/山に残っていそうなら強め
@@ -262,10 +266,6 @@
         const isNew = !p.taken.some((i) => i.key === key && !i.flipped && !i.discarded);
         return isNew ? 1.1 : 0.2;
       }
-      case 'letty': {
-        const own = countKey(p, def.ownKey);
-        return own > stats.springIcons ? def.mult * 0.5 : 0.2;
-      }
       case 'coop': {
         // 自分以外が同じ手番に取った枚数ぶんの点。他人の選択は読めないので、
         // セット内のリグルの密度から「他の人が同時に取る枚数」を期待値で近似する
@@ -297,24 +297,8 @@
         return v;
       }
       case 'dessertRound': {
-        // ラウンド内は 1 枚ごとに -1。ゲーム末は最多に「固定 endMost」または「枚数 × endMostPer」
-        const mine = dessertCount(state, pi, key);
-        const others = Math.max(...state.players.map((q, i) => (i === pi ? -1 : dessertCount(state, i, key))));
-        const inRace = mine + 1 >= others;
-        if (def.roundPenaltyCumulative && def.roundPenalty) {
-          // 累計ペナルティ: このカードは以後のラウンド末すべてで課税される（R1で取ると3回・R3で1回）
-          const remaining = RULES.ROUNDS - state.round;
-          const upside = inRace ? (def.endMostPer || 2) : 0;
-          return def.roundPenalty * remaining + upside;
-        }
-        if (def.endMost !== undefined) {
-          // 固定加点: 最多を取る価値が一跳びで大きいので、届く位置なら強く狙う
-          return inRace ? 2.2 : 0.4;
-        }
-        if (def.endMostPer) {
-          // 枚数比例: 最多グループに入れば 1 枚あたり +2 - 1 = 純 +1。届かない位置なら -1 の損
-          return inRace ? 1.1 : 0.3;
-        }
+        // （未使用）ラウンド罰則型の継続カード。data.js に該当カードが無いため到達しない。
+        // 追加するときは engine の applyDessertRound も復活させること
         return 1.5;
       }
       default:
@@ -323,10 +307,10 @@
   }
 
   // 好みプロファイル（style）。標準は重みなし。
-  // 「春プラン」= 春・幽々子・妖夢を優先し、春と逆向きのレティは避ける
+  // 「春プラン」= 春・幽々子・妖夢を優先する
   const STYLES = {
     standard: {},
-    spring: { maki: 3, springMost: 3, springSteal: 3, letty: 0.2 },
+    spring: { maki: 3, springMost: 3 },
     set: { pair: 2.5, set3: 2.5 },
     instant: { instant: 1.6 },
   };

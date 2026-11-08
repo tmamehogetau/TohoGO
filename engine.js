@@ -204,8 +204,6 @@
       state.lastPicks = [];
       let hiddenActivated = null; // このピックでうどんげを出したプレイヤー
       const coopThisTurn = []; // この手番で同時に取得されたリグル（{ pi, inst }）
-      const youmuThisTurn = []; // この手番で取得された妖夢
-      const diffThisTurn = []; // この手番で取得された「他人の取得数で決まる」カード（レティ）
       const socialThisTurn = []; // この手番で取得された「同じ手番の仲間で加点」カード（大妖精）
       for (let i = 0; i < state.playerCount; i++) {
         const idxs = [...state.picks[i]].sort((a, b) => b - a);
@@ -216,8 +214,6 @@
           const def = state.cardMap[inst.key];
           if (def && def.kind === 'coop') coopThisTurn.push({ pi: i, inst });
           if (def && def.kind === 'socialJoin' && def.sameTurn) socialThisTurn.push({ pi: i, inst });
-          if (def && def.kind === 'springSteal') youmuThisTurn.push({ pi: i, inst });
-          if (def && def.kind === 'othersDiff') diffThisTurn.push({ pi: i, inst });
         }
         state.lastPicks.push({ pi: i, keys: insts.map(instKey) });
         // うどんげは「出した番」に発動する（小悪魔の山札確認で獲得した場合は発動しない）
@@ -243,55 +239,10 @@
           addLog(state, `${state.players[pi].name}: 大妖精が同じ手番の仲間 ${others} 人に応えて +${inst.socialPoints} 点`);
         }
       }
-      // othersDiff（レティ）: 同じ手番に「他の人」が取った枚数の差で決まる
-      for (const { pi, inst } of diffThisTurn) {
-        const def = state.cardMap[inst.key];
-        let plus = 0;
-        let minus = 0;
-        for (const lp of state.lastPicks) {
-          if (lp.pi === pi) continue;
-          for (const k of lp.keys) {
-            if (k === def.plusKey) plus++;
-            if (k === def.minusKey) minus++;
-          }
-        }
-        inst.diffPoints = (plus - minus) * (def.mult || 1);
-        addLog(
-          state,
-          `${state.players[pi].name}: ${def.name}は他の人の${def.plusKey === inst.key ? '同種' : '取得'} ${plus} 枚・春 ${minus} 枚で ${inst.diffPoints >= 0 ? '+' : ''}${inst.diffPoints} 点`,
-        );
-      }
-      // 妖夢: 手番終了時に一括判定（同じ手番の春も含めて数える）。
-      // 同じ手番に妖夢が 2 枚以上出たら相殺（どちらも不発）
-      if (youmuThisTurn.length >= 2) {
-        for (const { inst } of youmuThisTurn) inst.springGain = 0;
-        addLog(state, '妖夢同士がぶつかり、効果は相殺された');
-      } else {
-        for (const { pi, inst } of youmuThisTurn) {
-          const def = state.cardMap[inst.key];
-          const steal = def.steal || 1;
-          const pointPer = def.pointPer || 1;
-          const opponents = state.playerCount - 1;
-          let holders = 0;
-          for (let j = 0; j < state.playerCount; j++) {
-            if (j === pi) continue;
-            const loss = Math.min(steal, Math.max(0, state.roundStats[j].springIcons));
-            if (loss > 0) {
-              state.roundStats[j].springIcons -= loss;
-              state.roundStats[pi].springIcons += loss;
-              holders += 1;
-            }
-          }
-          if (holders === 0) {
-            inst.springGain = 0;
-            addLog(state, `${state.players[pi].name}: 奪える春がなく、妖夢の効果は失敗に終わった`);
-          } else {
-            const springless = opponents - holders;
-            inst.springGain = springless * pointPer;
-            addLog(state, `${state.players[pi].name}: ${holders} 人から春を奪い、春を持たない ${springless} 人ぶんの ${inst.springGain} 点を得た`);
-          }
-        }
-      }
+      // othersDiff（レティ型の「他人の取得数との差」）と springSteal（春の奪取）は
+      // 現行データにカードが無く、判定を持たないため削除した（2026-11）。
+      // 追加するときは roundStats.springIcons ではなくカード移動として実装すること
+      // （springIconTotal は taken から数えるので、統計だけ動かすと判定とズレる）
       state.picks = new Array(state.playerCount).fill(null);
 
       // にとり: 取り置きした「次の手番」が来たら、名前指定の選択を予約する
@@ -536,7 +487,7 @@
       const hasFlipTarget = p.taken.some((x) => !x.flipped && !x.discarded && (map[x.key] || {}).kind !== 'flip');
       const hasCopyTarget = p.taken.some((x) => {
         const d = map[x.key];
-        return !!d && d.kind !== 'copy';
+        return !!d && d.kind !== 'copy' && !x.discarded;
       });
       const hasSwapTarget = p.taken.some((x) => !x.discarded);
       const hasPeekDeck = state.deck.length > 0
@@ -561,7 +512,15 @@
         }
       }
       if ((p.scoopPending || 0) > 0 && p.hand.length > 0) need.scoop = true;
-      if (p.nitoriReady) need.swapNamed = true;
+      // にとり: 取り置きが来ていても、本体が破棄/裏返しされていれば効果は出ない
+      if (p.nitoriReady) {
+        const liveNitori = p.taken.some((x) => {
+          const d = map[x.key];
+          return d && d.kind === 'swapNamed' && !x.discarded && !x.flipped;
+        });
+        if (liveNitori) need.swapNamed = true;
+        else p.nitoriReady = false;
+      }
       return need;
     }
 
@@ -719,12 +678,17 @@
           if (flippedN) addLog(state, `${p.name}: 夜雀の歌で${flippedN} 枚の価値が変わった（判定時に各 ${flipPoints} 点）`);
         }
 
-        // 慧音コピー
+        // 慧音コピー: このラウンドのあいだだけ「実カードと同じ1枚」として扱う。
+        // applyTake は通さない（取得時効果を再発動させないため）が、
+        // 通算・ラウンド統計には実カードと同じ規則で載せる。ラウンド末に消える（盤面の枚数は増えない）。
         if (need.copy && c.copy !== null && c.copy !== undefined && Number.isInteger(c.copy)) {
           const inst = p.taken[c.copy];
           const idef = map[inst.key];
           if (idef && idef.kind !== 'copy') {
-            p.taken.push({ key: inst.key, icons: inst.icons, copied: true });
+            const copy = { key: inst.key, icons: inst.icons, copied: true, takenSeq: state.pickSeq };
+            if (copy.key === state.dessert.key) state.roundStats[i].dessertTaken += 1;
+            if (idef.gameEnd) p.gameEndCounts[copy.key] = (p.gameEndCounts[copy.key] || 0) + 1;
+            p.taken.push(copy);
             addLog(state, `${p.name}: 白沢の知恵で${cardName(idef)}の効果を模した`);
           }
         }
@@ -792,7 +756,7 @@
           p.nitoriReady = false;
           const niIdx = p.taken.findIndex((x) => {
             const d = map[x.key];
-            return d && d.kind === 'swapNamed';
+            return d && d.kind === 'swapNamed' && !x.discarded && !x.flipped;
           });
           if (named) {
             const cands = [];
@@ -859,7 +823,8 @@
       return cut;
     }
 
-    // 春アイコンの実効値（ラウンド末の順位判定用）
+    // 春アイコンの実効値（ラウンド末の順位判定・幽々子・AI 評価の唯一の定義元。
+    // roundStats.springIcons は UI のバッジ表示専用で、判定には使わない）
     function springIconTotal(state, p) {
       return Math.max(0, countKey(p, 's_spring') + (p.youmuSpring || 0) - lettyPairReduction(state, p));
     }
@@ -946,7 +911,6 @@
 
       // 即時点数のラウンド末一括集計（先頭で行い、バナーの点数内訳に含める）
       // ラウンド開始時の持ち点は常に 0（信仰の即時点も含めてバナーの合計と内訳を一致させる）
-      const roundStart = state.players.map(() => 0);
       // 信仰: 10個に届かなかった人にも残りの順位点を配る
       finishFaithRace(state);
       settleInstantScores(state);
@@ -962,17 +926,14 @@
       for (let i = 0; i < n; i++) {
         const p = state.players[i];
         p.roundScores[state.round] += scores[i];
-        // ラウンド点 = 即時点 + 全体判定 + 個別判定（バナーの内訳合計と一致させる）
-        results.push({ pi: i, name: p.name, points: p.roundScores[state.round] - roundStart[i] });
+        // ラウンド点 = 即時点 + 全体判定 + 個別判定（バナーの合計と一致させる）
+        results.push({ pi: i, name: p.name, points: p.roundScores[state.round] });
       }
       // 信仰（到達レース）の得点は即時加算なので、バナーの内訳にも積む
       for (const ev of state.faithEvents || []) {
         if (ev.pi >= 0 && ev.pi < n) detail[ev.pi].push({ key: 'f_faith', label: `信仰（${ev.n}個・${ev.place}位）`, pts: ev.pts });
       }
       addLog(state, `ラウンド ${state.round + 1} 終了`);
-
-      // 妹紅（dessertRound）は各ラウンド終了時に判定
-      applyDessertRound(state, results);
 
       // バナー用の内訳（獲得カードと配点・カード以外の判定）
       for (let i = 0; i < n; i++) {
@@ -994,11 +955,12 @@
       // 継続カード置き場への移動と山札リサイクル:
       // 手元の継続カードは継続カード置き場へ、それ以外は山札に戻してシャッフル
       // 破棄/裏返し/コピーされた継続カードは判定から外れているため山札へ戻る（置き場には行かない）
+      // 慧音のコピー（copied）は実体を持たない複製なので、どのゾーンにも戻さず消す（枚数保存を守る）
       for (let i = 0; i < n; i++) {
         const p = state.players[i];
         const kept = p.taken.filter((inst) => inst.key === state.dessert.key && !inst.discarded && !inst.flipped && !inst.copied);
         if (kept.length) p.desserts.push(...kept);
-        const recycled = p.taken.filter((inst) => inst.key !== state.dessert.key || inst.discarded || inst.flipped || inst.copied);
+        const recycled = p.taken.filter((inst) => !inst.copied && (inst.key !== state.dessert.key || inst.discarded || inst.flipped));
         for (const inst of recycled) {
           delete inst.flipped;
           delete inst.discarded;
@@ -1103,13 +1065,13 @@
         });
       }
       // springMost（幽々子）: 春アイコンが最多のラウンドだけ、所持 1 枚ごとに加点
-      // 妖夢の奪取は roundStats に反映済み。ラウンド末にレティのぶんだけ減らして判定する
-      const springEffective = state.players.map((p, i) => Math.max(0, state.roundStats[i].springIcons - lettyPairReduction(state, p)));
+      // 妖夢の奪取は roundStats に反映済み。判定は springIconTotal（春マキと同一の定義）に揃える
+      const springEffective = state.players.map((p) => springIconTotal(state, p));
       const springMax = Math.max(...springEffective);
       if (springMax > 0) {
         award('s_yuyuko', '幽々子（春最多）', () => {
           state.players.forEach((p, i) => {
-            const yuyukoCount = p.taken.filter((inst) => inst.key === 's_yuyuko' && !inst.flipped).length;
+            const yuyukoCount = p.taken.filter((inst) => inst.key === 's_yuyuko' && !inst.flipped && !inst.discarded).length;
             if (yuyukoCount > 0 && springEffective[i] === springMax) scores[i] += 4 * yuyukoCount;
           });
         });
@@ -1137,7 +1099,7 @@
         if (inst.flipped || inst.discarded) continue;
         const def = state.cardMap[inst.key];
         if (!def) continue;
-        if (['pair', 'pairCond', 'set3', 'collect', 'tofu', 'eel', 'pairWith', 'kindCount', 'letty', 'roundComboCount', 'socialJoin', 'aliceSet'].includes(def.kind)) {
+        if (['pair', 'pairCond', 'set3', 'collect', 'tofu', 'eel', 'pairWith', 'kindCount', 'roundComboCount', 'socialJoin', 'aliceSet'].includes(def.kind)) {
           seenKinds[def.key] = true;
         }
       }
@@ -1208,12 +1170,6 @@
             kindPts = Math.max(0, kinds.size + def.offset);
             break;
           }
-          case 'letty': {
-            const own = countKey(p, def.ownKey);
-            const spring = state.roundStats[pi].springIcons;
-            kindPts = Math.max(0, (own - spring) * def.mult);
-            break;
-          }
           case 'aliceSet': {
             // 同じ group の種類数で得点（グループにつき 1 回だけ判定）
             const group = def.group || def.key;
@@ -1260,6 +1216,7 @@
             // cumulative: 過去ラウンドぶんも数える（大妖精のチルノ累計など）
             if (def.cumulative) cnt += p.desserts.filter((inst) => inst.key === target).length;
             kindPts = (def.base || 0) + cnt * def.per;
+            kindLabel = `${def.name}（継続カード${cnt}枚）`;
             break;
           }
           default:
@@ -1282,34 +1239,6 @@
       return pts;
     }
 
-    // 妹紅（dessertRound）: ラウンド終了時にペナルティ
-    //   - 既定: そのラウンドに取った枚数ぶん（roundPenalty）
-    //   - roundPenaltyCumulative: 前ラウンドまでの蓄積＋今ラウンドの取得分の累計ぶん
-    // ゲーム末の最多加点は gameEndScore 側（endMost / endMostPer）
-    // 破棄/裏返し/コピーされた継続カードは判定から外れる
-    function applyDessertRound(state, results) {
-      const def = state.dessert;
-      if (def.kind !== 'dessertRound' || !def.roundPenalty) return;
-      for (let i = 0; i < state.players.length; i++) {
-        const p = state.players[i];
-        const takenNow = p.taken.filter((inst) => inst.key === def.key && !inst.discarded && !inst.flipped && !inst.copied).length;
-        const n = def.roundPenaltyCumulative
-          ? p.desserts.filter((inst) => inst.key === def.key).length + takenNow
-          : takenNow;
-        if (!n) continue;
-        const pts = def.roundPenalty * n;
-        // 内訳用: このラウンドに取った継続カード 1 枚ごとに罰則点を付ける
-        for (const inst of p.taken) {
-          if (inst.key !== def.key || inst.discarded || inst.flipped || inst.copied) continue;
-          inst.roundPts = (inst.roundPts || 0) + def.roundPenalty;
-        }
-        p.roundScores[state.round] += pts;
-        const r = results.find((x) => x.pi === i);
-        if (r) r.points += pts;
-        addLog(state, `${p.name}: 妹紅の炎に焼かれた（${pts >= 0 ? '+' : ''}${pts} 点）`);
-      }
-    }
-
     // ---------------- ゲーム末判定 ----------------
 
     // ゲーム末ボーナスの内訳（リザルト表示用）
@@ -1329,17 +1258,6 @@
         const cnt = p.desserts.filter((i) => i.key === def.key).length;
         const v = Math.floor(cnt / def.per) * def.points;
         if (v) out.push({ key: def.key, label: `${def.name}（${cnt}枚）`, pts: v });
-      }
-      const roundDessertDefs = Object.values(state.cardMap).filter((d) => d.kind === 'dessertRound');
-      for (const def of roundDessertDefs) {
-        if (def.endMost === undefined && def.endMostPer === undefined) continue;
-        const counts = state.players.map((q) => q.desserts.filter((i) => i.key === def.key).length);
-        const max = Math.max(...counts);
-        if (max === 0) continue;
-        const cnt = counts[pi];
-        if (cnt !== max) continue;
-        const v = def.endMost !== undefined ? def.endMost : def.endMostPer * cnt;
-        if (v) out.push({ key: def.key, label: `${def.name}（最多${cnt}枚）`, pts: v });
       }
       const mostLeastDefs = Object.values(state.cardMap).filter((d) => d.kind === 'dessertMostLeast');
       for (const def of mostLeastDefs) {
@@ -1424,7 +1342,7 @@
         if (inst.flipped || inst.discarded) continue;
         const def = state.cardMap[inst.key];
         if (!def) continue;
-        if (['collect', 'pair', 'set3', 'tofu', 'kindCount', 'letty'].includes(def.kind)) {
+        if (['collect', 'pair', 'set3', 'tofu', 'kindCount'].includes(def.kind)) {
           out[def.key] = (out[def.key] || 0) + (inst.icons || 1);
         }
       }
@@ -1442,6 +1360,8 @@
       countKey,
       countKeys,
       selectionNeeded,
+      springIconTotal,
+      lettyPairReduction,
       PASS_DIRS,
     };
   })();
