@@ -170,9 +170,9 @@ Windows の PowerShell 5.1 は node の UTF-8 出力を化けさせるので、`
 
 - 全34枚（31キャラ＋アリス4種）のカードに生成イラスト（512×768 WebP、`assets/cards/<key>.webp`）を配置
 - 生成は **ComfyUI 単独**で行う（Strata は停止しておく）。`comfygen.ps1` の Strata ハンドオフは使わない
-  - `tools/start-comfyui.ps1` … ComfyUI を `--disable-all-custom-nodes` で起動（管理バックグラウンドジョブで実行）
-  - `tools/comfy-standalone.ps1` … ワークフロー投入・ポーリング・ダウンロード。
-    マニフェスト側で `workflow` / `negative` / `width` / `height` を既定値として指定できる
+  - `tools/start-comfyui.ps1` / `tools/comfy-standalone.ps1` … 共有ドライバ `comfy-driver\comfy.ps1`（-Profile standalone、ポート 8189）へ委譲する薄いラッパ
+    実行ごとに `_runs.jsonl` と `_summary.json`（run 別 service_s / te_reloads）を出す
+    マニフェストは従来どおり `workflow` / `negative` / `width` / `height` / `name` / `seed` を指定できる
   - `tools/process-card-art.py` … 2:3 センタークロップ → 512×768 WebP q84
 - **2026-11-03 に MOSS-Image 4step へ移行**（旧: Qwen-Image 2.1 turbo）
   - ワークフロー: `moss_sft_4step_t2i.api.json`（832×1216 / 4 steps / cfg 1.0 / euler・sgm_uniform）

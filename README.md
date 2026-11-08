@@ -94,7 +94,7 @@ npm run test:all
 
 ```bash
 # 1. ComfyUI を単独起動（バックグラウンドジョブで実行）
-pwsh -File tools/start-comfyui.ps1
+pwsh -File tools/start-comfyui.ps1   # comfy-driver 経由（ポート 8189）
 
 # 2. キャラごと3案を生成（93枚）
 python tools/card-art/build-candidates.py 3
@@ -135,7 +135,7 @@ touhou-draft/
     ├── attrib.js           得点源の分解（どのカードが点を出しているか）
     ├── ai-check.js         AI の「標準らしさ」検証（同型対戦・摂動耐性・異種混合）
     ├── start-comfyui.ps1   ComfyUI を Strata なしで起動
-    ├── comfy-standalone.ps1 ComfyUI 単独で画像生成
+    ├── comfy-standalone.ps1 画像生成（comfy-driver へ委譲）
     ├── process-card-art.py 生成画像を WebP に変換
     └── card-art/runs.json  カード31枚の生成プロンプト
 ```

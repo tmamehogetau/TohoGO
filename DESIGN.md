@@ -291,8 +291,8 @@ touhou-draft/
     ├── attrib.js            カード別寄与の計測（アブレーション）
     ├── ai-check.js          AI 校正の検証
     ├── ws-test.js           対戦サーバーのスモークテスト
-    ├── start-comfyui.ps1    ComfyUI を単独起動
-    ├── comfy-standalone.ps1 ワークフロー投入・ダウンロード
+    ├── start-comfyui.ps1    ComfyUI 起動（comfy-driver へ委譲）
+    ├── comfy-standalone.ps1 生成（comfy-driver へ委譲、8189）
     ├── process-card-art.py  生成画像 → WebP
     └── card-art/            生成マニフェスト（build-*.py が実体）
         └── characters.md    正史タグと判定基準
