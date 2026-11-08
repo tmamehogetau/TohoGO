@@ -358,11 +358,22 @@ Windows の PowerShell 5.1 は node の UTF-8 出力を化けさせるので、`
 
 **テスト**
 
-- `tools/room-test.js`（ルーム単体）・`tools/serve-test.js`（配信/不正 URL）・
+- `tools/room-test.js`（ルーム単体）・`tools/serve-test.js`（配信/不正 URL/heartbeat）・
   `tools/consistency-test.js`（枚数保存則）・`tools/zones.js`（共通 util）を追加。
-  `npm run test:all` で 5 本まとめて実行（103 + 13 + serve + ws + 保存則 96 ゲーム）
+  `npm run test:all` で 6 本まとめて実行（103 + 13 + serve + ws + 保存則 96 ゲーム + フルゲーム E2E）
+- `tools/ws-game-test.js`: **3 人 × 3 ラウンドをサーバー経由で完走**する E2E。
+  ラウンドバナー/次へ・切断 → AI 代行・同じ playerId での再接続・他人の手札が漏れないこと・
+  エラーが返らないことを検証する（`npm run test:ws-game`）
+- heartbeat の terminate 経路は `sweepHeartbeat(clients)` を切り出して偽クライアントで単体テスト
 - フラン破棄の回帰テストは「ラウンド末に +2 が入らない」を直接見る形に修正（変異テストで検出力を確認済み）
 - 風神録の 4 人 AI 完走を追加（にとりの `Math.random` 解決が CI に乗る）
+
+**計測（先輩の判断材料）**
+
+- 慧音コピー修正で**永夜の平均点が 40.6 → 39.9（2500 ゲーム、−0.7 ≒ −1.7%）**。
+  標準偏差と席別勝率はほぼ変わらず、**他の 3 異変は 33.1 / 43.4 / 53.7 で変化なし**
+  （コピーは永夜のみのため）。カード別の寄与は ±0.3 以内で順位は変わらない
+- 詳細: `.tmp/sim-eternal-compare-2026-11-08.md`（ローカル計測メモ。`7e31af9` を `git worktree` で並べて同条件で比較）
 
 **残している既知の未実装**（データにカードが無いため到達しないが、経路は残置）
 

@@ -46,13 +46,17 @@ npm start
 npm test
 # ルールテスト（103 テスト）を実行
 npm run test:room
-# ルーム管理の単体テスト（ホスト移譲・view 契約・残り時間）
+# ルーム管理の単体テスト（ホスト移譲・claim・view 契約・残り時間）
 npm run test:ws
 # 対戦サーバーのスモークテスト（create/join/start/ピック/秘匿/再接続）
+npm run test:ws-game
+# フルゲーム E2E（3 人 × 3 ラウンド・バナー/次へ・切断→AI代行・再接続）
 npm run test:serve
-# 配信の許可リストと不正 URL 耐性（.git や .tmp を配らないこと）
+# 配信の許可リスト・不正 URL 耐性・WS 死活監視（.git や .tmp を配らないこと）
 npm run test:consistency
 # カード枚数の保存則（全異変 × 2/3/4 人 × seed。-- で --full を渡すと全 sweep）
+npm run test:all
+# 上記をまとめて実行（CI 相当）
 ```
 
 ## ステージセットシステム
@@ -121,7 +125,8 @@ touhou-draft/
     ├── rules-test.js       ルールテスト（node 直実行）
     ├── room-test.js        ルーム管理の単体テスト（ws 不要）
     ├── ws-test.js          対戦サーバーのスモークテスト
-    ├── serve-test.js       静的配信の許可リスト・不正 URL の回帰
+    ├── ws-game-test.js     フルゲーム E2E（3 人 × 3 ラウンド・切断/再接続）
+    ├── serve-test.js       静的配信の許可リスト・不正 URL・heartbeat の回帰
     ├── consistency-test.js カード枚数の保存則チェック（fast / --full）
     ├── zones.js            カード所在の集計（テスト共通の util）
     ├── sim.js              AI vs AI バランスシミュレーション

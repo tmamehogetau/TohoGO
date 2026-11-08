@@ -159,13 +159,23 @@ wss.on('connection', (ws) => {
   ws.on('close', () => onDisconnect(ws));
 });
 
-const heartbeat = setInterval(() => {
-  for (const ws of wss.clients) {
-    if (ws.isAlive === false) { ws.terminate(); continue; } // close ハンドラが切断扱いにする
+// 死活監視の 1 周回。pong が返らなかった接続を落とす。
+// clients を差し替えられるのはテストのため（偽クライアントで terminate 経路を確認する）。
+function sweepHeartbeat(clients = wss.clients) {
+  let terminated = 0;
+  for (const ws of clients) {
+    if (ws.isAlive === false) {
+      ws.terminate(); // close ハンドラが切断扱いにする
+      terminated += 1;
+      continue;
+    }
     ws.isAlive = false;
     try { ws.ping(); } catch { /* noop */ }
   }
-}, HEARTBEAT_MS);
+  return terminated;
+}
+
+const heartbeat = setInterval(() => sweepHeartbeat(), HEARTBEAT_MS);
 if (heartbeat.unref) heartbeat.unref();
 
 function handleMessage(ws, raw) {
@@ -412,4 +422,4 @@ server.listen(PORT, () => {
   console.log(`東方数紙業 server: http://localhost:${PORT}`);
 });
 
-module.exports = { server, wss, rooms, sweepRooms, createRoom, MAX_ROOMS, EMPTY_ROOM_TTL_MS, ROOM_TTL_MS };
+module.exports = { server, wss, rooms, sweepRooms, sweepHeartbeat, createRoom, MAX_ROOMS, EMPTY_ROOM_TTL_MS, ROOM_TTL_MS, HEARTBEAT_MS };

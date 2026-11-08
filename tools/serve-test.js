@@ -106,6 +106,22 @@ function assert(cond, msg) {
   assert(!!created && srv.rooms.size === srv.MAX_ROOMS, 'idle room is evicted to make space');
   assert(!srv.rooms.has('R000'), 'evicted room is gone');
 
+  // ---- WS の死活監視（heartbeat）----
+  // 半切断（TCP は生きているが相手が居ない）を検出して切断扱いにできること。
+  const pings = [];
+  const terminated = [];
+  const fakeAlive = { isAlive: true, ping() { pings.push('alive'); }, terminate() { terminated.push('alive'); } };
+  const fakeDead = { isAlive: false, ping() { pings.push('dead'); }, terminate() { terminated.push('dead'); } };
+
+  const killed1 = srv.sweepHeartbeat([fakeAlive, fakeDead]);
+  assert(killed1 === 1 && terminated.length === 1 && terminated[0] === 'dead', 'pong の無い接続を切る');
+  assert(fakeAlive.isAlive === false && pings.length === 1 && pings[0] === 'alive', '生きている接続には ping を打つ');
+
+  // 次の周回でも pong が来なければ切る（1 周では切らない）
+  const killed2 = srv.sweepHeartbeat([fakeAlive]);
+  assert(killed2 === 1 && terminated.includes('alive'), 'pong が返らないまま次の周回で切る');
+  assert(typeof srv.HEARTBEAT_MS === 'number' && srv.HEARTBEAT_MS > 0, 'heartbeat の周期が設定されている');
+
   srv.rooms.clear();
   console.log('SERVE SMOKE OK');
   process.exit(0);

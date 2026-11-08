@@ -8,9 +8,10 @@
     "test": "node tools/rules-test.js",
     "test:room": "node tools/room-test.js",
     "test:ws": "node tools/ws-test.js",
+    "test:ws-game": "node tools/ws-game-test.js",
     "test:serve": "node tools/serve-test.js",
     "test:consistency": "node tools/consistency-test.js",
-    "test:all": "node tools/rules-test.js && node tools/room-test.js && node tools/consistency-test.js && node tools/serve-test.js && node tools/ws-test.js",
+    "test:all": "node tools/rules-test.js && node tools/room-test.js && node tools/consistency-test.js && node tools/serve-test.js && node tools/ws-test.js && node tools/ws-game-test.js",
     "sim": "node tools/sim.js",
     "attrib": "node tools/attrib.js",
     "ai-check": "node tools/ai-check.js"
