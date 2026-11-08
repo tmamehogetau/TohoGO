@@ -21,7 +21,7 @@
 
   // 咲夜（同席 0 点）の価値にかける係数。1.0 だと普通の 3 点札と同じ扱い。
   // 同席の読み合いぶんだけ僅かに安く見るが、捨てない（捨てると相手に 3 点を配り続ける）
-  const SAKUYA_FACTOR = 0.6;
+  const SAKUYA_FACTOR = 0.8;
 
   // 手元の枚数。engine.countKey と同じくアイコン合計で数える（マキ・ペアの判定と揃える）
   function countKey(p, key) {
@@ -140,21 +140,23 @@
       case 'maki': {
         // 最多 6 点 / 2 位 3 点は 1 ラウンドに 1 回だけ。実測では即時 1 枚に負ける
         // 妖夢の加護が残っていれば、次の春はアイコン数ぶんの点と春が付くので強めに見る
-        const buff = (p.springBuff || 0) > 0 ? 1.2 : 0;
+        const buff = (p.springBuff || 0) > 0 ? 1.2 + 0.6 * icons : 0;
         return 0.6 * icons + buff;
       }
       case 'collect': {
         const at = (k) => (k <= 0 ? 0 : def.table[Math.min(k, def.table.length) - 1]);
-        // 理想重視モード（DSH_AI_IDEAL=1）: 完成まで取り切れたと仮定した「残りの平均ゲイン」で評価する。
-        // 現実モードは次の 1 枚の限界だけを見るので、1 枚目が 0 点の札（魔理沙など）を避ける。
+        const step = (k) => Math.max(0, at(k + 1) - at(k));
+        // 「次の 1 枚で増える点」だけを見ると、1 枚目が 0 点の札（魔理沙）を永遠に取れず、
+        // 取り続ける相手に差を広げられる。完成まで集めきったときの 1 枚あたり平均も半分混ぜる
+        const ideal = at(def.table.length) / def.table.length;
+        let v = 0.5 * Math.max(0.2, step(mine)) + 0.5 * ideal;
+        // 理想重視モード（DRAFT_AI_IDEAL=1）: 完成まで取り切れたと仮定した「残りの平均ゲイン」で評価する
         if (idealMode(pi)) {
           const remain = Math.max(1, def.table.length - mine);
           return Math.max(0.2, (at(def.table.length) - at(mine)) / remain);
         }
-        const step = (k) => Math.max(0, at(k + 1) - at(k));
-        let v = Math.max(0.2, step(mine));
         // 先読みモード（DRAFT_AI_LOOKAHEAD=1）: 2枚先の限界を半額で足す。閾値の白黒を避ける
-        if (ENV.DRAFT_AI_LOOKAHEAD === '1' || policyOf(pi) === 'adaptive') v = Math.max(0.2, step(mine) + 0.5 * step(mine + 1));
+        if (ENV.DRAFT_AI_LOOKAHEAD === '1' || policyOf(pi) === 'adaptive') v += 0.5 * step(mine + 1);
         // 妨害モード（DRAFT_AI_BLOCK=1）: 相手が完成に近いほど「取って潰す」価値を足す。
         // 重み 0.4 = 相手の損の4割ぶんを自分の得に換算（損して得取る思考の近似）
         if (ENV.DRAFT_AI_BLOCK === '1') {
@@ -181,8 +183,12 @@
           if (d && d.kind === 'aliceSet' && (d.group || d.key) === group) types.add(inst.key);
         }
         const tbl = def.table || [0, 1, 4, 9, 16];
-        const next = types.has(key) ? types.size : types.size + 1;
-        return Math.max(0, (tbl[next] || 0) - (tbl[types.size] || 0));
+        if (types.has(key)) return 0; // 同じ種類の 2 枚目は種類数が増えないので 0 点
+        const next = types.size + 1;
+        const marginal = (tbl[next] || 0) - (tbl[types.size] || 0);
+        // 種類を集めきったときの 1 種あたり平均も半分混ぜる（揃える価値を見積もる）
+        const ideal = (tbl[4] || 0) / 4;
+        return 0.5 * marginal + 0.5 * ideal;
       }
       case 'pair': {
         // 揃うまで得点にならない。あと 1 枚なら現実味があるが、2 枚必要なら宝くじに近い
@@ -219,7 +225,7 @@
       }
       case 'deckGrab': {
         // 山札の上から 2 枚を取得（平均的なカード 2 枚ぶんの期待値）
-        return 3.2;
+        return 4.2;
       }
       case 'scoop': {
         // 文: 追加で2枚取って山札から2枚補充する。1枚ぶん以上の価値がある
@@ -242,8 +248,9 @@
         return ownSpring > othersMax ? def.most * 0.45 : def.most * 0.18;
       }
       case 'springBoost':
-        // 次の春でアイコン数ぶんの春と点。春がまだ手元/山に残っていそうなら強め
-        return p.taken.some((i) => i.key === 's_spring') ? 2.4 : 1.6;
+        // 次の春でアイコン数ぶんの春と点。春は 12 枚あるので手元に 1 枚あれば確実に食える。
+        // 「妖夢 → 春」の連鎖は 2 枚で 1 セットの得点源なので、単体の 3 点札より重く見る
+        return p.taken.some((i) => i.key === 's_spring') ? 4.6 : 3.8;
       case 'roundComboCount':
         // 固定点（base）＋チルノなど対象継続カード1枚ごとの点
         return (def.base || 0) * 0.7 + def.per * (def.cumulative ? 1.2 : 0.7);

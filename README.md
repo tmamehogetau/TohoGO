@@ -44,7 +44,7 @@ npm start
 
 ```bash
 npm test
-# ルールテスト（110 テスト）を実行
+# ルールテスト（111 テスト）を実行
 npm run test:room
 # ルーム管理の単体テスト（ホスト移譲・claim・view 契約・残り時間）
 npm run test:ws

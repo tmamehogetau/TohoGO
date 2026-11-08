@@ -1590,5 +1590,18 @@ test('AI: 咲夜を捨てない（同席を恐れて 0 点扱いにしない）'
   assert.ok(after > 1.5, `他人が取った後でも捨てない: ${after}`);
 });
 
+test('AI: 雪だるま型のセット札を「1 枚目が 0 点」で捨てない', () => {
+  // 魔理沙（ラウンド枚数で 0/2/8/13/21）: 1 枚目が 0 点でも、集めきれば大きい
+  const e = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'eternal', intruder: 'y_marisa' });
+  fixPeek(e);
+  assert.ok(AI.cardValue(e, 0, 'y_marisa') > 1.5, `魔理沙の初動が安すぎる: ${AI.cardValue(e, 0, 'y_marisa')}`);
+  // アリス（種類数 1/4/9/16）: 1 種目も揃える価値ぶんを見る
+  const s = Engine.newGame(4, ['A', 'B', 'C', 'D'], { incident: 'spring' });
+  fixPeek(s);
+  assert.ok(AI.cardValue(s, 0, 's_alice_hourai') > 1.5, `アリスの初動が安すぎる: ${AI.cardValue(s, 0, 's_alice_hourai')}`);
+  // 妖夢: 「妖夢 → 春」の連鎖で 3 点札以上
+  assert.ok(AI.cardValue(s, 0, 's_youmu') > 2.5, `妖夢の評価が低すぎる: ${AI.cardValue(s, 0, 's_youmu')}`);
+});
+
 console.log(`\
 ${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
