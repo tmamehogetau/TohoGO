@@ -44,9 +44,15 @@ npm start
 
 ```bash
 npm test
-# ルールテスト（92 テスト）を実行
+# ルールテスト（103 テスト）を実行
+npm run test:room
+# ルーム管理の単体テスト（ホスト移譲・view 契約・残り時間）
 npm run test:ws
-# 対戦サーバーのスモークテスト（join/start/ピック/秘匿/再接続）
+# 対戦サーバーのスモークテスト（create/join/start/ピック/秘匿/再接続）
+npm run test:serve
+# 配信の許可リストと不正 URL 耐性（.git や .tmp を配らないこと）
+npm run test:consistency
+# カード枚数の保存則（全異変 × 2/3/4 人 × seed。-- で --full を渡すと全 sweep）
 ```
 
 ## ステージセットシステム
@@ -112,15 +118,19 @@ touhou-draft/
 ├── server.js       静的配信 + WebSocket サーバー
 ├── assets/cards/   カードイラスト（<key>.webp）
 └── tools/
-    ├── rules-test.js  ルールテスト（node 直実行）
-    ├── ws-test.js     対戦サーバーのスモークテスト
-    ├── sim.js         AI vs AI バランスシミュレーション
-    ├── attrib.js      得点源の分解（どのカードが点を出しているか）
-    ├── ai-check.js    AI の「標準らしさ」検証（同型対戦・摂動耐性・異種混合）
-    ├── start-comfyui.ps1     ComfyUI を Strata なしで起動
-    ├── comfy-standalone.ps1  ComfyUI 単独で画像生成
-    ├── process-card-art.py   生成画像を WebP に変換
-    └── card-art/runs.json    カード31枚の生成プロンプト
+    ├── rules-test.js       ルールテスト（node 直実行）
+    ├── room-test.js        ルーム管理の単体テスト（ws 不要）
+    ├── ws-test.js          対戦サーバーのスモークテスト
+    ├── serve-test.js       静的配信の許可リスト・不正 URL の回帰
+    ├── consistency-test.js カード枚数の保存則チェック（fast / --full）
+    ├── zones.js            カード所在の集計（テスト共通の util）
+    ├── sim.js              AI vs AI バランスシミュレーション
+    ├── attrib.js           得点源の分解（どのカードが点を出しているか）
+    ├── ai-check.js         AI の「標準らしさ」検証（同型対戦・摂動耐性・異種混合）
+    ├── start-comfyui.ps1   ComfyUI を Strata なしで起動
+    ├── comfy-standalone.ps1 ComfyUI 単独で画像生成
+    ├── process-card-art.py 生成画像を WebP に変換
+    └── card-art/runs.json  カード31枚の生成プロンプト
 ```
 
 - エンジンはヘッドレス（DOM 非依存）。ブラウザ・Node・将来の権威サーバーで同一ルール
@@ -176,7 +186,7 @@ npm run sim -- --games 1500 --by-card y_riggle
 npm run ai-check
 ```
 
-AI の評価関数が「標準的」と言えるかを 3 つの観点で確認する（4200 ゲーム、標準誤差 約0.7%）。
+AI の評価関数が「標準的」と言えるかを 3 つの観点で確認する（5600 ゲーム＝1400 × 4 異変、標準誤差 約0.7%）。
 
 1. **同型対戦** — 同じ AI 4 人で 25% 前後（偏りがない）
 2. **摂動耐性** — 評価を ±10% ずらした相手に負けない（簡単に搾れない）

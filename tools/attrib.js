@@ -93,6 +93,18 @@ const TARGETS = {
     ['y_marisa', '魔理沙 0/2/8/13/21', (d) => { d.table = [0, 0, 0, 0, 0]; }],
     ['__maki', '玉兎 マキ配点', null],
   ],
+  mountain: [
+    ['f_kanako', '八坂神奈子 3点', (d) => { d.points = 0; }],
+    ['f_suwako', '洩矢諏訪子 2点', (d) => { d.points = 0; }],
+    ['f_sanae', '早苗 1点/奇跡3倍', (d) => { d.points = 0; d.buffTargets = []; }],
+    ['f_hina', '鍵山雛 1枚-3/2枚+7', (d) => { d.first = 0; d.more = 0; }],
+    ['f_aya', '射命丸文 山札2枚', (d) => { d.kind = 'none'; }],
+    ['f_nitori', '河城にとり 名前指定', (d) => { d.kind = 'none'; }],
+    ['f_minoriko', '秋穣子 収集', (d) => { d.table = [0, 0, 0, 0, 0]; }],
+    ['f_shizuha', '秋静葉 静葉+穣子ペア', (d) => { d.points = 0; }],
+    ['f_faith', '信仰 10個で順位点', (d) => { d.threshold = 9999; d.rankPoints = [0, 0, 0]; }],
+    ['f_momiji', '犬走椛 0枚-3/偶数+5', (d) => { d.zero = 0; d.even = 0; }],
+  ],
 };
 
 function pad(s, n) {
@@ -125,10 +137,15 @@ function main() {
     for (const [key, label, patch] of TARGETS[incidentId] || []) {
       if (key === '__maki') {
         const snap = { ...Data.RULES.MAKI_POINTS };
-        Data.RULES.MAKI_POINTS.first = 0;
-        Data.RULES.MAKI_POINTS.second = 0;
-        const v = avgTotal(incident, opts);
-        Object.assign(Data.RULES.MAKI_POINTS, snap);
+        let v;
+        try {
+          Data.RULES.MAKI_POINTS.first = 0;
+          Data.RULES.MAKI_POINTS.second = 0;
+          v = avgTotal(incident, opts);
+        } finally {
+          // 途中で throw してもパッチを必ず戻す（以降の行が汚染データで走らないように）
+          Object.assign(Data.RULES.MAKI_POINTS, snap);
+        }
         rows.push({ label, count: null, contrib: base - v, linear: false });
         continue;
       }
@@ -138,9 +155,13 @@ function main() {
         const defs = incident.main.concat(incident.intruders || []).filter((d) => d.group === groupId);
         if (!defs.length) { rows.push({ label: `${label}（未定義）`, count: null, contrib: NaN, linear: false }); continue; }
         const snaps = defs.map((d) => JSON.parse(JSON.stringify(d)));
-        for (const d of defs) patch(d);
-        const v = avgTotal(incident, opts);
-        defs.forEach((d, i) => Object.assign(d, snaps[i]));
+        let v;
+        try {
+          for (const d of defs) patch(d);
+          v = avgTotal(incident, opts);
+        } finally {
+          defs.forEach((d, i) => Object.assign(d, snaps[i]));
+        }
         rows.push({ label, count: defs.reduce((s, d) => s + cardCount(d), 0), contrib: base - v, linear: false });
         continue;
       }
@@ -149,9 +170,13 @@ function main() {
       const isIntr = intruderKeys.includes(key);
       const baseHere = baseOf(key);
       const snap = JSON.parse(JSON.stringify(def));
-      patch(def);
-      const v = avgTotal(incident, opts, isIntr ? key : null);
-      Object.assign(def, snap);
+      let v;
+      try {
+        patch(def);
+        v = avgTotal(incident, opts, isIntr ? key : null);
+      } finally {
+        Object.assign(def, snap);
+      }
       rows.push({
         label: isIntr ? `${label}※` : label,
         count: cardCount(def),

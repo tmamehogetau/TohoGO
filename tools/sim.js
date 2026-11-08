@@ -49,8 +49,15 @@ function parseArgs(argv) {
     else if (a === '--top') opts.top = Math.max(1, parseInt(argv[++i], 10) || 99);
     else if (a === '--out') opts.out = argv[++i] || null;
     else if (a === '--ablate') opts.ablate = argv[++i] || null;
-    else if (a === '--step') opts.step = parseInt(argv[++i], 10) || -1;
-    else if (a === '--by-card') opts.byCard = argv[++i] || null;
+    else if (a === '--step') {
+      // 0 を「未指定」と取り違えないよう、整数かどうかで判定する
+      const v = parseInt(argv[++i], 10);
+      opts.step = Number.isInteger(v) ? v : -1;
+    } else if (a === '--by-card') {
+      const v = argv[++i];
+      opts.byCard = v || null;
+      if (!v) opts.byCardMissing = true;
+    }
   }
   return opts;
 }
@@ -122,6 +129,7 @@ function playGame(incident, opts) {
     ranking: Engine.finalRanking(s),
     cardMap: s.cardMap,
     desserts: s.players.map((p) => p.desserts.map((i) => i.key)), // ゲーム末のデザート置き場（累計枚数の判定用）
+    aborted: s.phase !== 'over',
   };
 }
 
@@ -145,6 +153,7 @@ function winShares(ranking) {
 function run(incidents, games, opts) {
   const byIncident = new Map(); // incident -> Map(key -> stat)
   const totalsByIncident = new Map(); // incident -> { scoreSamples, wins }
+  let aborted = 0; // ガード超過で完走しなかったゲーム（黙って落とさず警告する）
 
   for (const incident of incidents) {
     const inc = Data.incidentById(incident);
@@ -156,6 +165,7 @@ function run(incidents, games, opts) {
 
     for (let g = 0; g < games; g++) {
       const game = playGame(incident, opts);
+      if (game.aborted) aborted += 1;
       game.totals.forEach((t, pi) => scoreSamples[pi].push(t));
       // 勝率は Engine.finalRanking の勝者定義（合計点 → デザート枚数 → 同率）に従い、同率1位は分け合う
       winShares(game.ranking).forEach((s, pi) => { wins[pi] += s; });
@@ -186,7 +196,7 @@ function run(incidents, games, opts) {
     totalsByIncident.set(incident, { scoreSamples, wins });
   }
 
-  return { byIncident, totalsByIncident };
+  return { byIncident, totalsByIncident, aborted };
 }
 
 // ---- 出力 ----
@@ -410,7 +420,7 @@ function avgScore(totals) {
 
 // 指定カードの点数を step 点動かして再実行し、卓全体の平均合計点の変化を出す。
 // 卓平均差が相対指標で単調でないのに対し、こちらは点経済への寄与を素直に測れる。
-function runAblation(args, incidents, baseTotals) {
+function runAblation(args, incidents) {
   const found = findCardDef(args.ablate);
   if (!found) {
     out(`感度分析: 未知のカード ${args.ablate}`);
@@ -421,11 +431,21 @@ function runAblation(args, incidents, baseTotals) {
     out(`感度分析: ${def.name} は --incident で選んだ異変に含まれていない`);
     return;
   }
+  if (args.step === 0) {
+    out('感度分析: --step 0 では変化しないため実行しません（--step -1 など0以外を指定）');
+    return;
+  }
   const original = def.points;
   if (typeof original !== 'number') {
     out(`感度分析: ${def.name} はポイント制のカードではない（kind: ${def.kind}）`);
     return;
   }
+
+  // 基準も「同じ異変・同じ seed」で取り直す。
+  // 全異変の混合系列（main の基準）と比べると、差分がカードの変更ではなく
+  // 異変の混合比率・乱数列のズレを映してしまい、数値が信用できない。
+  const baseRun = runWithSeed(args.seed, () => run([incident], args.games));
+  const before = avgScore(baseRun.totalsByIncident.get(incident));
 
   def.points = original + args.step;
   let changed;
@@ -435,7 +455,6 @@ function runAblation(args, incidents, baseTotals) {
     def.points = original;
   }
 
-  const before = avgScore(baseTotals.get(incident));
   const after = avgScore(changed.totalsByIncident.get(incident));
   out('');
   out(`--- 感度分析: ${def.name}（${def.key}） ---`);
@@ -445,6 +464,10 @@ function runAblation(args, incidents, baseTotals) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args.byCardMissing) {
+    console.error('--by-card にはカードキーを指定してください（例: --by-card k_fran）');
+    process.exit(1);
+  }
   const incidents = args.incident === 'all' ? Data.INCIDENT_IDS.slice() : [args.incident];
   for (const id of incidents) {
     if (!Data.INCIDENT_IDS.includes(id)) {
@@ -454,6 +477,11 @@ function main() {
   }
 
   const result = runWithSeed(args.seed, () => run(incidents, args.games));
+
+  if (result.aborted) {
+    out('');
+    out(`注意: ${result.aborted} ゲームがガード超過で完走しませんでした（その回は途中までの集計）`);
+  }
 
   const allRows = [];
   for (const incident of incidents) {
@@ -482,7 +510,7 @@ function main() {
     out(`  ${tag}: ${r.incident} / ${r.name}（${r.kind}・${r.count}枚） 卓平均差 ${r.delta >= 0 ? '+' : ''}${fmt(r.delta, 2)} 取得率 ${fmt(r.acquireRate * 100, 1)}%`);
   }
 
-  if (args.ablate) runAblation(args, incidents, result.totalsByIncident);
+  if (args.ablate) runAblation(args, incidents);
   if (args.byCard) runByCard(args, args.byCard);
 
   if (args.out) {
