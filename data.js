@@ -15,13 +15,16 @@
     MAKI_2P: { first: 4, tie: 2 },
     // パス方向（DESIGN 4）: ラウンド1・3 は左、ラウンド 2 は右（-1=左隣 / 1=右隣）
     PASS_DIRS: [-1, 1, -1],
+    // 基礎点カード（1/2/3 点）の枚数は本家スシゴーパーティーの握りに合わせる
+    // （3 点が 3 枚 / 2 点が 5 枚 / 1 点が 4 枚）。各セットで同じ比率にする
+    BASE_POINT_COUNTS: { 3: 3, 2: 5, 1: 4 },
   };
 
   // ---------------- 紅魔館（紅魔郷） ----------------
   const SCARLET_MAIN = [
     { key: 'k_remi', kind: 'instant', points: 3, name: 'レミリア', icon: '王', color: '#8b1a2b', count: 3 },
-    { key: 'k_fran', kind: 'instant', points: 2, discardBonus: 2, name: 'フランドール', icon: '妹', color: '#c22a4e', count: 4 },
-    { key: 'k_meirin', kind: 'instant', points: 1, comboKeys: ['k_sakuya'], comboBonus: 1, name: '紅美鈴', icon: '門', color: '#b8434a', count: 5 },
+    { key: 'k_fran', kind: 'instant', points: 2, discardBonus: 2, name: 'フランドール', icon: '妹', color: '#c22a4e', count: 5 },
+    { key: 'k_meirin', kind: 'instant', points: 1, comboKeys: ['k_sakuya'], comboBonus: 1, name: '紅美鈴', icon: '門', color: '#b8434a', count: 4 },
     { key: 'k_sakuya', kind: 'instant', points: 3, absentKeys: ['k_sakuya'], name: '十六夜咲夜', icon: 'メ', color: '#9aa5b1', count: 8 },
     { key: 'k_patch', kind: 'kindCount', offset: -3, name: 'パチュリー', icon: '図', color: '#8e3b8e', count: 3 },
     { key: 'k_rumia', kind: 'collect', table: [1, 3, 6, 10, 15], name: 'ルーミア', icon: '闇', color: '#3a3a42', count: 8 },
@@ -34,8 +37,8 @@
   // ---------------- 白玉楼（妖々夢） ----------------
   const SPRING_MAIN = [
     { key: 's_yukari', kind: 'instant', points: 3, name: '八雲紫', icon: '境', color: '#7b4ea3', count: 3 },
-    { key: 's_ran', kind: 'instant', points: 2, comboKeys: ['s_yukari', 's_chen'], comboBonus: 1, comboAtEnd: true, name: '八雲藍', icon: '狐', color: '#d9a441', count: 4 },
-    { key: 's_chen', kind: 'instant', points: 1, comboKeys: ['s_yukari', 's_ran'], comboBonus: 1, comboAtEnd: true, name: '橙', icon: '橙', color: '#d97e30', count: 5 },
+    { key: 's_ran', kind: 'instant', points: 2, comboKeys: ['s_yukari', 's_chen'], comboBonus: 1, comboAtEnd: true, name: '八雲藍', icon: '狐', color: '#d9a441', count: 5 },
+    { key: 's_chen', kind: 'instant', points: 1, comboKeys: ['s_yukari', 's_ran'], comboBonus: 1, comboAtEnd: true, name: '橙', icon: '橙', color: '#d97e30', count: 4 },
     { key: 's_spring', kind: 'maki', iconCounts: { 1: 4, 2: 5, 3: 3 }, name: '春', icon: '春', color: '#e88ab8', count: 12 },
     { key: 's_yuyuko', kind: 'springMost', most: 4, name: '西行寺幽々子', icon: '姫', color: '#d8cfe8', count: 3 },
     { key: 's_youmu', kind: 'springBoost', name: '魂魄妖夢', icon: '庭', color: '#8fb8a0', count: 3 },
@@ -56,8 +59,8 @@
   // 霊夢/魔理沙はランダムでいずれか 1 種のみデッキに組み込まれる（永夜のみ）
   const ETERNAL_MAIN = [
     { key: 'y_kaguya', kind: 'instant', points: 3, name: '蓬莱山輝夜', icon: '夜', color: '#c9a84c', count: 3 },
-    { key: 'y_eirin', kind: 'instant', points: 2, pointsIfPicked: { key: 'y_kaguya', bonus: 1 }, name: '八意永琳', icon: '薬', color: '#6a8fb8', count: 4 },
-    { key: 'y_reisen', kind: 'instant', points: 1, hidden: true, name: '鈴仙', icon: '幻', color: '#b85a7a', count: 5 },
+    { key: 'y_eirin', kind: 'instant', points: 2, pointsIfPicked: { key: 'y_kaguya', bonus: 1 }, name: '八意永琳', icon: '薬', color: '#6a8fb8', count: 5 },
+    { key: 'y_reisen', kind: 'instant', points: 1, hidden: true, name: '鈴仙', icon: '幻', color: '#b85a7a', count: 4 },
     { key: 'y_tewi', kind: 'tofu', table: [2, 6, 0], name: '因幡てゐ', icon: '幸', color: '#6a9955', count: 8 },
     { key: 'y_mystia', kind: 'flip', flipPoints: 2, name: 'ミスティア', icon: '歌', color: '#a67c52', count: 3 },
     { key: 'y_keine', kind: 'copy', name: '上白沢慧音', icon: '史', color: '#4a7ea6', count: 3 },

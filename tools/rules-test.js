@@ -115,6 +115,24 @@ test('永遠亭: 追加カード指定で1種のみ組み込まれる', () => {
   assert.ok(!deckKeys.includes('y_marisa'));
 });
 
+test('各セットの基礎点カードは 3点3枚 / 2点5枚 / 1点4枚（本家の握り準拠）', () => {
+  const trios = {
+    scarlet: { 3: 'k_remi', 2: 'k_fran', 1: 'k_meirin' },
+    spring: { 3: 's_yukari', 2: 's_ran', 1: 's_chen' },
+    eternal: { 3: 'y_kaguya', 2: 'y_eirin', 1: 'y_reisen' },
+    mountain: { 3: 'f_kanako', 2: 'f_suwako', 1: 'f_sanae' },
+  };
+  for (const [id, trio] of Object.entries(trios)) {
+    const inc = INCIDENTS[id];
+    for (const pts of [3, 2, 1]) {
+      const card = inc.main.find((c) => c.key === trio[pts]);
+      assert.ok(card, `${id}: ${trio[pts]} が定義されている`);
+      assert.strictEqual(card.points, pts, `${id}: ${card.name} は ${pts} 点`);
+      assert.strictEqual(card.count, RULES.BASE_POINT_COUNTS[pts], `${id}: ${card.name} は ${RULES.BASE_POINT_COUNTS[pts]} 枚`);
+    }
+  }
+});
+
 test('手札2-3人10枚/4-5人9枚・対応外人数はnull', () => {
   const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'scarlet' });
   fixPeek(s);
