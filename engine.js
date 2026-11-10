@@ -1195,15 +1195,14 @@
             break;
           }
           case 'kindCount': {
-            // 種類数（チルノ含む・同種は 1 種）− offset。破棄・裏返しは対象外
+            // このラウンドに取ったカードの種類数（同種は1種）− offset を、所持枚数ぶん加点
             const kinds = new Set();
             for (const inst of p.taken) {
               if (inst.flipped || inst.discarded) continue;
               kinds.add(inst.key);
             }
-            // 継続カードも含める（手元の継続カード）
-            for (const inst of p.desserts) kinds.add(inst.key);
-            kindPts = Math.max(0, kinds.size + def.offset);
+            const copies = p.taken.filter((x) => x.key === def.key && !x.flipped && !x.discarded).length;
+            kindPts = Math.max(0, kinds.size + def.offset) * Math.max(1, copies);
             break;
           }
           case 'aliceSet': {

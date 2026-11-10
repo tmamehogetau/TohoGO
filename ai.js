@@ -281,7 +281,12 @@
       }
       case 'kindCount': {
         const isNew = !p.taken.some((i) => i.key === key && !i.flipped && !i.discarded);
-        return isNew ? 1.1 : 0.2;
+        // 枚数ぶん倍になるので、2 枚目以降は「今の種類数 − offset」ぶんの上乗せ価値
+        if (!isNew) {
+          const kinds = new Set(p.taken.filter((x) => !x.flipped && !x.discarded).map((x) => x.key));
+          return Math.max(0.5, kinds.size + (def.offset || 0));
+        }
+        return 1.1;
       }
       case 'coop': {
         // 自分以外が同じ手番に取った枚数ぶんの点。他人の選択は読めないので、

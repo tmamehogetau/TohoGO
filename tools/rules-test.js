@@ -307,14 +307,37 @@ test('紅霧: 美鈴コンボは獲得時判定（後から咲夜を取っても
   assert.strictEqual(s.players[0].roundScores[0], 1 + 3, '美鈴1+咲夜3（コンボは加算されない）');
 });
 
-test('紅霧: パチュリー=種類数−3（最低0・チルノ含む）', () => {
+test('紅霧: パチュリー=(このラウンドの種類数−3)×枚数（最低0）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
   fixPeek(s);
   cycle(s, [['k_patch', 'k_remi', D], [D, D]], [0, 0]); // patch+remi 取得（2種）
   cycle(s, [['k_rumia', 'k_cirno', D], [D, D]], [0, 0]); // rumia+cirno 取得（+2種）
   cycle(s, [['k_remi'], [D]], [0, 0]); // ラウンド終了
-  // 種類数: patch/remi/rumia/cirno = 4種 → 4−3 = 1点 + レミリア3点
+  // 種類数: patch/remi/rumia/cirno = 4種 → (4−3)×1 = 1点 + レミリア3点
   assert.strictEqual(s.players[0].roundScores[0], 3 + 1);
+});
+
+test('紅霧: パチュリー2枚=(種類数−3)×2', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  cycle(s, [['k_patch', D], [D, D]], [0, 0]); // パチュリー1枚目
+  cycle(s, [['k_patch', D], [D, D]], [0, 0]); // パチュリー2枚目
+  cycle(s, [['k_remi', D], [D, D]], [0, 0]); // レミリア
+  cycle(s, [['k_meirin', D], [D, D]], [0, 0]); // 美鈴
+  cycle(s, [['x_dummy'], [D]], [0, 0]); // ラウンド終了（種類にダミーが入る）
+  // 種類数 patch/remi/meirin/dummy = 4種 → (4−3)×2 = 2点 + レミリア3 + 美鈴1 = 6
+  assert.strictEqual(s.players[0].roundScores[0], 3 + 1 + 2);
+});
+
+test('紅霧: パチュリーは前ラウンドの継続カードを数えない', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  s.players[0].desserts = [{ key: 'k_cirno' }]; // 前ラウンドで貯めた継続カード
+  cycle(s, [['k_patch', D], [D, D]], [0, 0]);
+  cycle(s, [['k_remi', D], [D, D]], [0, 0]);
+  cycle(s, [['k_rumia'], [D]], [0, 0]); // ラウンド終了
+  // このラウンドの種類数 patch/remi/rumia = 3種 → パチュリー0点。レミリア3 + ルーミア1 = 4
+  assert.strictEqual(s.players[0].roundScores[0], 4);
 });
 
 test('紅霧: 小悪魔=山札 4 枚を見て 1 枚獲得・残りは山札の下へ', () => {
