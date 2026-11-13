@@ -4,3 +4,4 @@ node_modules/
 .DS_Store
 browser-screenshots/
 assets/cards-final/
+cards_backup_*/
