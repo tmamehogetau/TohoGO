@@ -41,15 +41,16 @@ function pickAll(state, choices) {
   });
 }
 
+// 取得時選択を解決する。効果が連鎖する（小悪魔で小悪魔を引く等）と選択フェーズが
+// 開き直るので、必要が尽きるまでループする
 function settleSelection(state) {
-  if (state.phase !== 'select') return;
-  for (const pi of state.selectNeeded) {
-    if (state.selections[pi] === null) {
-      const choice = {};
-      if (state.peekNeeded && state.peekNeeded[pi]) choice.pick = 0; // 山札確認は先頭の 1 枚を選択
-      const r = Engine.dispatch(state, { kind: 'choose', pi, choice });
-      assert.ok(r.ok, `choose 失敗: ${r.error}`);
-    }
+  for (let guard = 0; state.phase === 'select' && guard < 100; guard++) {
+    const seat = state.selectNeeded.find((pi) => state.selections[pi] === null);
+    if (seat === undefined) break;
+    const choice = {};
+    if (state.peekNeeded && state.peekNeeded[seat]) choice.pick = 0; // 山札確認は先頭の 1 枚を選択
+    const r = Engine.dispatch(state, { kind: 'choose', pi: seat, choice });
+    assert.ok(r.ok, `choose 失敗: ${r.error}`);
   }
 }
 
@@ -386,6 +387,69 @@ test('紅霧: ルーミア=収集 3枚=6点', () => {
   assert.strictEqual(s.players[0].roundScores[0], 6);
 });
 
+test('紅霧: 小悪魔でフランを引くと破棄の選択ができる', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  setHands(s, [['k_meirin', 'x_dummy'], ['x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0]); // 先に美鈴（破棄対象になるカード）を取る
+  setHands(s, [['k_kozue', 'x_dummy'], ['x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0]); // 小悪魔 → 山札確認
+  assert.strictEqual(s.phase, 'select');
+  s.peekCards[0] = [{ key: 'k_fran' }, { key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }];
+  let r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { pick: 0 } });
+  assert.ok(r.ok, r.error);
+  // 引いたフランの取得時効果（破棄）も同じ手番で解決する
+  assert.strictEqual(s.phase, 'select', 'フランの破棄選択が開く');
+  assert.ok(Engine.selectionNeeded(s, 0).discard, '破棄を選べる');
+  const mei = s.players[0].taken.findIndex((i) => i.key === 'k_meirin');
+  r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { discard: mei } });
+  assert.ok(r.ok, r.error);
+  assert.strictEqual(s.phase, 'pick');
+  assert.strictEqual(s.players[0].taken[mei].discarded, true, '美鈴が破棄される');
+  assert.strictEqual(s.players[0].taken[mei].franBonus, 2, '破棄の +2 が付く');
+  // ラウンド末: 美鈴は破棄で 0 点、フラン 2 点＋破棄 +2
+  cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]);
+  assert.strictEqual(s.players[0].roundScores[0], 4);
+});
+
+test('紅霧: 小悪魔で小悪魔を引くと山札確認が連鎖する', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
+  fixPeek(s);
+  setHands(s, [['k_kozue', 'x_dummy'], ['x_dummy', 'x_dummy']]);
+  pickAll(s, [0, 0]); // 小悪魔 → 山札確認
+  assert.strictEqual(s.phase, 'select');
+  s.peekCards[0] = [{ key: 'k_kozue' }, { key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }];
+  let r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { pick: 0 } });
+  assert.ok(r.ok, r.error);
+  assert.strictEqual(s.phase, 'select', '2 枚目の小悪魔の山札確認が開く');
+  assert.strictEqual(s.peekCards[0].length, 4, '2 回目の候補が用意されている');
+  r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { pick: 1 } });
+  assert.ok(r.ok, r.error);
+  assert.strictEqual(s.phase, 'pick', '連鎖が終われば通常の手番へ戻る');
+  assert.strictEqual(s.players[0].taken.filter((i) => i.key === 'k_kozue').length, 2, '小悪魔を 2 枚獲得');
+});
+
+test('永夜: 慧音のコピーは取得時効果を再発動しない（裏返しの選択が増えない）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal' });
+  fixPeek(s);
+  setHands(s, [['y_kaguya', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // 裏返し対象になるカードを先に取る
+  setHands(s, [['y_mystia', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // ミスティア → 裏返しの選択
+  assert.strictEqual(s.phase, 'select');
+  let r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: {} }); // 裏返さない
+  assert.ok(r.ok, r.error);
+  assert.strictEqual(s.phase, 'pick');
+  setHands(s, [['y_keine', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // 慧音 → コピー
+  assert.strictEqual(s.phase, 'select');
+  const mi = s.players[0].taken.findIndex((i) => i.key === 'y_mystia');
+  r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { copy: mi } });
+  assert.ok(r.ok, r.error);
+  assert.strictEqual(s.phase, 'pick', 'コピーしたミスティアで裏返しの選択は開かない');
+  assert.strictEqual(Engine.selectionNeeded(s, 0).flip, false);
+});
+
 test('紅霧: フランをスキップ後の小悪魔選択に古い破棄キーが混ざっても +2 しない', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
   fixPeek(s);
@@ -458,6 +522,25 @@ test('紅霧: 大妖精=同じ手番に2人がチルノなら+2', () => {
   cycle(s, [['k_daiyousei', 'x_dummy'], ['k_cirno', 'x_dummy'], ['k_cirno', 'x_dummy']], [0, 0, 0]);
   cycle(s, [['x_dummy'], ['x_dummy'], ['x_dummy']], [0, 0, 0]);
   assert.strictEqual(s.players[0].roundScores[0], 2);
+});
+
+test('紅霧: 大妖精=点数集計の内訳が二重にならない', () => {
+  const s = Engine.newGame(3, ['A', 'B', 'C'], { incident: 'scarlet' });
+  fixPeek(s);
+  cycle(s, [['k_daiyousei', 'x_dummy'], ['k_cirno', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0, 0]);
+  cycle(s, [['x_dummy'], ['x_dummy'], ['x_dummy']], [0, 0, 0]); // ラウンド終了
+  const row = s.roundBanner.results.find((x) => x.pi === 0);
+  assert.strictEqual(row.points, 1);
+  // 内訳はカード個体の点数（+1）だけ。集約行も出すと同じ点が 2 行に並ぶ（不具合報告）
+  assert.strictEqual(
+    row.cards.filter((c) => c.key === 'k_daiyousei').reduce((a, c) => a + c.pts, 0),
+    1,
+    'カード個体に +1 が乗る',
+  );
+  assert.ok(!(row.extras || []).some((e) => e.key === 'k_daiyousei'), '大妖精の集約行は出さない');
+  const cards = row.cards.reduce((a, c) => a + c.pts, 0);
+  const extras = (row.extras || []).reduce((a, e) => a + e.pts, 0);
+  assert.strictEqual(cards + extras, row.points, '内訳の合計がラウンド点と一致（二重計上しない）');
 });
 
 test('紅霧: 妖精メイド=多数決 最多4/最少−4', () => {

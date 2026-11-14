@@ -129,6 +129,9 @@ function viewFor(room, seat) {
     selectNeeded: state.selectNeeded
       ? (state.selectNeeded.includes(seat) && state.selections && state.selections[seat] === null ? [0] : [])
       : null,
+    // 同じ手番で選択フェーズが開き直ることがある（小悪魔で小悪魔を引く等）ため、
+    // 何回目の選択かを渡す。クライアントは「同じ手番の別の選択」を取りこぼさない
+    selectSeq: state.selectSeq || 0,
     // 山札・プールは枚数のみ
     deck: [],
     deckCount: state.deck.length,

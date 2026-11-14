@@ -429,12 +429,14 @@
 
   function runAiSelections() {
     if (ONLINE) return; // 対戦中はサーバーが全席を解決する
-    if (STATE.phase !== 'select') return;
-    for (const pi of STATE.selectNeeded) {
-      if (pi === 0) continue; // 人間の選択は select UI に委ねる（{} で自動解決しない）
-      if (STATE.selections[pi] === null) {
-        Engine.dispatch(STATE, { kind: 'choose', pi, choice: AI.selectChoice(STATE, pi) });
-      }
+    // 取得時効果は連鎖する（小悪魔で小悪魔を引く・フランを引いて破棄する等）ので、
+    // AI の選択が尽きるまで繰り返す。人間の選択が残っている間は止まる
+    for (let guard = 0; guard < 100; guard++) {
+      if (!STATE || STATE.phase !== 'select') return;
+      const seat = STATE.selectNeeded.find((pi) => pi !== 0 && STATE.selections[pi] === null);
+      if (seat === undefined) return;
+      const res = Engine.dispatch(STATE, { kind: 'choose', pi: seat, choice: AI.selectChoice(STATE, seat) });
+      if (!res.ok) return;
     }
   }
 
@@ -757,23 +759,26 @@
   function selectStatusText(selectTurn) {
     const need = humanSelectNeeded();
     if (!selectTurn) return '他のプレイヤーの選択を待っています…';
-    if (SEL_MODE === 'scoop') {
+    // 連鎖で選択フェーズが開き直った直後は SEL_MODE がまだ空なので、
+    // 次に聞くモード（renderSelectArea が選ぶものと同じ順）で文言を決める
+    const mode = SEL_MODE || SEL_ORDER.find((m) => need[m]) || null;
+    if (mode === 'scoop') {
       const p0 = STATE.players[0];
       const want = Math.min(p0.scoopPending || 2, p0.hand.length);
       return `射命丸文の取材：追加で取るカードを選んでね（${SEL_SELECTED.length}/${want} 枚）`;
     }
-    if (SEL_MODE === 'swapNamed') return '河城にとり：相手の手札から取りたいカード名を指定してね';
-    if (SEL_MODE === 'flip') return `裏返すカードを選んでね（${SEL_SELECTED.length} 枚選択・任意枚数）`;
-    if (SEL_MODE === 'discard') return SEL_SELECTED.length === 1
+    if (mode === 'swapNamed') return '河城にとり：相手の手札から取りたいカード名を指定してね';
+    if (mode === 'flip') return `裏返すカードを選んでね（${SEL_SELECTED.length} 枚選択・任意枚数）`;
+    if (mode === 'discard') return SEL_SELECTED.length === 1
       ? '破棄するカードを選択中。「このカードを破棄する」で確定'
       : '破棄するカードを 1 枚選んでね';
-    if (SEL_MODE === 'copy') return SEL_SELECTED.length === 1
+    if (mode === 'copy') return SEL_SELECTED.length === 1
       ? 'コピーするカードを選択中。「この効果をコピーする」で確定'
       : 'コピーするカードを 1 枚選んでね';
-    if (SEL_MODE === 'swap') return SEL_SELECTED.length === 1
+    if (mode === 'swap') return SEL_SELECTED.length === 1
       ? '山札と交換するカードを選択中。「このカードを山札と交換する」で確定'
       : '山札と交換するカードを 1 枚選んでね（永琳の薬）';
-    if (SEL_MODE === 'peek') return SEL_SELECTED.length === 1
+    if (mode === 'peek') return SEL_SELECTED.length === 1
       ? '獲得するカードを選択中。「このカードを獲得する」で確定'
       : '山札の上 4 枚の中から獲得するカードを 1 枚選んでね';
     return '取得カードの効果を選択中…';
@@ -1032,6 +1037,23 @@
     return tags;
   }
 
+  // 小悪魔に「重ねて」表示できる獲得カードの集合。
+  // 破棄された小悪魔のタイルには重ね札を描かない（cardEl が破棄表示になり、重ね描画の対象から外れる）ため、
+  // その獲得カードは独立した 1 枚として描く。ここを空にすると、小悪魔をフランで破棄したときに
+  // 獲得したカードが画面から消える。
+  // 対応付けは taken 内の順序で行う（1 枚の小悪魔につき獲得は 1 枚までで、獲得カードは必ず
+  // 自分の小悪魔より後ろに入るため、k 番目の小悪魔が k 番目の獲得カードに対応する）
+  function peekCoveredGains(p) {
+    const peekers = p.taken.filter((x) => x.peekedBy && !x.copied);
+    const covered = new Set();
+    p.taken
+      .filter((x) => x.peekedGain && !x.copied)
+      .forEach((gain, k) => {
+        if (peekers[k] && !peekers[k].discarded) covered.add(gain);
+      });
+    return covered;
+  }
+
   // プレイヤーごとの「取ったカード」行（あなた → 他のプレイヤーの順）
   function renderTableRows() {
     const wrap = $('table-rows');
@@ -1074,8 +1096,10 @@
         empty.textContent = '—';
         cards.appendChild(empty);
       } else {
-        // 慧音のコピー（copied インスタンス）は慧音カードに重ねて表示するため独立カードとしては描かない
-        const shown = p.taken.filter((inst) => !inst.copied && !inst.peekedGain);
+        // 慧音のコピー（copied インスタンス）は慧音カードに重ねて表示するため独立カードとしては描かない。
+        // 小悪魔で得たカードも小悪魔に重ねて出すが、重ね先の小悪魔が破棄されたら独立した 1 枚として描く
+        const coveredGain = peekCoveredGains(p);
+        const shown = p.taken.filter((inst) => !inst.copied && !coveredGain.has(inst));
         // 今ピック分だけ .new を付ける: taken 末尾から lastPicks の keys と照合
         const lp = STATE.lastPicks && STATE.lastPicks.find((x) => x.pi === pi);
         const keys = lp ? [...lp.keys] : [];
@@ -1382,7 +1406,16 @@
           emitted.add(def.group);
         }
         const variants = def.group ? g.keys.map((k) => STATE.cardMap[k]).filter((d) => d.group === def.group) : [def];
-        const n = variants.reduce((sum, d) => sum + ((STATE.initialCounts && STATE.initialCounts[d.key]) || 0), 0);
+        const poolN = variants.reduce((sum, d) => sum + ((STATE.initialCounts && STATE.initialCounts[d.key]) || 0), 0);
+        // 継続カードは「プールの枚数」ではなく、このゲームで山札に混入する枚数を出す。
+        // プールは 15 枚だが 2〜5 人プレイでは 5+3+2 の 10 枚しか使わない（残りは未使用）ので、
+        // プールの枚数は出さない（出しても「なぜ 10 枚しか出ないのか」と混乱させるだけ）
+        const isDessert = key === STATE.dessert.key;
+        const mix = (Data.RULES && Data.RULES.DESSERT_MIX) || [];
+        const n = isDessert ? mix.reduce((a, b) => a + b, 0) : poolN;
+        const mixHtml = isDessert
+          ? `<div class="ref-mix"><span>山札への混入</span>${mix.map((num, i) => `<span>R${i + 1} ${num} 枚</span>`).join('')}</div>`
+          : '';
         // ミニカード + 横に完全な説明文（カード面に長文を詰め込まない）
         const item = document.createElement('div');
         item.className = 'ref-item' + (variants.length > 1 ? ' ref-item-wide' : '');
@@ -1399,7 +1432,7 @@
         const variantsHtml = variants.length > 1
           ? `<div class="ref-variants">${variants.map((d) => `<span>${d.variant || d.name}</span>`).join('')}</div>`
           : '';
-        txt.innerHTML = `<div class="ref-name">${def.name}<span class="ref-count">×${n}${variants.length > 1 ? `（${variants.length}種）` : ''}</span></div>${variantsHtml}${compo}<div class="ref-desc">${descOf(def)}</div>`;
+        txt.innerHTML = `<div class="ref-name">${def.name}<span class="ref-count">×${n}${variants.length > 1 ? `（${variants.length}種）` : ''}</span></div>${variantsHtml}${mixHtml}${compo}<div class="ref-desc">${descOf(def)}</div>`;
         item.appendChild(txt);
         grid.appendChild(item);
       }

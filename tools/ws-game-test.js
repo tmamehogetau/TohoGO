@@ -110,10 +110,11 @@ function act(c) {
   }
   if (v.phase === 'over') return;
 
-  // 取得時選択: 自分が対象なら 1 回だけ答える（山札確認は先頭を取る）
+  // 取得時選択: 自分が対象なら 1 回だけ答える（山札確認は先頭を取る）。
+  // 小悪魔の連鎖などで同じ手番のうちに選択フェーズが開き直るので、何回目か（selectSeq）までキーに含める
   if (v.phase === 'select') {
     if (!Array.isArray(v.selectNeeded) || !v.selectNeeded.includes(0)) return;
-    const key = `${v.round}:${v.pickSeq}:select`;
+    const key = `${v.round}:${v.pickSeq}:select:${v.selectSeq || 0}`;
     if (c.pendingSelectKey === key) return;
     c.pendingSelectKey = key;
     const choice = {};

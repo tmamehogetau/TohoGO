@@ -641,8 +641,8 @@ main {
 .ref-item-wide { width: 100%; }
 .ref-minis { display: flex; gap: 3px; flex: 0 0 auto; }
 .ref-minis .card.mini { width: 52px; height: 76px; }
-.ref-variants { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-.ref-variants span {
+.ref-variants, .ref-mix { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.ref-variants span, .ref-mix span {
   font-size: 0.68rem;
   color: var(--text-dim);
   background: rgba(255, 255, 255, 0.06);
@@ -1384,7 +1384,7 @@ main { grid-template-columns: 1fr 300px; }
 .ref-name { font-size: 1.12rem; }
 .ref-count { font-size: 0.95rem; }
 .ref-desc { font-size: 1.02rem; line-height: 1.6; color: #ccc4ba; }
-.ref-variants span { font-size: 0.8rem; }
+.ref-variants span, .ref-mix span { font-size: 0.8rem; }
 .ref-compo-item span { font-size: 0.85rem; }
 .ref-compo-item svg { width: 14px; height: 14px; }
 .ref-minis .card.mini { width: 58px; height: 84px; }

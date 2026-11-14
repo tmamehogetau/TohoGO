@@ -14,6 +14,9 @@
     const { RULES, INCIDENT_IDS, incidentById, buildCardMap, buildMainDeck, buildDessertPool } = DATA;
 
     const PASS_DIRS = RULES.PASS_DIRS;
+    // 取得時選択の連鎖（小悪魔で小悪魔を引く等）の上限。カードは有限なので通常は数回で終わるが、
+    // 想定外の状態で無限ループしないための保険
+    const MAX_SELECT_CHAIN = 32;
 
     function shuffle(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
@@ -555,11 +558,28 @@
         }
         if (need.discard || need.flip || need.copy || need.peek || need.swap || need.scoop || need.swapNamed) needed.push(i);
       }
-      if (needed.length === 0) return;
+      if (needed.length === 0) return false;
       state.phase = 'select';
       state.selectNeeded = needed;
       state.selections = new Array(state.playerCount).fill(null);
+      // 同じ手番で選択フェーズが開き直る（小悪魔や文の連鎖）ため、何回目の選択かを数えておく。
+      // オンラインのクライアントが「同じ手番の別の選択」を取りこぼさないように view へ出す
+      state.selectSeq = (state.selectSeq || 0) + 1;
       addLog(state, '取得時の選択を行う');
+      return true;
+    }
+
+    // 取得時選択を「使う側」のカード（まだ選択していないもの）。
+    // 慧音のコピーは効果を再発動しないため対象外（生成時に selectionDone を立てる）
+    function pendingSelectSources(state, pi) {
+      const map = state.cardMap;
+      return state.players[pi].taken.filter((inst) => {
+        if (inst.selectionDone || inst.copied) return false;
+        const d = map[inst.key];
+        if (!d) return false;
+        if (d.kind === 'flip' || d.kind === 'copy' || d.kind === 'deckPeek' || d.kind === 'swapNamed') return true;
+        return d.kind === 'instant' && !!(d.discardBonus || d.swap);
+      });
     }
 
     function choose(state, pi, choice) {
@@ -627,6 +647,10 @@
     }
 
     function applySelections(state) {
+      // この回の選択で「使う側」になる効果カードを先に控える。
+      // 適用中に新しく得たカード（小悪魔・文・にとり）はここに入らないので、次の回で解決できる
+      const sources = new Map();
+      for (const i of state.selectNeeded) sources.set(i, pendingSelectSources(state, i));
       for (let i = 0; i < state.playerCount; i++) {
         if (!state.selectNeeded.includes(i)) continue;
         const c = state.selections[i];
@@ -701,7 +725,8 @@
           if (idef && idef.kind !== 'copy') {
             // コピーも「その手番にプレイされた 1 枚」として同席・条件の判定に参加する
             // （本家スシゴーパーティーの特別注文と同じ。判定は applyTurnConditions でまとめて行う）
-            const copy = { key: inst.key, icons: inst.icons, copied: true, playedTurn: state.pickSeq };
+            // selectionDone を立てて、コピーが取得時効果を再発動しないようにする（DESIGN の方針）
+            const copy = { key: inst.key, icons: inst.icons, copied: true, playedTurn: state.pickSeq, selectionDone: true };
             // 幻覚で伏せられたカードをコピーしたら、コピーも伏せたままにする
             // （コピーだけ素の顔で出ると、うどんげの幻覚を貫通して中身がバレる）
             if (inst.hiddenTaken) {
@@ -809,18 +834,27 @@
             }
           }
         }
-
-        // 選択済みフラグ（次ラウンドで再選択しないよう taken をマーク）
-        for (const inst of p.taken) {
-          const idef = map[inst.key];
-          if (idef && (idef.discardBonus || idef.swap || idef.kind === 'flip' || idef.kind === 'copy' || idef.kind === 'deckPeek')) inst.selectionDone = true;
-        }
       }
-      applyTurnConditions(state); // この手番にプレイされたカード（コピー含む）の判定を確定
-      checkFaithRace(state); // にとりの入れ替えで信仰が動くことがある
+
+      // この回で使った効果カードを消費済みにする。
+      // taken 全体に立てると、選択の結果として新しく引いたカードの効果まで閉じてしまう
+      for (const list of sources.values()) for (const inst of list) inst.selectionDone = true;
+
+      // 選択の結果として新しく手に入ったカードの取得時効果も、同じ手番のうちに解決する。
+      // 例: 小悪魔でフランを引けば破棄を選べる／小悪魔で小悪魔を引けばさらにもう 1 枚見られる
+      // （文の追加取材で出た文だけは連鎖しない＝applyTake 側で selectionDone にしている）
       state.phase = 'pick';
       state.selectNeeded = null;
       state.selections = null;
+      state.selectChain = (state.selectChain || 0) + 1;
+      if (state.selectChain <= MAX_SELECT_CHAIN && beginSelectionPhase(state)) return;
+      if (state.selectChain > MAX_SELECT_CHAIN) {
+        addLog(state, '取得時選択の連鎖が上限に達したため打ち切った');
+      }
+      state.selectChain = 0;
+
+      applyTurnConditions(state); // この手番にプレイされたカード（コピー含む）の判定を確定
+      checkFaithRace(state); // にとりの入れ替えで信仰が動くことがある
       passHands(state);
     }
 
@@ -1146,6 +1180,9 @@
         if (n === 0) continue;
         let kindPts = 0;
         let kindLabel = null;
+        // 判定の点をカード個体ごと（inst.roundPts）に持たせる種別は、内訳の集約行を出さない。
+        // 両方出すとラウンド結果バナーで同じ点が 2 行に並ぶ（大妖精の同手番判定がこれに当たる）
+        let perCardPts = false;
         switch (def.kind) {
           case 'collect': {
             const idx = Math.min(n, def.table.length) - 1;
@@ -1229,6 +1266,8 @@
               // バナーでもカードごとの点数を出せるように、確定値を個体にも残す
               for (const inst of cards) inst.roundPts = inst.socialPoints || 0;
               kindPts = cards.reduce((a, inst) => a + (inst.socialPoints || 0), 0);
+              // 点はカード個体が持っているので、内訳の集約行（大妖精（n枚）+x）は出さない
+              perCardPts = true;
               break;
             }
             // 旧仕様（ラウンド内の他人の取得を数える）
@@ -1260,11 +1299,14 @@
         }
         if (kindPts !== 0) {
           pts += kindPts;
-          detail.push({
-            key,
-            label: kindLabel || (def.kind === 'roundComboCount' ? `${def.name}（継続カード${n}枚）` : `${def.name}（${n}枚）`),
-            pts: kindPts,
-          });
+          // カード個体に点を載せた判定（大妖精）は集約行を出さない（バナーでの二重表示を防ぐ）
+          if (!perCardPts) {
+            detail.push({
+              key,
+              label: kindLabel || (def.kind === 'roundComboCount' ? `${def.name}（継続カード${n}枚）` : `${def.name}（${n}枚）`),
+              pts: kindPts,
+            });
+          }
         }
       }
       // 妖夢の加護: 次の春で得た追加点（ラウンド末にまとめて計上）
