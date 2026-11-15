@@ -132,7 +132,7 @@ main {
 .player-chip.me { border-color: var(--accent); }
 .player-chip.picked { opacity: 0.6; }
 .chip-name { font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chip-round { color: var(--accent2); font-size: 0.78rem; white-space: nowrap; }
+.chip-round { color: #d5cec5; font-size: 0.78rem; white-space: nowrap; }
 .chip-tags { color: var(--text-dim); font-size: 0.72rem; white-space: nowrap; }
 .chip-score { margin-left: auto; color: var(--gold); font-weight: bold; white-space: nowrap; }
 
@@ -522,6 +522,7 @@ main {
   cursor: pointer;
   z-index: 10;
   overflow-y: auto;
+  overflow-anchor: none; /* 内容の差し替えでスクロール位置が復元されないようにする */
   padding: 24px 16px;
 }
 #banner h2 { color: var(--gold); }
@@ -576,6 +577,30 @@ main {
   justify-content: center;
 }
 .banner-actions button { font-size: 0.9rem; padding: 8px 18px; }
+
+/* ラウンド結果: 画面下に固定する「次へ」（スクロールしないと見えない位置に案内を置かない） */
+.banner-next {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+  padding: 18px 0 10px !important;
+  margin-top: 10px;
+  /* 下の内容が透けると読みにくいので、帯はほぼ不透明にする */
+  background: linear-gradient(180deg, rgba(10, 8, 12, 0) 0%, rgba(10, 8, 12, 0.94) 36%, rgba(10, 8, 12, 0.98) 100%);
+}
+.banner-next button {
+  font-size: 0.95rem;
+  padding: 10px 26px;
+  /* ステージ色のままだと白玉楼・永遠亭・守矢で白文字が 3:1 前後になるため、
+     CTA だけ暗幕を重ねて 5:1 以上を確保する（段階色は保つ） */
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.30), rgba(0, 0, 0, 0.38)),
+    linear-gradient(180deg, var(--btn-a), var(--btn-b));
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
 
 /* ラウンド結果: 取得カード一覧と取得点数一覧を左右に並べる */
 .bp-body { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; padding: 0 !important; }
@@ -1287,7 +1312,9 @@ body[data-stage="mountain"] {
   letter-spacing: 0.04em;
 }
 .table-row.me .row-label {
-  color: var(--accent);
+  /* ステージ色（--accent）は暗い下地に対して 3.3:1 しかなく AA 未達。
+     自分の行は金色で示す（下地に対して 9:1 前後） */
+  color: var(--gold);
 }
 
 /* 継続カード枠もステージ色に */
@@ -1400,7 +1427,39 @@ main { grid-template-columns: 1fr 300px; }
 /* 狭い画面では詳細パネルを下に回す */
 @media (max-width: 900px) {
   main { grid-template-columns: 1fr; }
-  .preview-desc { font-size: 0.98rem; }
+  /* 1 カラムでは右パネルが盤面の下に落ちて見えなくなるので、
+     選んだカードだけ画面右下に浮かせる（盤面を押し下げない・操作は邪魔しない） */
+  #side {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    z-index: 8;
+    width: min(420px, calc(100vw - 24px));
+    max-height: 42vh;
+    overflow: hidden;
+    padding: 10px 12px;
+    background: rgba(20, 17, 25, 0.94);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+    pointer-events: none;
+  }
+  #side.is-empty { display: none; }
+  #side h3 { font-size: 0.72rem; margin: 0 0 6px; }
+  /* 画像を左、名前・アイコン・説明を右に縦積み（grid にして行を共有する） */
+  #preview {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    column-gap: 10px;
+    align-items: start;
+  }
+  #preview .preview-card { grid-row: 1 / span 3; width: 84px; max-width: none; }
+  .preview-desc {
+    font-size: 0.82rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  header { flex-wrap: wrap; row-gap: 6px; }
   .ref-desc { font-size: 1rem; }
 }
 
@@ -1438,7 +1497,7 @@ header h1,
   color: #d5cec5;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
 }
-.table-row.me .row-label { color: var(--accent); }
+.table-row.me .row-label { color: var(--gold); }
 #hand-status { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
 
 /* =========================================================
@@ -1446,7 +1505,11 @@ header h1,
    ========================================================= */
 
 #app { max-width: 1600px; }
-main { grid-template-columns: minmax(0, 1fr) 320px; }
+/* 2 カラムは 901px 以上だけ。ここを無条件にすると上の
+   @media (max-width: 900px) の 1 カラム指定を後勝ちで打ち消してしまう */
+@media (min-width: 901px) {
+  main { grid-template-columns: minmax(0, 1fr) 320px; }
+}
 
 /* 広い画面では手札・取得カードを折り返さず一列に */
 @media (min-width: 1000px) {
@@ -1473,7 +1536,8 @@ main { grid-template-columns: minmax(0, 1fr) 320px; }
 
 /* バナーと一覧も広い画面でゆったり使う */
 .banner-players { width: min(1120px, 94vw); }
-#cardref { width: min(1400px, 97vw); }
+/* 一覧は画面全体を覆う（幅を絞ると右端に下の画面が覗いてノイズになる） */
+#cardref { width: auto; }
 .ref-grid { grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); }
 
 /* =========================================================

@@ -723,7 +723,7 @@
         ? '幻覚をかけている：出した番の全員の取得がうどんげに見えている'
         : '幻覚がかかっている：出した番の取得がうどんげに見えている';
     } else {
-      statusEl.textContent = '手札から 1 枚選んで「このカードを取る」を押してね';
+      statusEl.textContent = '手札から 1 枚選んでね（もう一度クリックか「このカードを取る」で確定）';
     }
 
     const chopBtn = $('btn-chopsticks');
@@ -1284,6 +1284,8 @@
         : '同点は継続カード枚数で判定';
       el.innerHTML = `<h2>ゲーム終了</h2><div class="banner-players">${rows}</div>${actions}<p class="banner-note">${note}</p>`;
       el.classList.remove('hidden');
+      el.scrollTop = 0; // 前のバナーで下までスクロールした位置を引き継がない
+      requestAnimationFrame(() => { el.scrollTop = 0; });
       el.onclick = null;
       el.querySelectorAll('[data-act]').forEach((btn) => {
         btn.addEventListener('click', (ev) => {
@@ -1360,12 +1362,29 @@
         </div>`;
       })
       .join('');
-    el.innerHTML = `<h2>ラウンド ${b.round + 1} の結果</h2><div class="banner-players">${rows}</div><p class="banner-note">${ONLINE ? 'クリックで次へ（全員の準備を待っています）' : 'クリックで次のラウンドへ'}</p>`;
+    el.innerHTML = `<h2>ラウンド ${b.round + 1} の結果</h2><div class="banner-players">${rows}</div><div class="banner-next"><button type="button" class="banner-next-btn">${ONLINE ? '準備完了（次のラウンドへ）' : '次のラウンドへ'}</button></div><p class="banner-note">${ONLINE ? '全員の準備が揃うと次が始まります' : '画面のどこをクリックしても次へ進めます'}</p>`;
     el.classList.remove('hidden');
-    el.onclick = () => {
+    // 前のバナーで下までスクロールした位置を引き継がない（レイアウト確定後にもう一度戻す）
+    el.scrollTop = 0;
+    requestAnimationFrame(() => { el.scrollTop = 0; });
+    const advanceRound = () => {
       if (ONLINE) { Net.continueRound(); return; }
       STATE.roundBanner = null; DEAL_ANIM = true; renderAll(); // 次ラウンドの配りアニメ
     };
+    el.onclick = advanceRound;
+    const nextBtn = el.querySelector('.banner-next-btn');
+    // 固定ボタンからも進める。バナー全体のクリックと二重に発火しないよう止める
+    if (nextBtn) {
+      nextBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        if (ONLINE) {
+          // 連打しても意味がないので、押したら待機表示に切り替える
+          nextBtn.disabled = true;
+          nextBtn.textContent = '他のプレイヤーを待っています…';
+        }
+        advanceRound();
+      });
+    }
   }
 
   // ステージカード一覧モーダル（現在のセットの全カード・説明・構成枚数）
@@ -1458,8 +1477,11 @@
     }
     if (!target) {
       el.innerHTML = '<div class="preview-empty">カードを選ぶと<br>ここに大きく表示されます</div>';
+      // 狭い画面では空のパネルが盤面を隠すだけなので、CSS 側で出さない
+      el.closest('#side')?.classList.add('is-empty');
       return;
     }
+    el.closest('#side')?.classList.remove('is-empty');
     const def = defOf(target.key);
     if (!def) { el.innerHTML = ''; return; }
     const kind = countIconKind(def);
