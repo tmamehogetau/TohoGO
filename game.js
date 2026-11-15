@@ -968,6 +968,15 @@
   }
 
   // 上部プレイヤーバー（BGA 風コンパクト表示: 名前・今ラウンド即時点・合計）
+  // ラウンド中の暫定点: 取得済みカードの即時点だけを足す
+  // （セット・多数決・収集など、ラウンド末に判定する分は含めない）
+  function liveRoundPts(pi) {
+    if (!STATE || STATE.phase === 'over') return 0;
+    const p = STATE.players[pi];
+    // 幻覚で隠れているカードの点数は数えない（合計から中身がバレないように）
+    return p.taken.reduce((a, inst) => a + (hiddenFromViewer(inst) ? 0 : (roundPtsOf(inst, pi) || 0)), 0);
+  }
+
   function renderPlayerBar() {
     const wrap = $('player-bar');
     wrap.innerHTML = '';
@@ -975,7 +984,11 @@
       const pick = STATE.picks[pi];
       // オンラインは真偽値（サーバー契約）、ホットシートは配列/null なので両方を受ける
       const picked = pick === true || Array.isArray(pick);
-      const roundPts = p.roundScores[STATE.round];
+      // 結果バナー表示中は、終わったラウンドの点数を出す（STATE.round は次ラウンドに進んでいる）
+      const shownRound = STATE.roundBanner ? STATE.roundBanner.round : STATE.round;
+      const settled = p.roundScores[shownRound] || 0;
+      const live = STATE.roundBanner ? 0 : liveRoundPts(pi);
+      const roundPts = settled + live;
       const tags = [];
       if (p.chopsticks > 0) tags.push(`早×${p.chopsticks}`);
       // 霊夢・魔理沙はゲーム通算で数えるので、手元ではなく通算カウントを出す
@@ -998,9 +1011,12 @@
       el.innerHTML = `
         <span class="chip-name">${esc(p.name)}${pi === 0 && p.name !== 'あなた' ? '（あなた）' : ''}</span>
         ${offTag}
-        <span class="chip-round">${STATE.phase !== 'over' && roundPts ? `R${STATE.round + 1} +${roundPts}` : ''}</span>
+        <span class="chip-round${live > 0 ? ' live' : ''}">${STATE.phase !== 'over' && roundPts ? `R${shownRound + 1} +${roundPts}` : ''}</span>
         <span class="chip-tags">${tags.join(' ')}</span>
-        <span class="chip-score">${Engine.scorePlayer(STATE, pi)}点</span>`;
+        <span class="chip-score">${Engine.scorePlayer(STATE, pi) + live}点</span>`;
+      if (live > 0) {
+        el.title = `ラウンド中の暫定値（取得済みの即時点 ${live} 点を含む）。セット・多数決・収集などはラウンド末に加算されます`;
+      }
       wrap.appendChild(el);
     });
   }

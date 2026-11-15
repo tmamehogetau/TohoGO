@@ -1932,3 +1932,13 @@ main { display: block; flex: 1 1 auto; min-height: 0; }
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
 }
 .select-panel .select-title { font-size: 1.05rem; margin-bottom: 10px; }
+
+/* =========================================================
+   主ボタンの文字コントラスト（白玉楼・永遠亭・守矢の明るい色でも AA を満たす）
+   ステージ色は保ちつつ暗幕を 1 枚重ねる（白文字 2.8〜3.1:1 → 5.2:1 以上）
+   ========================================================= */
+button {
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.30), rgba(0, 0, 0, 0.38)),
+    linear-gradient(180deg, var(--btn-a, #d0345a), var(--btn-b, #a82142));
+}
