@@ -406,7 +406,9 @@ test('紅霧: 小悪魔でフランを引くと破棄の選択ができる', () 
   assert.ok(r.ok, r.error);
   assert.strictEqual(s.phase, 'pick');
   assert.strictEqual(s.players[0].taken[mei].discarded, true, '美鈴が破棄される');
-  assert.strictEqual(s.players[0].taken[mei].franBonus, 2, '破棄の +2 が付く');
+  const fran = s.players[0].taken.find((i) => i.key === 'k_fran');
+  assert.strictEqual(fran && fran.franBonus, 2, '破棄の +2 はフラン本体に付く');
+  assert.strictEqual(s.players[0].taken[mei].franBonus, undefined, '破棄した側には付けない（二重計上防止）');
   // ラウンド末: 美鈴は破棄で 0 点、フラン 2 点＋破棄 +2
   cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]);
   assert.strictEqual(s.players[0].roundScores[0], 4);

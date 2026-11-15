@@ -486,7 +486,8 @@
           pts += inst.roundPts;
         }
         // フランの破棄ボーナスはラウンド末にまとめて加算する
-        pts += p.taken.reduce((a, inst) => a + (inst.franBonus || 0), 0);
+        // （ボーナスはフラン本体に持たせる。裏返し・破棄されたフランは数えない）
+        pts += p.taken.reduce((a, inst) => a + ((inst.flipped || inst.discarded) ? 0 : (inst.franBonus || 0)), 0);
         p.roundScores[state.round] += pts;
       }
     }
@@ -668,8 +669,14 @@
             const franBonus = map['k_fran'] ? map['k_fran'].discardBonus : 2;
             const idef = map[inst.key];
             inst.discarded = true;
-            // 加算はラウンド末にまとめる（取得中に roundScores が動かないように）
-            inst.franBonus = franBonus;
+            // 加算はラウンド末にまとめる（取得中に roundScores が動かないように）。
+            // ボーナスは破棄した側（フラン本体）に持たせる＝カード面の点数表示が 2 → 4 になる
+            const franInst = (sources.get(i) || []).find((x) => {
+              const d = map[x.key];
+              return d && d.discardBonus && !x.selectionDone;
+            });
+            if (franInst) franInst.franBonus = (franInst.franBonus || 0) + franBonus;
+            else inst.franBonus = franBonus; // 念のため（対象が見つからない場合の従来動作）
             addLog(state, `${p.name}: フランが${cardName(idef) || inst.key}を破棄した（+${franBonus} 点）`);
           }
         }
@@ -1015,7 +1022,7 @@
           copied: !!inst.copied,
           pts: inst.roundPts || 0,
         }));
-        const fran = p.taken.reduce((a, inst) => a + (inst.franBonus || 0), 0);
+        const fran = p.taken.reduce((a, inst) => a + ((inst.flipped || inst.discarded) ? 0 : (inst.franBonus || 0)), 0);
         if (fran) detail[i].push({ key: 'k_fran', label: 'フラン（破棄）', pts: fran });
         r.extras = detail[i];
       }

@@ -358,12 +358,12 @@
     if (CHOPSTICKS_MODE && p.chopsticks > 0) {
       if (CHOP_SELECTED.includes(idx)) {
         CHOP_SELECTED = CHOP_SELECTED.filter((i) => i !== idx);
-        renderAll();
+        syncHandSelection();
         return;
       }
       if (CHOP_SELECTED.length >= 2) return;
       CHOP_SELECTED.push(idx);
-      renderAll();
+      syncHandSelection();
       return;
     }
 
@@ -373,7 +373,7 @@
       return;
     }
     PICK_SELECTED = idx;
-    renderAll();
+    syncHandSelection();
   }
 
   // 決定ボタン: 選択したカードで確定してエンジンに送る
@@ -501,7 +501,7 @@
     if (SEL_MODE === 'peek') {
       // 小悪魔の山札確認: 候補から単一選択（全部選択可）
       SEL_SELECTED = [idx];
-      renderAll();
+      syncSelectSelection();
       return;
     }
     // 対象外カード（効果カード自身・破棄済み）は選択不可
@@ -511,13 +511,13 @@
       // ミスティアは任意枚数・トグル選択（決定ボタンで確定）
       if (SEL_SELECTED.includes(idx)) SEL_SELECTED = SEL_SELECTED.filter((i) => i !== idx);
       else SEL_SELECTED.push(idx);
-      renderAll();
+      syncSelectSelection();
       return;
     }
     // discard / copy: 単一選択のトグル（確定は決定ボタン）
     if (SEL_SELECTED.includes(idx)) SEL_SELECTED = [];
     else SEL_SELECTED = [idx];
-    renderAll();
+    syncSelectSelection();
   }
 
   // select モードごとの選択対象判定（効果カード自身・破棄済みは対象外）
@@ -678,6 +678,7 @@
     if (def.kind === 'socialJoin' && def.sameTurn) return inst.socialPoints || null; // 大妖精も手番内で確定
     if (def.kind !== 'instant') return null;
     let pts = def.points;
+    if (inst.franBonus) pts += inst.franBonus; // フランの破棄ボーナス（破棄すると 2 → 4 点）
     if (inst.triple) pts *= inst.triple; // 早苗の加護（次の奇跡を 3 倍）
     if (inst.instantCombo && def.comboBonus) pts += def.comboBonus; // 取得時コンボ（美鈴）
     if (def.comboAtEnd && def.comboBonus && def.comboKeys
@@ -688,6 +689,54 @@
     if (inst.turnBonus) pts += inst.turnBonus; // 永琳: 同じ手番に輝夜が出ていたときの加点
     if (inst.extraPts) pts += inst.extraPts; // 永琳の調合など、取得時に確定した追加点
     return pts;
+  }
+
+  // 手札まわりの状態文言（renderHand と選択だけの更新で共用）
+  function handStatusText(selectTurn) {
+    const p = STATE.players[0];
+    if (STATE.phase === 'over') return 'ゲーム終了！';
+    if (STATE.phase === 'select') return selectStatusText(selectTurn);
+    if (STATE.picks[0]) return '他のプレイヤーの選択を待っています…';
+    if (CHOPSTICKS_MODE) return `早飲みモード：2 枚選んでね（${CHOP_SELECTED.length}/2 枚選択）`;
+    if (PICK_SELECTED !== null && p.hand[PICK_SELECTED]) {
+      return `「${cardLabel(defOf(p.hand[PICK_SELECTED].key))}」を選択中。「このカードを取る」で確定`;
+    }
+    if (STATE.hidden) {
+      return STATE.hiddenOwner === 0
+        ? '幻覚をかけている：出した番の全員の取得がうどんげに見えている'
+        : '幻覚がかかっている：出した番の取得がうどんげに見えている';
+    }
+    return '手札から 1 枚選んでね（もう一度クリックか「このカードを取る」で確定）';
+  }
+
+  // 選択の切り替えだけを反映する（カードを作り直さないので画像がちらつかない）
+  function syncHandSelection() {
+    if (!STATE) return;
+    document.querySelectorAll('#hand .card').forEach((el, idx) => {
+      el.classList.toggle('selected', CHOP_SELECTED.includes(idx) || PICK_SELECTED === idx);
+    });
+    $('hand-status').textContent = handStatusText(STATE.phase === 'select' && STATE.selectNeeded.includes(0));
+    const myTurn = STATE.phase === 'pick' && !STATE.picks[0];
+    const canConfirm = myTurn && (CHOPSTICKS_MODE ? CHOP_SELECTED.length === 2 : PICK_SELECTED !== null);
+    $('btn-confirm-pick').classList.toggle('hidden', !canConfirm);
+    $('btn-chopsticks').classList.toggle('active', CHOPSTICKS_MODE);
+    renderPreview();
+  }
+
+  // 選択モーダルの選択状態だけを反映する（カードを作り直さない）
+  function syncSelectSelection() {
+    const area = SELECT_AREA || document.getElementById('select-area');
+    if (!area || !STATE || STATE.phase !== 'select' || !SEL_MODE) return;
+    area.querySelectorAll('.select-list .card').forEach((el, i) => {
+      el.classList.toggle('selected', SEL_SELECTED.includes(i));
+    });
+    const confirmBtn = area.querySelector('.select-btn-row button');
+    if (confirmBtn) {
+      const p = STATE.players[0];
+      const wantN = SEL_MODE === 'scoop' ? Math.min(p.scoopPending || 2, p.hand.length) : 1;
+      confirmBtn.disabled = (SEL_MODE === 'flip' || SEL_MODE === 'swapNamed') ? false : SEL_SELECTED.length !== wantN;
+      if (SEL_MODE === 'flip') confirmBtn.textContent = `裏返しを決定（${SEL_SELECTED.length} 枚）`;
+    }
   }
 
   function renderHand() {
@@ -708,23 +757,7 @@
     DEAL_ANIM = false;
 
     const statusEl = $('hand-status');
-    if (STATE.phase === 'over') {
-      statusEl.textContent = 'ゲーム終了！';
-    } else if (STATE.phase === 'select') {
-      statusEl.textContent = selectStatusText(selectTurn);
-    } else if (STATE.picks[0]) {
-      statusEl.textContent = '他のプレイヤーの選択を待っています…';
-    } else if (CHOPSTICKS_MODE) {
-      statusEl.textContent = `早飲みモード：2 枚選んでね（${CHOP_SELECTED.length}/2 枚選択）`;
-    } else if (PICK_SELECTED !== null && p.hand[PICK_SELECTED]) {
-      statusEl.textContent = `「${cardLabel(defOf(p.hand[PICK_SELECTED].key))}」を選択中。「このカードを取る」で確定`;
-    } else if (STATE.hidden) {
-      statusEl.textContent = STATE.hiddenOwner === 0
-        ? '幻覚をかけている：出した番の全員の取得がうどんげに見えている'
-        : '幻覚がかかっている：出した番の取得がうどんげに見えている';
-    } else {
-      statusEl.textContent = '手札から 1 枚選んでね（もう一度クリックか「このカードを取る」で確定）';
-    }
+    statusEl.textContent = handStatusText(selectTurn);
 
     const chopBtn = $('btn-chopsticks');
     chopBtn.classList.toggle('hidden', !(myTurn && p.chopsticks > 0));
@@ -847,7 +880,7 @@
           const at = SEL_SELECTED.indexOf(idx);
           if (at >= 0) SEL_SELECTED.splice(at, 1);
           else if (SEL_SELECTED.length < want) SEL_SELECTED.push(idx);
-          renderAll();
+          syncSelectSelection();
         });
         list.appendChild(el);
       });
@@ -945,7 +978,6 @@
       const roundPts = p.roundScores[STATE.round];
       const tags = [];
       if (p.chopsticks > 0) tags.push(`早×${p.chopsticks}`);
-      if (p.desserts.length > 0) tags.push(`継続カード×${p.desserts.length}`);
       // 霊夢・魔理沙はゲーム通算で数えるので、手元ではなく通算カウントを出す
       if (STATE.intruderKey) {
         const cnt = gameEndCountFor(p, STATE.intruderKey);
@@ -1178,7 +1210,15 @@
       return;
     }
     $('round-indicator').textContent = `ラウンド ${STATE.round + 1}｜${STATE.incidentName}`;
-    $('pass-indicator').textContent = STATE.passDir === 1 ? '手札は右隣へ流れる' : '手札は左隣へ流れる';
+    // 「左隣」では誰か分からないので、手札を渡す相手の名前を出す
+    const n = STATE.playerCount;
+    const toPi = (0 + STATE.passDir + n) % n;
+    const fromPi = (0 - STATE.passDir + n) % n;
+    const toName = STATE.players[toPi] ? STATE.players[toPi].name : '';
+    const fromName = STATE.players[fromPi] ? STATE.players[fromPi].name : '';
+    const passEl = $('pass-indicator');
+    passEl.textContent = `あなたの手札 → ${toName}`;
+    passEl.title = `選ばなかった手札は「${toName}」へ渡り、「${fromName}」から新しい手札が来ます`;
   }
 
   // ---- ラウンド開始アニメーション ----
@@ -1467,15 +1507,8 @@
   function renderPreview() {
     const el = $('preview');
     if (!el) return;
+    // ホバー中のカードだけを出す（選択済みでも、マウスが外れたら消す）
     let target = PREVIEW;
-    if (!target && STATE && STATE.phase === 'pick' && PICK_SELECTED !== null) {
-      const c = STATE.players[0].hand[PICK_SELECTED];
-      if (c) target = { key: c.key, icons: c.icons };
-    }
-    if (!target && STATE && CHOP_SELECTED.length) {
-      const c = STATE.players[0].hand[CHOP_SELECTED[CHOP_SELECTED.length - 1]];
-      if (c) target = { key: c.key, icons: c.icons };
-    }
     if (!target) {
       el.innerHTML = '<div class="preview-empty">カードを選ぶと<br>ここに大きく表示されます</div>';
       // 狭い画面では空のパネルが盤面を隠すだけなので、CSS 側で出さない
@@ -1488,7 +1521,7 @@
     const kind = countIconKind(def);
     const icons = Number(target.icons) || 0;
     const iconHtml = kind && icons
-      ? `<div class="preview-icons">${COUNT_ICON_SVG[kind].repeat(icons)}<span>×${icons}</span></div>`
+      ? `<div class="preview-icons" title="アイコン ${icons} 個">${COUNT_ICON_SVG[kind].repeat(icons)}</div>`
       : '';
     const tags = [];
     if (target.inst && target.inst.discarded) tags.push('破棄');

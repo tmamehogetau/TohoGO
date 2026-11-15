@@ -253,27 +253,27 @@ main {
 /* 獲得時に確定した点数（ラウンド末集計待ちでもカードに表示） */
 .card-tag.tag-pts { left: auto; right: 3px; background: var(--gold); color: #333; }
 
-/* 慧音のコピー: コピー元カード（本体）の上に慧音を小さく重ねる。
-   アイコン（右上）・名前（下）・点数タグ（右上）を隠さないよう、左寄せの縦中央に置く */
+/* 小悪魔・慧音: 「どのカードから得たか」を左下→左上の小さな角札で示す。
+   本体の名前・点数タグを隠さないよう、左上の角に小さく重ねるだけにする */
 .card.copy-base { overflow: visible; } /* 重ね札がはみ出せるようにクリップを外す */
 .card.copy-base .card-art,
 .card.copy-base .card-scrim { border-radius: 9px; }
 .card.copy-overlay {
   position: absolute;
-  left: -8px;
+  left: -7px;
   right: auto;
-  top: 47%;
-  width: 34px;
-  height: 48px;
-  transform: translateY(-50%) rotate(-8deg);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.65);
-  border-color: rgba(217, 194, 122, 0.8);
+  top: -7px;
+  width: 24px;
+  height: 34px;
+  transform: rotate(-9deg);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(217, 194, 122, 0.9);
   z-index: 2;
   cursor: default;
   pointer-events: none; /* ホバーは本体（コピー元）に任せる＝重ね札が動かない */
 }
-.card.copy-overlay .card-icon { font-size: 0.95rem; }
-.card.copy-overlay .card-name { font-size: 0.4rem; }
+.card.copy-overlay .card-name { display: none; }
+.card.copy-overlay .card-glyph { font-size: 0.8rem; top: 8%; }
 
 /* 行ラベルの追跡リソース（春の合計・兎枚数など） */
 .row-tag {
@@ -1866,13 +1866,14 @@ main { display: block; flex: 1 1 auto; min-height: 0; }
 #table-rows::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 4px; }
 #hand-area { grid-area: hand; }
 
-/* 手札は 1 行。入りきらないときは横スクロール（折り返して高さが伸びるのを防ぐ） */
+/* 手札は 1 行。入りきらないときは横スクロール（折り返して高さが伸びるのを防ぐ）。
+   hover/選択でカードが浮くぶんの余白を上と左右に確保する（切れ防止） */
 #hand {
   flex-wrap: nowrap;
   justify-content: safe center;
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: 4px;
+  padding: 8px 6px 4px;
 }
 #hand .card { flex: 0 0 auto; }
 #hand::-webkit-scrollbar { height: 6px; }
@@ -1885,6 +1886,8 @@ main { display: block; flex: 1 1 auto; min-height: 0; }
 .row-empty { padding: 22px 0; }
 .card.mini { width: 50px; height: 72px; }
 .card.mini .card-name { font-size: 0.42rem; }
+/* 小悪魔・慧音の重ね札は、この .card.mini より後にあるので改めて小さく固定する */
+.table-row .card.mini.copy-overlay { width: 24px; height: 34px; }
 .dessert-box { width: 138px; height: 92px; }
 .dessert-box .box-cards .card.mini:not(:first-child) { margin-left: -40px; }
 
