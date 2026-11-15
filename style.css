@@ -461,8 +461,8 @@ main {
   right: 14px;
   bottom: calc(var(--hand-h, 300px) + 24px);
   z-index: 7;
-  width: min(340px, calc(100vw - 28px));
-  max-height: 44vh;
+  width: min(460px, calc(100vw - 28px));
+  max-height: 56vh;
   padding: 10px 12px;
   background: rgba(20, 17, 25, 0.95);
   border: 1px solid #3a3342;
@@ -473,21 +473,30 @@ main {
 }
 #side h3 { font-size: 0.74rem; margin: 0 0 6px; color: var(--text-dim); letter-spacing: 0.08em; }
 #side.is-empty { display: none; }
-/* 画像を左、名前・アイコン・説明を右に縦積み */
+/* イラストを主役に。画像を左に大きく、名前・アイコン・説明を右に縦積み */
 #preview {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
-  column-gap: 10px;
+  grid-template-columns: 168px minmax(0, 1fr);
+  column-gap: 14px;
   row-gap: 6px;
   align-items: start;
 }
-#preview .preview-card { grid-row: 1 / span 3; width: 88px; max-width: none; }
+#preview .preview-card { grid-row: 1 / span 3; width: 168px; max-width: none; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6); }
+.preview-name { font-size: 1.22rem; }
 .preview-desc {
-  font-size: 0.84rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
   display: -webkit-box;
-  -webkit-line-clamp: 6;
+  -webkit-line-clamp: 8;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+@media (max-width: 560px) {
+  #side { width: calc(100vw - 20px); max-height: 50vh; }
+  #preview { grid-template-columns: 116px minmax(0, 1fr); column-gap: 10px; }
+  #preview .preview-card { width: 116px; }
+  .preview-name { font-size: 1.02rem; }
+  .preview-desc { font-size: 0.82rem; -webkit-line-clamp: 5; }
 }
 .preview-empty { color: var(--text-dim); font-size: 0.8rem; line-height: 1.6; padding: 18px 4px; text-align: center; }
 .preview-card {
@@ -1420,7 +1429,10 @@ html { font-size: 17px; }
 #preview { font-size: 1rem; }
 .preview-name { font-size: 1.15rem; }
 .preview-tag { font-size: 0.72rem; }
-.preview-desc { font-size: 1rem; line-height: 1.65; }
+/* スマホでは狭いので、説明文の大きさは上の @media (max-width: 560px) に任せる */
+@media (min-width: 561px) {
+  .preview-desc { font-size: 1rem; line-height: 1.65; }
+}
 .preview-empty { font-size: 0.95rem; }
 .preview-icons span { font-size: 0.82rem; }
 .preview-card { width: 100%; }
