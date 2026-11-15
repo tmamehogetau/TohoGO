@@ -816,14 +816,14 @@
 
     areaEl.classList.add('active');
     areaEl.innerHTML = '';
-
-    const meRow = document.querySelector('.table-row.me');
-    if (meRow) meRow.appendChild(areaEl);
+    // モーダルの中身を 1 枚のパネルにまとめる（背景の暗幕は #select-area 側）
+    const panel = document.createElement('div');
+    panel.className = 'select-panel';
 
     const title = document.createElement('div');
     title.className = 'select-title';
     title.textContent = selectStatusText(selectTurn);
-    areaEl.appendChild(title);
+    panel.appendChild(title);
 
     const list = document.createElement('div');
     list.className = 'select-list';
@@ -897,7 +897,7 @@
         list.appendChild(el);
       });
     }
-    areaEl.appendChild(list);
+    panel.appendChild(list);
 
     const btnRow = document.createElement('div');
     btnRow.className = 'select-btn-row';
@@ -930,7 +930,8 @@
       skipBtn.addEventListener('click', skipSelection);
       btnRow.appendChild(skipBtn);
     }
-    areaEl.appendChild(btnRow);
+    panel.appendChild(btnRow);
+    areaEl.appendChild(panel);
   }
 
   // 上部プレイヤーバー（BGA 風コンパクト表示: 名前・今ラウンド即時点・合計）
@@ -1765,6 +1766,13 @@
     buildSoloIncidentOptions();
     buildSettingOptions();
     setInterval(updateTimerIndicator, 500);
+    // 手札の高さを CSS 変数に載せる（カード詳細パネルを手札の上に浮かせるため）
+    const handArea = $('hand-area');
+    const syncHandHeight = () => {
+      document.documentElement.style.setProperty('--hand-h', `${handArea.offsetHeight}px`);
+    };
+    if (window.ResizeObserver) new ResizeObserver(syncHandHeight).observe(handArea);
+    syncHandHeight();
   }
 
   // サーバーからの通知（net.js 経由）

@@ -455,16 +455,40 @@ main {
   overflow: hidden;
 }
 
-/* 右パネル: 選択中カードの拡大表示 */
+/* 右パネル: 選択中カードの拡大表示（手札の上に浮かせる） */
 #side {
-  background: var(--panel);
-  border: 1px solid #3a3342;
-  border-radius: 8px;
+  position: fixed;
+  right: 14px;
+  bottom: calc(var(--hand-h, 300px) + 24px);
+  z-index: 7;
+  width: min(340px, calc(100vw - 28px));
+  max-height: 44vh;
   padding: 10px 12px;
-  max-height: 78vh;
-  overflow-y: auto;
+  background: rgba(20, 17, 25, 0.95);
+  border: 1px solid #3a3342;
+  border-radius: 10px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  pointer-events: none; /* 下の操作を邪魔しない */
 }
-#preview { display: flex; flex-direction: column; gap: 8px; }
+#side h3 { font-size: 0.74rem; margin: 0 0 6px; color: var(--text-dim); letter-spacing: 0.08em; }
+#side.is-empty { display: none; }
+/* 画像を左、名前・アイコン・説明を右に縦積み */
+#preview {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  column-gap: 10px;
+  row-gap: 6px;
+  align-items: start;
+}
+#preview .preview-card { grid-row: 1 / span 3; width: 88px; max-width: none; }
+.preview-desc {
+  font-size: 0.84rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .preview-empty { color: var(--text-dim); font-size: 0.8rem; line-height: 1.6; padding: 18px 4px; text-align: center; }
 .preview-card {
   width: 100%;
@@ -1084,7 +1108,7 @@ button.secondary:hover { border-color: var(--gold-soft); }
   main { grid-template-columns: 1fr; }
   #player-bar { grid-template-columns: repeat(2, 1fr); }
   #app { padding: 10px; }
-  #hand .card { width: 78px; height: 117px; }
+  #hand .card { width: 92px; height: auto; aspect-ratio: 2 / 3; }
   .lobby-card { padding: 28px 22px; margin: 0 12px; }
 }
 
@@ -1424,41 +1448,8 @@ main { grid-template-columns: 1fr 300px; }
 #hand-status { font-size: 1.02rem; }
 .train-note { font-size: 0.85rem; }
 
-/* 狭い画面では詳細パネルを下に回す */
+/* 狭い画面ではヘッダーを折り返す（盤面は Phase 1 の固定レイアウトで全幅） */
 @media (max-width: 900px) {
-  main { grid-template-columns: 1fr; }
-  /* 1 カラムでは右パネルが盤面の下に落ちて見えなくなるので、
-     選んだカードだけ画面右下に浮かせる（盤面を押し下げない・操作は邪魔しない） */
-  #side {
-    position: fixed;
-    right: 12px;
-    bottom: 12px;
-    z-index: 8;
-    width: min(420px, calc(100vw - 24px));
-    max-height: 42vh;
-    overflow: hidden;
-    padding: 10px 12px;
-    background: rgba(20, 17, 25, 0.94);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
-    pointer-events: none;
-  }
-  #side.is-empty { display: none; }
-  #side h3 { font-size: 0.72rem; margin: 0 0 6px; }
-  /* 画像を左、名前・アイコン・説明を右に縦積み（grid にして行を共有する） */
-  #preview {
-    display: grid;
-    grid-template-columns: 84px minmax(0, 1fr);
-    column-gap: 10px;
-    align-items: start;
-  }
-  #preview .preview-card { grid-row: 1 / span 3; width: 84px; max-width: none; }
-  .preview-desc {
-    font-size: 0.82rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 6;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
   header { flex-wrap: wrap; row-gap: 6px; }
   .ref-desc { font-size: 1rem; }
 }
@@ -1505,11 +1496,7 @@ header h1,
    ========================================================= */
 
 #app { max-width: 1600px; }
-/* 2 カラムは 901px 以上だけ。ここを無条件にすると上の
-   @media (max-width: 900px) の 1 カラム指定を後勝ちで打ち消してしまう */
-@media (min-width: 901px) {
-  main { grid-template-columns: minmax(0, 1fr) 320px; }
-}
+/* 盤面は 1 カラム（手札を下部に固定する Phase 1 のレイアウト。詳細はファイル末尾） */
 
 /* 広い画面では手札・取得カードを折り返さず一列に */
 @media (min-width: 1000px) {
@@ -1843,3 +1830,90 @@ body[data-stage="mountain"]{ --panel-a: rgba(18, 44, 34, 0.56); --panel-b: rgba(
   margin-left: 4px;
 }
 #room-badge:hover { border-color: var(--gold-soft); color: var(--text); }
+
+/* =========================================================
+   Phase 1: 盤面を 1 画面に収める
+   ・上段 = プレイヤーバー / 中段 = 取得行（ここだけスクロール） / 下段 = 手札（固定）
+   ・右カラムは廃止し、カード詳細は手札の上に浮かせる
+   ========================================================= */
+
+#app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+#app header { flex: 0 0 auto; }
+main { display: block; flex: 1 1 auto; min-height: 0; }
+
+#board {
+  height: 100%;
+  display: grid;
+  grid-template-areas: "bar" "rows" "hand";
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-content: stretch;
+}
+#player-bar { grid-area: bar; }
+#table-rows {
+  grid-area: rows;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+#table-rows::-webkit-scrollbar { width: 8px; }
+#table-rows::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 4px; }
+#hand-area { grid-area: hand; }
+
+/* 手札は 1 行。入りきらないときは横スクロール（折り返して高さが伸びるのを防ぐ） */
+#hand {
+  flex-wrap: nowrap;
+  justify-content: safe center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+#hand .card { flex: 0 0 auto; }
+#hand::-webkit-scrollbar { height: 6px; }
+#hand::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border-radius: 3px; }
+
+/* 取得行を詰める（4 人でもスクロールが少なくて済むように） */
+.table-row { min-height: 98px; padding: 6px 10px; gap: 10px; }
+.row-label { margin-bottom: 4px; }
+.row-cards { min-height: 74px; gap: 5px; }
+.row-empty { padding: 22px 0; }
+.card.mini { width: 50px; height: 72px; }
+.card.mini .card-name { font-size: 0.42rem; }
+.dessert-box { width: 138px; height: 92px; }
+.dessert-box .box-cards .card.mini:not(:first-child) { margin-left: -40px; }
+
+/* 選択は割り込みなのでモーダルにする（取得行がスクロールしても見落とさない） */
+#select-area.active {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(8, 6, 10, 0.74);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: auto;
+  z-index: 30;
+}
+.select-panel {
+  width: max-content;
+  max-width: min(820px, 94vw);
+  max-height: 84vh;
+  overflow: auto;
+  padding: 16px 18px;
+  background: linear-gradient(180deg, rgba(38, 33, 46, 0.98), rgba(24, 21, 30, 0.98));
+  border: 1px solid var(--gold-soft, #6b5f45);
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+}
+.select-panel .select-title { font-size: 1.05rem; margin-bottom: 10px; }
