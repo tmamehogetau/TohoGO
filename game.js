@@ -1309,8 +1309,13 @@
       const ranked = Engine.finalRanking(STATE);
       const rankCounts = new Map();
       ranked.forEach((r) => rankCounts.set(r.rank, (rankCounts.get(r.rank) || 0) + 1));
+      const maxTotal = Math.max(1, ...ranked.map((r) => Math.max(0, r.total)));
+      const roundCount = (STATE.players[0] && STATE.players[0].roundScores.length) || 3;
+      const legend = `<div class="bp-legend">${
+        Array.from({ length: roundCount }, (_, i) => `<span><i class="dot seg-${i}"></i>R${i + 1}</span>`).join('')
+      }<span><i class="dot seg-${roundCount}"></i>ゲーム末</span><span class="bp-legend-note">※マイナス点は棒に含めず数値で表示</span></div>`;
       const rows = ranked
-        .map((r) => {
+        .map((r, rowIdx) => {
           const p = STATE.players[r.pi];
           const rounds = p.roundScores
             .map((v, i) => `R${i + 1} ${v >= 0 ? '+' : ''}${v}`)
@@ -1323,8 +1328,26 @@
           const desserts = p.desserts
             .map((d) => cardEl(d.key, null, 'mini banner-card').outerHTML)
             .join('');
-          return `<div class="bp${r.pi === 0 ? ' banner-me' : ''}">
-            <div class="bp-head"><span>${r.rank}位${rankCounts.get(r.rank) > 1 ? '（同率）' : ''} ${esc(r.name)}${r.pi === 0 && r.name !== 'あなた' ? '（あなた）' : ''}</span><span class="bp-total">${r.total}点</span></div>
+          // 得点の内訳バー（ラウンドごと＋ゲーム末）。棒の長さは合計点に比例させ、
+          // 中の区切りはプラス点の比率で分ける（マイナスは数値だけ）
+          const segVals = [...p.roundScores, geTotal];
+          const posSum = segVals.reduce((a, v) => a + Math.max(0, v), 0);
+          const scale = posSum > 0 ? Math.max(0, r.total) / posSum : 0;
+          const segs = segVals
+            .map((v, i) => {
+              const w = ((Math.max(0, v) * scale) / maxTotal) * 100;
+              return `<span class="bp-seg seg-${i}" style="--w:${w.toFixed(2)}%;--i:${i}"></span>`;
+            })
+            .join('');
+          const winTag = r.rank === 1 && rankCounts.get(1) === 1 ? '<span class="bp-crown">優勝</span>' : '';
+          return `<div class="bp${r.pi === 0 ? ' banner-me' : ''}${r.rank === 1 ? ' bp-win' : ''}" data-total="${r.total}" style="--row:${rowIdx}">
+            <div class="bp-head">
+              <span class="bp-rank">${r.rank}位${rankCounts.get(r.rank) > 1 ? '（同率）' : ''}</span>
+              ${winTag}
+              <span class="bp-name">${esc(r.name)}${r.pi === 0 && r.name !== 'あなた' ? '（あなた）' : ''}</span>
+              <span class="bp-total">0点</span>
+            </div>
+            <div class="bp-bar" aria-hidden="true">${segs}</div>
             <div class="bp-sub">継続カード ${r.desserts} 枚 ／ ${rounds} ／ ゲーム末 ${geTotal >= 0 ? '+' : ''}${geTotal} 点</div>
             ${geList ? `<div class="bp-extras">${geList}</div>` : ''}
             ${desserts ? `<div class="bp-cards">${desserts}</div>` : ''}
@@ -1339,10 +1362,26 @@
       const note = ONLINE
         ? `同点は継続カード枚数で判定／ルーム ${esc(ROOM_CODE)}（ロビーへ戻ると退出します）`
         : '同点は継続カード枚数で判定';
-      el.innerHTML = `<h2>ゲーム終了</h2><div class="banner-players">${rows}</div>${actions}<p class="banner-note">${note}</p>`;
+      el.innerHTML = `<h2>ゲーム終了</h2><p class="banner-subtitle">${esc(STATE.incidentName || '')}</p>${legend}<div class="banner-players">${rows}</div>${actions}<p class="banner-note">${note}</p>`;
       el.classList.remove('hidden');
       el.scrollTop = 0; // 前のバナーで下までスクロールした位置を引き継がない
       requestAnimationFrame(() => { el.scrollTop = 0; });
+      // 得点を 0 から数え上げる（長いゲームほど見せ場を作る）。バーの伸びは CSS 側
+      const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      el.querySelectorAll('.bp[data-total]').forEach((row, i) => {
+        const totalEl = row.querySelector('.bp-total');
+        const target = Number(row.dataset.total) || 0;
+        if (reduceMotion) { totalEl.textContent = `${target}点`; return; }
+        const startAt = performance.now() + i * 120;
+        const duration = 700;
+        const tick = (now) => {
+          const t = Math.min(1, Math.max(0, (now - startAt) / duration));
+          const eased = 1 - Math.pow(1 - t, 3);
+          totalEl.textContent = `${Math.round(target * eased)}点`;
+          if (t < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
       el.onclick = null;
       el.querySelectorAll('[data-act]').forEach((btn) => {
         btn.addEventListener('click', (ev) => {

@@ -1942,3 +1942,75 @@ button {
     linear-gradient(rgba(0, 0, 0, 0.30), rgba(0, 0, 0, 0.38)),
     linear-gradient(180deg, var(--btn-a, #d0345a), var(--btn-b, #a82142));
 }
+
+/* =========================================================
+   最終結果: 得点の内訳バー・優勝表示・数え上げ
+   ========================================================= */
+.banner-subtitle {
+  color: var(--text-dim);
+  font-size: 0.86rem;
+  letter-spacing: 0.14em;
+  margin: -8px 0 10px;
+}
+.bp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  margin: 0 auto 10px;
+  max-width: min(1120px, 94vw);
+  font-size: 0.74rem;
+  color: var(--text-dim);
+}
+.bp-legend > span { display: inline-flex; align-items: center; gap: 5px; }
+.bp-legend-note { opacity: 0.75; }
+.bp-legend .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+.bp-head { justify-content: flex-start; gap: 8px; }
+.bp-rank { color: var(--gold); font-weight: 700; white-space: nowrap; }
+.bp-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bp-total { color: var(--gold); font-size: 1.05rem !important; font-variant-numeric: tabular-nums; }
+
+/* 得点の内訳バー（ラウンドごと＋ゲーム末） */
+.bp-bar {
+  display: flex;
+  height: 10px;
+  margin: 8px 0 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.bp-seg {
+  height: 100%;
+  width: 0;
+  animation: bpSeg 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  animation-delay: calc(var(--row, 0) * 120ms + var(--i, 0) * 80ms + 100ms);
+}
+@keyframes bpSeg { to { width: var(--w, 0%); } }
+.bp-seg.seg-0 { background: #c46a78; }
+.bp-seg.seg-1 { background: #6f8fe0; }
+.bp-seg.seg-2 { background: #5aa989; }
+.bp-seg.seg-3 { background: #d9c27a; }
+.bp-legend .dot.seg-0 { background: #c46a78; }
+.bp-legend .dot.seg-1 { background: #6f8fe0; }
+.bp-legend .dot.seg-2 { background: #5aa989; }
+.bp-legend .dot.seg-3 { background: #d9c27a; }
+
+/* 優勝した行を目立たせる */
+.bp-win {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 1px rgba(217, 194, 122, 0.45), 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.bp-crown {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #2a2532;
+  background: linear-gradient(180deg, #f0d996, var(--gold));
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bp-seg { animation: none; width: var(--w, 0%); }
+}
