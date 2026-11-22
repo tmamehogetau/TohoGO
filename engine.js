@@ -1396,7 +1396,7 @@
         if (cnt === max && def.most) out.push({ key: def.key, label: `${def.name}（最多${cnt}枚）`, pts: splitPts(def.most, mostN) });
         if (cnt === min && def.least) out.push({ key: def.key, label: `${def.name}（最少${cnt}枚）`, pts: splitPts(def.least, leastN) });
       }
-      // 継続カードの枚数表（犬走椛）: 0枚 -3 / 1枚 0 / 2枚 4 / 3枚 7 / 4枚 13 / 5枚以上 16
+      // 継続カードの枚数表（犬走椛）: 0枚 -3 / 1枚 0 / 2枚 4 / 3枚 7 / 4枚 11 / 5枚以上 15
       for (const def of Object.values(state.cardMap)) {
         if (def.kind !== 'dessertCount') continue;
         const cnt = p.desserts.filter((i) => i.key === def.key).length;
