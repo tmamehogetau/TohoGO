@@ -68,6 +68,7 @@ const TARGETS = {
     ['k_maid', '妖精メイド 最多/最少', (d) => { d.most = 0; d.least = 0; }],
     ['k_daiyousei', '大妖精 デザート毎', (d) => { d.joinKeys = []; }],
     ['k_patch', 'パチュリー 種類数', (d) => { d.offset = -99; }],
+    ['k_kozue', '小悪魔 山札3枚', (d) => { d.kind = 'none'; }],
     ['k_cirno', 'チルノ 最少に減点', (d) => { d.least = 0; }],
   ],
   spring: [
@@ -89,6 +90,8 @@ const TARGETS = {
     ['y_tewi', 'てゐ 2枚6点', (d) => { d.table = [0, 0, 0]; }],
     ['y_moko', '妹紅 最多+6/最少-6', (d) => { d.most = 0; d.least = 0; }],
     ['y_riggle', 'リグル 同時取得', (d) => { d.points = 0; }],
+    ['y_mystia', 'ミスティア 裏返し', (d) => { d.kind = 'none'; }],
+    ['y_keine', '慧音 コピー', (d) => { d.kind = 'none'; }],
     ['y_reimu', '霊夢 累計ペア 4/5/6…', (d) => { d.kind = 'none'; }],
     ['y_marisa', '魔理沙 0/2/8/13/21', (d) => { d.table = [0, 0, 0, 0, 0]; }],
     ['__maki', '玉兎 マキ配点', null],
@@ -99,11 +102,11 @@ const TARGETS = {
     ['f_sanae', '早苗 1点/奇跡3倍', (d) => { d.points = 0; d.buffTargets = []; }],
     ['f_hina', '鍵山雛 1枚-3/2枚+7', (d) => { d.first = 0; d.more = 0; }],
     ['f_aya', '射命丸文 山札2枚', (d) => { d.kind = 'none'; }],
-    ['f_nitori', '河城にとり 名前指定', (d) => { d.kind = 'none'; }],
+    ['f_nitori', '河城にとり 椛1枚+1', (d) => { d.kind = 'none'; d.perTakenOf = null; }],
     ['f_minoriko', '秋穣子 収集', (d) => { d.table = [0, 0, 0, 0, 0]; }],
     ['f_shizuha', '秋静葉 静葉+穣子ペア', (d) => { d.points = 0; }],
     ['f_faith', '信仰 10個で順位点', (d) => { d.threshold = 9999; d.rankPoints = [0, 0, 0]; }],
-    ['f_momiji', '犬走椛 0枚-3/偶数+5', (d) => { d.zero = 0; d.even = 0; }],
+    ['f_momiji', '犬走椛 枚数表', (d) => { d.table = [0, 0, 0, 0, 0, 0]; }],
   ],
 };
 
@@ -203,6 +206,7 @@ function main() {
 }
 
 main();
+
 
 
 

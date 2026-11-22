@@ -283,13 +283,12 @@
         return at(mine + 1) - at(mine); // 3 枚目は負になるので取らなくなる
       }
       case 'kindCount': {
-        const isNew = !p.taken.some((i) => i.key === key && !i.flipped && !i.discarded);
-        // 枚数ぶん倍になるので、2 枚目以降は「今の種類数 − offset」ぶんの上乗せ価値
-        if (!isNew) {
-          const kinds = new Set(p.taken.filter((x) => !x.flipped && !x.discarded).map((x) => x.key));
-          return Math.max(0.5, kinds.size + (def.offset || 0));
-        }
-        return 1.1;
+        // 得点は「ラウンド末の種類数 − offset」× 所持枚数で決まる。
+        // 現在の種類数で評価すると、ラウンド序盤（種類数 0〜2）に 0.5 点の札に見えて
+        // 取り逃がし、拾い続けるだけで勝ててしまう（搾取テスト +25pt の主因）。
+        // 9 枚配布では実測 6.9〜8.4 種になるので、期待種類数で見積もる
+        const EXPECTED_KINDS = 6.5;
+        return Math.max(0.8, EXPECTED_KINDS + (def.offset || 0));
       }
       case 'coop': {
         // 自分以外が同じ手番に取った枚数ぶんの点。他人の選択は読めないので、
@@ -310,12 +309,15 @@
       case 'dessertIce':
         return def.points / def.per;
       case 'dessertCount': {
-        // 枚数表（椛）: 次の 1 枚で増える得点の見込みを評価する
+        // 枚数表（椛）: 次の 1 枚で増える得点の見込みを評価する。
+        // 実際の限界利得は 3〜4 点あるので、大きく割り引くと「椛を必ず取るだけ」の席に勝てなくなる
+        // （搾取テスト: 旧 ×0.6 は +12pt、現行 ×0.9 は ±0pt）。5 枚到達後も 0.5 を残し、
+        // 相手の到達を妨害する 6 枚目にわずかな価値を持たせる
         const t = def.table || [];
         const cnt = dessertCount(state, pi, key);
         const cur = t[Math.min(cnt, t.length - 1)] || 0;
         const next = t[Math.min(cnt + 1, t.length - 1)] || 0;
-        return 0.5 + Math.max(0, next - cur) * 0.6;
+        return 0.5 + Math.max(0, next - cur) * 0.9;
       }
       case 'dessertMostLeast': {
         // ゲーム末に最多 +most / 最少 −least。序盤は様子見、終盤は最少脱出を優先

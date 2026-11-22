@@ -88,8 +88,8 @@
     { key: 'f_shizuha', kind: 'pairWith', partner: 'f_minoriko', points: 3, name: '秋静葉', icon: '紅', color: '#c85a3a', count: 8 },
     { key: 'f_faith', kind: 'uramaki', iconCounts: { 3: 5, 4: 4, 5: 3 }, threshold: 10, rankPoints: [8, 5, 2], name: '信仰', icon: '信', color: '#d8c07a', count: 12 },
   ];
-  // 椛: 集めるほど伸びるゲーム末判定（0枚で負け・5枚以上で 16 点）
-  const MOUNTAIN_DESSERT = { key: 'f_momiji', kind: 'dessertCount', table: [-3, 0, 4, 7, 13, 16], name: '犬走椛', icon: '狼', color: '#a85a3a', pool: 15 };
+  // 椛: 集めるほど伸びるゲーム末判定（0枚で負け・5枚以上で 15 点）
+  const MOUNTAIN_DESSERT = { key: 'f_momiji', kind: 'dessertCount', table: [-3, 0, 4, 7, 11, 15], name: '犬走椛', icon: '狼', color: '#a85a3a', pool: 15 };
 
   // ---------------- セット ----------------
   const INCIDENTS = {
@@ -311,8 +311,8 @@
       "detail": "ラウンド中、信仰アイコン合計が 10 に達した人から順に 8 点・5 点・2 点（ラウンド終了時に未到達でも、アイコン数の多い順に残りの順位点）"
     },
     "f_momiji": {
-      "short": "0枚-3／5+16",
-      "detail": "ゲーム終了時に、取得枚数に応じて得点。0 枚 -3 点／1 枚 0 点／2 枚 4 点／3 枚 7 点／4 枚 13 点／5 枚以上 16 点"
+      "short": "0枚-3／5+15",
+      "detail": "ゲーム終了時に、取得枚数に応じて得点。0 枚 -3 点／1 枚 0 点／2 枚 4 点／3 枚 7 点／4 枚 11 点／5 枚以上 15 点"
     }
   };
 

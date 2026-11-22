@@ -1537,7 +1537,7 @@ test('風神録: 早苗→早苗→神奈子→諏訪子で 1枚目が神奈子�
   assert.strictEqual(w.triple, 3, '諏訪子も3倍');
 });
 
-test('風神録: 犬走椛=ゲーム末に枚数で得点（0枚-3／2枚4／3枚7／4枚13／5枚+16）', () => {
+test('風神録: 犬走椛=ゲーム末に枚数で得点（0枚-3／2枚4／3枚7／4枚11／5枚+15）', () => {
   const mk = (n) => {
     const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
     for (let i = 0; i < n; i++) s.players[0].desserts.push(inst('f_momiji'));
@@ -1553,9 +1553,9 @@ test('風神録: 犬走椛=ゲーム末に枚数で得点（0枚-3／2枚4／3�
   assert.strictEqual(mk(1), 0);
   assert.strictEqual(mk(2), 4);
   assert.strictEqual(mk(3), 7);
-  assert.strictEqual(mk(4), 13);
-  assert.strictEqual(mk(5), 16);
-  assert.strictEqual(mk(6), 16, '5枚以上は 16 点で頭打ち');
+  assert.strictEqual(mk(4), 11);
+  assert.strictEqual(mk(5), 15);
+  assert.strictEqual(mk(6), 15, '5枚以上は 15 点で頭打ち');
 });
 
 test('風神録: 射命丸文=自身を山札の下へ戻し、山札の上から2枚取得する', () => {
@@ -1841,6 +1841,7 @@ test('AI: 雪だるま型のセット札を「1 枚目が 0 点」で捨てな�
 
 console.log(`\
 ${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+
 
 
 
