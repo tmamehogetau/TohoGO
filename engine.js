@@ -657,7 +657,7 @@
         if (map[p.taken[idx].key] && map[p.taken[idx].key].kind === 'copy') return err('慧音自身はコピーできない');
       }
       if (need.peek && c.pick !== null && c.pick !== undefined) {
-        // 小悪魔の山札確認: 候補 4 枚の中から 1 枚を選ぶ（未指定 = 効果を使わない）
+        // 小悪魔の山札確認: 候補（peek 枚数）の中から 1 枚を選ぶ（未指定 = 効果を使わない）
         if (!Number.isInteger(c.pick) || c.pick < 0 || c.pick >= (state.peekCards[pi] || []).length) {
           return err('山札から獲得するカードを選んでください');
         }

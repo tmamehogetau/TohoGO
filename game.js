@@ -852,7 +852,7 @@
       : '山札と交換するカードを 1 枚選んでね（永琳の薬）';
     if (mode === 'peek') return SEL_SELECTED.length === 1
       ? '獲得するカードを選択中。「このカードを獲得する」で確定'
-      : '山札の上 4 枚の中から獲得するカードを 1 枚選んでね';
+      : '山札の上 3 枚の中から獲得するカードを 1 枚選んでね';
     if (!mode) return '選べるカードがありません。「効果を使わない」で進めてね';
     return '取得カードの効果を選択中…';
   }
@@ -901,7 +901,7 @@
     const list = document.createElement('div');
     list.className = 'select-list';
     if (SEL_MODE === 'peek' && selectTurn) {
-      // 小悪魔の山札確認: 候補 4 枚を表示（全部選択可）
+      // 小悪魔の山札確認: 候補（peek 枚数）を表示（全部選択可）
       (STATE.peekCards[0] || []).forEach((inst, idx) => {
         const el = cardEl(inst.key, inst.icons, 'taken', inst);
         if (SEL_SELECTED.includes(idx)) el.classList.add('selected');
