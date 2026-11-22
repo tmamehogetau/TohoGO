@@ -30,7 +30,7 @@
     { key: 'k_rumia', kind: 'collect', table: [1, 3, 6, 10, 15], name: 'ルーミア', icon: '闇', color: '#3a3a42', count: 8 },
     { key: 'k_daiyousei', kind: 'socialJoin', sameTurn: true, joinKeys: ['k_cirno', 'k_daiyousei'], per: 1, name: '大妖精', icon: '精', color: '#b8d8e8', count: 8 },
     { key: 'k_maid', kind: 'temaki', most: 4, least: -4, name: '妖精メイド', icon: '奉', color: '#5f8f3e', count: 12 },
-    { key: 'k_kozue', kind: 'deckPeek', peek: 4, name: '小悪魔', icon: '悪', color: '#3d7ea6', count: 3 },
+    { key: 'k_kozue', kind: 'deckPeek', peek: 3, name: '小悪魔', icon: '悪', color: '#3d7ea6', count: 3 },
   ];
   const SCARLET_DESSERT = { key: 'k_cirno', kind: 'dessertLeast', least: -9, name: 'チルノ', icon: '⑨', color: '#5bb8d4', pool: 15 };
 
@@ -45,10 +45,11 @@
     // アリスは「1 枚のカード」だが、手元では 4 種の人形（各 2 枚）に分かれる。
     // カードとしては 4 種とも「アリス」（name は共通・variant で人形を見分ける）。
     // 得点は集めた種類数（1種1点/2種4点/3種9点/4種16点）
-    { key: 's_alice_hourai', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '蓬莱人形', table: [0, 1, 4, 9, 16], icon: '蓬', color: '#c9a84c', count: 2 },
-    { key: 's_alice_shanghai', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '上海人形', table: [0, 1, 4, 9, 16], icon: '上', color: '#c9a84c', count: 2 },
-    { key: 's_alice_kyo', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '京人形', table: [0, 1, 4, 9, 16], icon: '京', color: '#c9a84c', count: 2 },
-    { key: 's_alice_french', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '仏蘭西人形', table: [0, 1, 4, 9, 16], icon: '仏', color: '#c9a84c', count: 2 },
+    // accent は人形名の色帯（4種とも同じ絵・同じ金色なので、取得行だと見分けられないため）
+    { key: 's_alice_hourai', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '蓬莱人形', table: [0, 1, 4, 9, 16], icon: '蓬', color: '#c9a84c', accent: '#c0392b', count: 2 },
+    { key: 's_alice_shanghai', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '上海人形', table: [0, 1, 4, 9, 16], icon: '上', color: '#c9a84c', accent: '#2f6bb0', count: 2 },
+    { key: 's_alice_kyo', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '京人形', table: [0, 1, 4, 9, 16], icon: '京', color: '#c9a84c', accent: '#7b4fa8', count: 2 },
+    { key: 's_alice_french', kind: 'aliceSet', group: 'alice', groupLabel: 'アリス', name: 'アリス', variant: '仏蘭西人形', table: [0, 1, 4, 9, 16], icon: '仏', color: '#c9a84c', accent: '#c2657f', count: 2 },
     { key: 's_prism', kind: 'set3', points: 10, name: 'プリズムリバー3姉妹', icon: '奏', color: '#6a9fd8', count: 8 },
     // 案3.5: 2枚ごとに6点＋2枚ごとに自分の春アイコン合計-1（春の順位判定が下がる）
   { key: 's_letty', kind: 'pairCond', points: 6, reduceSpringIconsPerPair: 1, name: 'レティ', icon: '冬', color: '#a8c8e8', count: 8 },
@@ -78,15 +79,17 @@
   const MOUNTAIN_MAIN = [
     { key: 'f_kanako', kind: 'instant', points: 3, buffable: true, name: '八坂神奈子', icon: '山', color: '#8d6e3a', count: 3 },
     { key: 'f_suwako', kind: 'instant', points: 2, buffable: true, name: '洩矢諏訪子', icon: '蛙', color: '#5f8f3e', count: 5 },
-    { key: 'f_sanae', kind: 'instant', points: 1, buffTargets: ['f_kanako', 'f_suwako'], name: '東風谷早苗', icon: '奇', color: '#4a8fb8', count: 4 },
+    { key: 'f_sanae', kind: 'instant', points: 1, buffTargets: ['f_kanako', 'f_suwako'], buffRequiresFaith: true, name: '東風谷早苗', icon: '奇', color: '#4a8fb8', count: 4 },
     { key: 'f_hina', kind: 'eel', first: -3, more: 7, name: '鍵山雛', icon: '厄', color: '#8e3b6a', count: 8 },
     { key: 'f_aya', kind: 'deckGrab', grab: 2, name: '射命丸文', icon: '文', color: '#3a3a42', count: 3 },
-    { key: 'f_nitori', kind: 'swapNamed', name: '河城にとり', icon: '道', color: '#3d7ea6', count: 3 },
+    // にとり: 取得時点で「それまでに集めた椛」1 枚につき 1 点（0 点ベースの即時点）
+    { key: 'f_nitori', kind: 'instant', points: 0, perTakenOf: 'f_momiji', perTaken: 1, name: '河城にとり', icon: '道', color: '#3d7ea6', count: 3 },
     { key: 'f_minoriko', kind: 'collect', table: [1, 3, 6, 10, 15], name: '秋穣子', icon: '穣', color: '#c8a44a', count: 8 },
     { key: 'f_shizuha', kind: 'pairWith', partner: 'f_minoriko', points: 3, name: '秋静葉', icon: '紅', color: '#c85a3a', count: 8 },
     { key: 'f_faith', kind: 'uramaki', iconCounts: { 3: 5, 4: 4, 5: 3 }, threshold: 10, rankPoints: [8, 5, 2], name: '信仰', icon: '信', color: '#d8c07a', count: 12 },
   ];
-  const MOUNTAIN_DESSERT = { key: 'f_momiji', kind: 'dessertParity', zero: -3, even: 5, name: '犬走椛', icon: '狼', color: '#a85a3a', pool: 15 };
+  // 椛: 集めるほど伸びるゲーム末判定（0枚で負け・5枚以上で 16 点）
+  const MOUNTAIN_DESSERT = { key: 'f_momiji', kind: 'dessertCount', table: [-3, 0, 4, 7, 13, 16], name: '犬走椛', icon: '狼', color: '#a85a3a', pool: 15 };
 
   // ---------------- セット ----------------
   const INCIDENTS = {
@@ -168,8 +171,8 @@
       "detail": "ラウンド終了時、妖精メイドの枚数が最多なら +4 点／最少 -4 点"
     },
     "k_kozue": {
-      "short": "山札4枚見て1枚",
-      "detail": "取得時、山札の上 4 枚を見て、その中から 1 枚を取得"
+      "short": "山札3枚見て1枚",
+      "detail": "取得時、山札の上 3 枚を見て、その中から 1 枚を取得"
     },
     "k_cirno": {
       "short": "最少で-9",
@@ -281,7 +284,7 @@
     },
     "f_sanae": {
       "short": "1点+次を3倍",
-      "detail": "1 点／取得後、次に八坂神奈子か洩矢諏訪子を取ると それらの点数を 3 倍する（早苗 1 枚につき次の 1 枚。3 倍が重なって 9 倍にはならない）"
+      "detail": "1 点／取得後、次に八坂神奈子か洩矢諏訪子を取ると それらの点数を 3 倍する（早苗 1 枚につき次の 1 枚）。ただし信仰アイコンが 0 のときは効果が働かない（判定は神奈子・諏訪子を取った時点。0 だった早苗は不発のまま消費され、再び発動しない）"
     },
     "f_hina": {
       "short": "1枚-3／2枚+7",
@@ -292,8 +295,8 @@
       "detail": "取得時、このカードを山札の下に戻し、山札の上から 2 枚を取得する（山札から出た文は効果を発動しない）"
     },
     "f_nitori": {
-      "short": "次に名前指定で交換",
-      "detail": "次にカードを取得したあと、カード名を指定する。いずれかの手札にある指名したカードとこのカードを交換する（複数ある場合はランダムに選ばれる）"
+      "short": "椛1枚ごと+1",
+      "detail": "取得時、それまでに取得している犬走椛 1 枚につき 1 点（0 枚なら 0 点）。破棄・裏返しで手元を離れた椛は数えない"
     },
     "f_minoriko": {
       "short": "1/3/6/10/15",
@@ -308,8 +311,8 @@
       "detail": "ラウンド中、信仰アイコン合計が 10 に達した人から順に 8 点・5 点・2 点（ラウンド終了時に未到達でも、アイコン数の多い順に残りの順位点）"
     },
     "f_momiji": {
-      "short": "0枚-3／偶数+5",
-      "detail": "ゲーム終了時に、紅葉の枚数が0 枚 -3 点／偶数枚 +5 点／奇数枚 0 点"
+      "short": "0枚-3／5+16",
+      "detail": "ゲーム終了時に、取得枚数に応じて得点。0 枚 -3 点／1 枚 0 点／2 枚 4 点／3 枚 7 点／4 枚 13 点／5 枚以上 16 点"
     }
   };
 
@@ -363,6 +366,7 @@
     window.Data = { RULES, INCIDENTS, INCIDENT_IDS, incidentById, buildCardMap, buildMainDeck, buildDessertPool };
   }
 })();
+
 
 
 

@@ -200,7 +200,8 @@
     switch (def.kind) {
       case 'instant': {
         const parts = [`${def.points} 点`];
-        if (def.buffTargets) parts.push(`取得後、次に${def.buffTargets.map(nameOf).join('か')}を取ると 点数 3 倍（1 回につき 1 回）`);
+        if (def.buffTargets) parts.push(`取得後、次に${def.buffTargets.map(nameOf).join('か')}を取ると 点数 3 倍（1 回につき 1 回）。信仰アイコンが 0 のときは働かず、その早苗は消費される`);
+        if (def.perTakenOf) parts.push(`取得時、それまでに取得している${nameOf(def.perTakenOf)} 1 枚につき ${def.perTaken || 1} 点`);
         if (def.absentKeys) parts.push(def.absentKeys.includes(def.key)
           ? '他の人も同じ手番に同じ札を取ると 0 点（単独なら満点）'
           : `誰かが同時に${def.absentKeys.map(nameOf).join('か')}を取ると 0 点`);
@@ -247,6 +248,13 @@
       case 'scoop': return '取得時・手札から 2 枚追加で取り、山札から 2 枚引き直す（このカードは山札へ戻る）';
       case 'swapNamed': return '次にカードを取ったあと、カード名を指定して誰かの手札と 1 枚交換できる（本体 0 点）';
       case 'dessertParity': return `ゲーム末・0 枚 ${def.zero} 点／偶数枚 +${def.even} 点／奇数枚 0 点`;
+      case 'dessertCount': {
+        const t = def.table || [];
+        const labels = ['0枚', '1枚', '2枚', '3枚', '4枚'];
+        const parts = t.slice(0, 5).map((v, i) => `${labels[i]} ${v > 0 ? '+' : ''}${v}点`);
+        parts.push(`${t.length - 1}枚以上 ${t[t.length - 1] > 0 ? '+' : ''}${t[t.length - 1]}点`);
+        return `ゲーム末・取得枚数に応じて得点。${parts.join('／')}`;
+      }
       case 'kindCount': return `ラウンド末・このラウンドに取ったカードの種類数 ${def.offset >= 0 ? '+' : ''}${def.offset} 点`;
       case 'letty': return `ラウンド末・自分の冬の枚数から春の個数を引いた数 × ${def.mult} 点`;
       case 'coop': return '取得した手番で、他の人も同時にリグルを取っていたら 1 人につき 1 点';
@@ -272,7 +280,8 @@
         if (def.comboKeys) extra.push('＋コンボ');
         if (def.swap) extra.push('＋交換');
         if (def.absentKeys && def.absentKeys.includes(def.key)) extra.push('（単独のみ）');
-        if (def.buffTargets) extra.push('＋次を3倍');
+        if (def.buffTargets) extra.push('＋次を3倍(信仰要)');
+        if (def.perTakenOf) extra.push(`${nameOf(def.perTakenOf)}1枚+${def.perTaken || 1}`);
         if (def.pointsIfPicked) extra.push('＋連携');
         if (def.discardBonus) extra.push('＋破棄');
         return `${def.points}点${extra.join('')}`;
@@ -312,6 +321,10 @@
       case 'pairWith': return `${nameOf(def.partner)}とペア${def.points}点`;
       case 'uramaki': return `${def.threshold}個で${def.rankPoints.join('/')}点`;
       case 'dessertParity': return `0枚${def.zero}／偶数+${def.even}`;
+      case 'dessertCount': {
+        const t = def.table || [];
+        return `0枚${t[0]}／5枚+${t[t.length - 1]}`;
+      }
       default: return '';
     }
   }
@@ -424,7 +437,8 @@
     if (!STATE || STATE.phase !== 'pick' || STATE.picks[0]) return;
     if (STATE.players[0].hand.length !== 0) return;
     const res = actHuman({ kind: 'skip' });
-    if (res.ok) runAiPicks();
+    // ピック解決で取得時選択（フラン・ミスティア等）が開くことがあるので、AI 席も解決する
+    if (res.ok) { runAiPicks(); runAiSelections(); }
   }
 
   function runAiSelections() {
@@ -462,15 +476,22 @@
   const SEL_ORDER = ['scoop', 'swapNamed', 'discard', 'copy', 'swap', 'flip', 'peek'];
 
   function humanSelectNeeded() {
+    // オンラインはサーバー（権威）が返す selectModes を正とする。
+    // 幻覚中は自分の取得も y_reisen に伏せられるため、クライアントはカードの実体から
+    // 「ミスティアの裏返しが必要」だと推定できず、選択画面が詰んでしまう
+    if (ONLINE && STATE.selectModes) return { ...STATE.selectModes };
     // エンジンの selectionNeeded と同じ判定を UI 側で行う
     const p = STATE.players[0];
     const need = { discard: false, flip: false, copy: false, peek: false, swap: false, scoop: false, swapNamed: false };
+    // 裏返せる対象があるときだけ裏返しを聞く（対象ゼロの空画面を出さない）
+    const flipSources = pendingFlipSources(p);
+    const hasFlipTarget = p.taken.some((x) => !x.flipped && !x.discarded && !flipSources.includes(x));
     for (const inst of p.taken) {
       const def = defOf(inst.key);
       if (!def || inst.selectionDone) continue;
       if (def.kind === 'instant' && def.discardBonus) need.discard = true;
       if (def.kind === 'instant' && def.swap) need.swap = true;
-      if (def.kind === 'flip') need.flip = true;
+      if (def.kind === 'flip' && hasFlipTarget) need.flip = true;
       if (def.kind === 'copy') need.copy = true;
       if (def.kind === 'deckPeek') need.peek = true;
     }
@@ -520,13 +541,27 @@
     syncSelectSelection();
   }
 
-  // select モードごとの選択対象判定（効果カード自身・破棄済みは対象外）
+  // その回の裏返しを使うミスティア本体（engine の pendingFlipSources と同じ規則）。
+  // 幻覚で伏せられたカードは正体が分からないのでソース扱いしない（最終判定はサーバー/エンジン）
+  function pendingFlipSources(p) {
+    return p.taken.filter((inst) => {
+      if (inst.selectionDone || inst.copied) return false;
+      const def = defOf(inst.key);
+      return !!def && def.kind === 'flip';
+    });
+  }
+
+  // select モードごとの選択対象判定（効果カード自身・破棄済み・裏返し済みは対象外）
   // 継続カードは破棄/裏返し/コピーの対象に含まれる（継続カードリスクの回避手段になる）
   function selectTargetable(inst, mode) {
     const def = defOf(inst.key);
     if (!def || inst.discarded) return false;
     if (mode === 'discard') return !def.discardBonus; // フラン自身は破棄できない
-    if (mode === 'flip') return def.kind !== 'flip'; // ミスティア自身は裏返せない
+    if (mode === 'flip') {
+      if (inst.flipped) return false; // 裏返し済みは選び直せない
+      // 対象外は「その回に効果を使うミスティア本体」の実体だけ＝他のミスティアは裏返せる
+      return !pendingFlipSources(STATE.players[0]).includes(inst);
+    }
     if (mode === 'copy') return def.kind !== 'copy'; // 慧音自身はコピーできない
     if (mode === 'swap') return !def.swap && def.key !== STATE.dessert.key; // 永琳自身と継続カードは交換できない
     return false;
@@ -614,6 +649,8 @@
     const el = document.createElement('div');
     el.className = `card${extra ? ' ' + extra : ''}`;
     el.style.background = def.color; // 画像が無いときのフォールバック
+    // アリスの人形名（variant）は色帯で出す。色はカードごとに変える
+    if (def.accent) el.style.setProperty('--variant-accent', def.accent);
     el.innerHTML = `
       <img class="card-art" src="assets/cards/${key}.webp" alt="" loading="lazy" onerror="this.remove(); this.parentElement.classList.add('no-art')">
       <div class="card-scrim"></div>
@@ -667,6 +704,7 @@
   function handPtsOf(inst) {
     const def = inst && defOf(inst.key);
     if (!def || def.kind !== 'instant') return null;
+    if (def.perTakenOf) return null; // にとりは集めた椛の枚数で決まるので手札では出さない
     return typeof def.points === 'number' ? def.points : null;
   }
 
@@ -678,6 +716,7 @@
     if (def.kind === 'socialJoin' && def.sameTurn) return inst.socialPoints || null; // 大妖精も手番内で確定
     if (def.kind !== 'instant') return null;
     let pts = def.points;
+    if (inst.countPts) pts += inst.countPts; // にとり: 取得時点で集めていた椛の枚数ぶん
     if (inst.franBonus) pts += inst.franBonus; // フランの破棄ボーナス（破棄すると 2 → 4 点）
     if (inst.triple) pts *= inst.triple; // 早苗の加護（次の奇跡を 3 倍）
     if (inst.instantCombo && def.comboBonus) pts += def.comboBonus; // 取得時コンボ（美鈴）
@@ -814,6 +853,7 @@
     if (mode === 'peek') return SEL_SELECTED.length === 1
       ? '獲得するカードを選択中。「このカードを獲得する」で確定'
       : '山札の上 4 枚の中から獲得するカードを 1 枚選んでね';
+    if (!mode) return '選べるカードがありません。「効果を使わない」で進めてね';
     return '取得カードの効果を選択中…';
   }
 
@@ -904,20 +944,14 @@
       list.appendChild(sel);
     } else {
       p.taken.forEach((card, idx) => {
-        // 幻覚で伏せられたカードは、コピー対象の一覧でも中身を見せない（うどんげとして出す）
-        if (hiddenFromViewer(card)) {
-          const masked = defOf('y_reisen') ? cardEl('y_reisen', null, 'taken', { masked: true }) : null;
-          if (masked) {
-            masked.classList.add('not-target');
-            list.appendChild(masked);
-            return;
-          }
-        }
-        const el = cardEl(card.key, card.icons, 'taken', card, roundPtsOf(card, 0));
-        const isSel = SEL_SELECTED.includes(idx);
-        if (isSel) el.classList.add('selected');
-        if (selectTurn) {
-          // 効果カード自身・破棄済みは対象外としてグレーアウト表示
+        // 幻覚で伏せられたカードは中身を見せない（うどんげとして出す）。
+        // ただし「選べる対象」としては扱う：裏返しなどは伏せ札にも効く（中身が分からないまま選ぶ）
+        const el = hiddenFromViewer(card)
+          ? cardEl('y_reisen', null, 'taken', { masked: true })
+          : cardEl(card.key, card.icons, 'taken', card, roundPtsOf(card, 0));
+        if (SEL_SELECTED.includes(idx)) el.classList.add('selected');
+        if (selectTurn && SEL_MODE) {
+          // 効果カード自身・破棄済み・裏返し済みは対象外としてグレーアウト表示
           if (selectTargetable(card, SEL_MODE)) {
             el.classList.add('clickable');
             el.addEventListener('click', () => onTakenClick(idx));
@@ -934,28 +968,32 @@
 
     const btnRow = document.createElement('div');
     btnRow.className = 'select-btn-row';
-    if (SEL_MODE && selectTurn) {
-      const confirmBtn = document.createElement('button');
-      const wantN = SEL_MODE === 'scoop' ? Math.min(p.scoopPending || 2, p.hand.length) : 1;
-      confirmBtn.disabled = SEL_MODE === 'flip' || SEL_MODE === 'swapNamed' ? false : SEL_SELECTED.length !== wantN;
-      if (SEL_MODE === 'flip') {
-        confirmBtn.textContent = `裏返しを決定（${SEL_SELECTED.length} 枚）`;
-      } else if (SEL_MODE === 'scoop') {
-        confirmBtn.textContent = `この ${wantN} 枚を追加で取る`;
-      } else if (SEL_MODE === 'swapNamed') {
-        confirmBtn.textContent = 'この名前で調査する';
-      } else if (SEL_MODE === 'discard') {
-        const bonus = (p.taken.map((inst) => defOf(inst.key)).find((d) => d.discardBonus) || {}).discardBonus || 2;
-        confirmBtn.textContent = `このカードを破棄する（+${bonus} 点）`;
-      } else if (SEL_MODE === 'copy') {
-        confirmBtn.textContent = 'この効果をコピーする';
-      } else if (SEL_MODE === 'swap') {
-        confirmBtn.textContent = 'このカードを山札と交換する';
-      } else if (SEL_MODE === 'peek') {
-        confirmBtn.textContent = 'このカードを獲得する';
+    if (selectTurn) {
+      // 決定ボタンはモードが特定できているときだけ。モード不明でも「効果を使わない」は必ず出す
+      // （幻覚などで選択モードを判定できないときに操作不能にならないための安全弁）
+      if (SEL_MODE) {
+        const confirmBtn = document.createElement('button');
+        const wantN = SEL_MODE === 'scoop' ? Math.min(p.scoopPending || 2, p.hand.length) : 1;
+        confirmBtn.disabled = SEL_MODE === 'flip' || SEL_MODE === 'swapNamed' ? false : SEL_SELECTED.length !== wantN;
+        if (SEL_MODE === 'flip') {
+          confirmBtn.textContent = `裏返しを決定（${SEL_SELECTED.length} 枚）`;
+        } else if (SEL_MODE === 'scoop') {
+          confirmBtn.textContent = `この ${wantN} 枚を追加で取る`;
+        } else if (SEL_MODE === 'swapNamed') {
+          confirmBtn.textContent = 'この名前で調査する';
+        } else if (SEL_MODE === 'discard') {
+          const bonus = (p.taken.map((inst) => defOf(inst.key)).find((d) => d.discardBonus) || {}).discardBonus || 2;
+          confirmBtn.textContent = `このカードを破棄する（+${bonus} 点）`;
+        } else if (SEL_MODE === 'copy') {
+          confirmBtn.textContent = 'この効果をコピーする';
+        } else if (SEL_MODE === 'swap') {
+          confirmBtn.textContent = 'このカードを山札と交換する';
+        } else if (SEL_MODE === 'peek') {
+          confirmBtn.textContent = 'このカードを獲得する';
+        }
+        confirmBtn.addEventListener('click', confirmSelect);
+        btnRow.appendChild(confirmBtn);
       }
-      confirmBtn.addEventListener('click', confirmSelect);
-      btnRow.appendChild(confirmBtn);
 
       const skipBtn = document.createElement('button');
       skipBtn.className = 'secondary';
@@ -973,8 +1011,8 @@
   function liveRoundPts(pi) {
     if (!STATE || STATE.phase === 'over') return 0;
     const p = STATE.players[pi];
-    // 幻覚で隠れているカードの点数は数えない（合計から中身がバレないように）
-    return p.taken.reduce((a, inst) => a + (hiddenFromViewer(inst) ? 0 : (roundPtsOf(inst, pi) || 0)), 0);
+    // 幻覚で隠れているカード・まだ公開されていない他人のカードは数えない（合計から中身がバレないように）
+    return p.taken.reduce((a, inst) => a + (unseenFromViewer(inst, pi) ? 0 : (roundPtsOf(inst, pi) || 0)), 0);
   }
 
   function renderPlayerBar() {
@@ -993,7 +1031,7 @@
       if (p.chopsticks > 0) tags.push(`早×${p.chopsticks}`);
       // 霊夢・魔理沙はゲーム通算で数えるので、手元ではなく通算カウントを出す
       if (STATE.intruderKey) {
-        const cnt = gameEndCountFor(p, STATE.intruderKey);
+        const cnt = gameEndCountFor(p, STATE.intruderKey, pi);
         if (cnt > 0) tags.push(`${nameOf(STATE.intruderKey)}×${cnt}`);
       }
       const el = document.createElement('div');
@@ -1025,34 +1063,48 @@
 
   // プレイヤーごとの追跡リソース（春の合計・兎/妖精メイドの枚数など）
   // うどんげの幻覚中は、隠れているカードの寄与を差し引いてバッジから中身がバレないようにする
-  // そのカードが自分から見えないか。免疫は「その手番で鈴仙を出した本人」だけ
+  // そのカードが自分から「幻覚で伏せられて」見えるか。免疫は「その手番で鈴仙を出した本人」だけ。
+  // ただし未公開（取得時効果の解決中）の自分のカードは実カードで見せる＝幻覚は公開時に反映する
   function hiddenFromViewer(inst) {
     if (!inst) return false;
+    if (inst.unpublished) return false;
     if (inst.masked) return true; // オンラインはサーバーが既に伏せている
     if (!inst.hiddenTaken) return false;
     return inst.hiddenBy !== 0;
   }
 
-  function visibleTaken(p) {
-    return p.taken.filter((inst) => !hiddenFromViewer(inst));
+  // まだ公開されていない取得カード（取得時効果の選択が終わるまで）。自分のカードは自分に見える
+  // 閲覧者は常に席 0 なので、所有者が 0 以外なら「まだ場に出ていない」扱い＝行に描かない
+  function pendingFromViewer(inst, ownerPi) {
+    if (!inst || !inst.unpublished) return false;
+    return ownerPi !== 0;
+  }
+
+  // 自分から見えていないカード（幻覚で隠された／他人の未公開カード）
+  function unseenFromViewer(inst, ownerPi) {
+    return pendingFromViewer(inst, ownerPi) || hiddenFromViewer(inst);
+  }
+
+  function visibleTaken(p, pi) {
+    return p.taken.filter((inst) => !unseenFromViewer(inst, pi));
   }
 
   // 幻覚で隠した追加カードぶんを差し引いた通算（ローカル対戦用。オンラインはサーバーが処理済み）
-  function gameEndCountFor(p, key) {
+  function gameEndCountFor(p, key, pi) {
     let n = (p.gameEndCounts && p.gameEndCounts[key]) || 0;
-    n -= p.taken.filter((i) => hiddenFromViewer(i) && i.key === key).length;
+    n -= p.taken.filter((i) => unseenFromViewer(i, pi) && i.key === key).length;
     return Math.max(0, n);
   }
 
   function trackedTags(pi) {
     const p = STATE.players[pi];
     const tags = [];
-    const shown = visibleTaken(p);
+    const shown = visibleTaken(p, pi);
     // 春雪: ラウンド統計の春アイコン合計（妖夢の吸収も反映済み）
     if (STATE.incidentId === 'spring' && STATE.roundStats) {
       // 自分から見えていないカードのアイコンは差し引く（オンラインはサーバーが処理済み＝0）
       const hiddenIcons = p.taken
-        .filter((i) => hiddenFromViewer(i))
+        .filter((i) => unseenFromViewer(i, pi))
         .reduce((a, i) => a + (i.icons || 0), 0);
       const icons = Math.max(0, STATE.roundStats[pi].springIcons - hiddenIcons);
       tags.push({ icon: COUNT_ICON_SVG.spring, label: String(icons), color: '#b8487e' });
@@ -1086,30 +1138,15 @@
     return tags;
   }
 
-  // 小悪魔に「重ねて」表示できる獲得カードの集合。
-  // 破棄された小悪魔のタイルには重ね札を描かない（cardEl が破棄表示になり、重ね描画の対象から外れる）ため、
-  // その獲得カードは独立した 1 枚として描く。ここを空にすると、小悪魔をフランで破棄したときに
-  // 獲得したカードが画面から消える。
-  // 対応付けは taken 内の順序で行う（1 枚の小悪魔につき獲得は 1 枚までで、獲得カードは必ず
-  // 自分の小悪魔より後ろに入るため、k 番目の小悪魔が k 番目の獲得カードに対応する）
-  function peekCoveredGains(p) {
-    const peekers = p.taken.filter((x) => x.peekedBy && !x.copied);
-    const covered = new Set();
-    p.taken
-      .filter((x) => x.peekedGain && !x.copied)
-      .forEach((gain, k) => {
-        if (peekers[k] && !peekers[k].discarded) covered.add(gain);
-      });
-    return covered;
-  }
-
   // プレイヤーごとの「取ったカード」行（あなた → 他のプレイヤーの順）
   function renderTableRows() {
     const wrap = $('table-rows');
     wrap.innerHTML = '';
-    // 「新しく取った」アニメはピック解決の瞬間だけ。カード選択などによる再描画では再生しない
-    const animateNew = STATE.pickSeq !== PICK_ANIM_SIG;
-    PICK_ANIM_SIG = STATE.pickSeq;
+    // 「新しく取った」アニメはピック解決の瞬間だけ。カード選択などによる再描画では再生しない。
+    // 未公開カードがあるうちは「公開前」なので、公開された回にまとめて再生する
+    const anyPending = STATE.players.some((pl) => pl.taken.some((inst) => inst.unpublished));
+    const animateNew = !anyPending && STATE.pickSeq !== PICK_ANIM_SIG;
+    if (!anyPending) PICK_ANIM_SIG = STATE.pickSeq;
     const order = [];
     for (let i = 0; i < STATE.playerCount; i++) order.push(i);
     order.sort((a, b) => (a === 0 ? -1 : b === 0 ? 1 : a - b));
@@ -1139,16 +1176,18 @@
 
       const cards = document.createElement('div');
       cards.className = 'row-cards';
-      if (p.taken.length === 0) {
+      // 他人の未公開カード（取得時効果の解決中）はまだ場に出ていない扱いで描かない
+      const rowTaken = p.taken.filter((inst) => !pendingFromViewer(inst, pi));
+      if (rowTaken.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'row-empty';
         empty.textContent = '—';
         cards.appendChild(empty);
       } else {
         // 慧音のコピー（copied インスタンス）は慧音カードに重ねて表示するため独立カードとしては描かない。
-        // 小悪魔で得たカードも小悪魔に重ねて出すが、重ね先の小悪魔が破棄されたら独立した 1 枚として描く
-        const coveredGain = peekCoveredGains(p);
-        const shown = p.taken.filter((inst) => !inst.copied && !coveredGain.has(inst));
+        // 小悪魔とその獲得カードは重ねず、taken の順にそのまま 1 枚ずつ並べる
+        // （重ねると「2 枚目の小悪魔で得たカード」が画面から消えるため）
+        const shown = rowTaken.filter((inst) => !inst.copied);
         // 今ピック分だけ .new を付ける: taken 末尾から lastPicks の keys と照合
         const lp = STATE.lastPicks && STATE.lastPicks.find((x) => x.pi === pi);
         const keys = lp ? [...lp.keys] : [];
@@ -1164,29 +1203,20 @@
           const k = keys.indexOf(shown[i].key);
           if (k >= 0) { els[i].classList.add('new'); keys.splice(k, 1); }
         }
-        // 慧音のコピー・小悪魔の獲得カードは「獲得したカードの上に元カードを重ねる」
+        // 慧音のコピーは「獲得したカードの上に元カードを重ねる」
         const copiedInst = p.taken.find((inst) => inst.copied);
         for (let i = 0; i < els.length; i++) {
           const inst = shown[i];
           const def = defOf(inst.key);
           if (!def || inst.discarded) continue;
-          let baseKey = null;
-          let baseIcons = null;
-          let verb = '';
-          if (def.kind === 'copy' && copiedInst && !hiddenFromViewer(copiedInst)) {
-            baseKey = copiedInst.key;
-            baseIcons = copiedInst.icons;
-            verb = 'コピー';
-          } else if (inst.peekedBy) {
-            baseKey = inst.peekedBy.key;
-            baseIcons = inst.peekedBy.icons;
-            verb = '獲得';
-          }
-          if (!baseKey) continue;
-          const base = cardEl(baseKey, baseIcons, 'mini copy-base', null);
+          if (def.kind !== 'copy' || !copiedInst || hiddenFromViewer(copiedInst)) continue;
+          const baseKey = copiedInst.key;
+          const baseIcons = copiedInst.icons;
+          // コピー個体を渡すと、破棄/裏返しのタグがコピー元のタイルに出る（コピーは独立タイルを持たないため）
+          const base = cardEl(baseKey, baseIcons, 'mini copy-base', copiedInst);
           base.classList.toggle('new', els[i].classList.contains('new'));
           base.appendChild(cardEl(inst.key, null, 'mini copy-overlay', null));
-          base.title = `${nameOf(inst.key)}が「${nameOf(baseKey)}」を${verb}：${descOf(defOf(baseKey))}`;
+          base.title = `${nameOf(inst.key)}が「${nameOf(baseKey)}」をコピー：${descOf(defOf(baseKey))}`;
           els[i] = base;
           break;
         }

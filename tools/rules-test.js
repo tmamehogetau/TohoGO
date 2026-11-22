@@ -29,9 +29,9 @@ function inst(key, icons) {
 }
 
 function pickAll(state, choices) {
-  // 小悪魔の山札確認（peek）の候補を決定論化: 山札の上 4 枚を無害なダミーに差し替えてからピックする
+  // 小悪魔の山札確認（peek）の候補を決定論化: 山札の上 3 枚を無害なダミーに差し替えてからピックする
   if (state.cardMap && state.cardMap['x_dummy']) {
-    state.deck = [{ key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }].concat(state.deck);
+    state.deck = [{ key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }].concat(state.deck);
   }
   choices.forEach((c, pi) => {
     const res = Array.isArray(c)
@@ -61,9 +61,9 @@ function cycle(state, hands, choices) {
       state.players[pi].hand = keys.map((x) => (typeof x === 'string' ? inst(x) : { ...x }));
     });
   }
-  // 小悪魔の山札確認（peek）の候補を決定論化: 山札の上 4 枚を無害なダミーに差し替えてからピックする
+  // 小悪魔の山札確認（peek）の候補を決定論化: 山札の上 3 枚を無害なダミーに差し替えてからピックする
   if (state.cardMap && state.cardMap['x_dummy']) {
-    state.deck = [{ key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }].concat(state.deck);
+    state.deck = [{ key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }, { key: 'x_dummy' }].concat(state.deck);
   }
   pickAll(state, choices);
   settleSelection(state);
@@ -80,7 +80,7 @@ const DS = 's_yukari'; // 春雪のダミー（即時3点）
 const DY = 'y_reisen'; // 永夜のダミー（即時1点・情報隠蔽フラグのみ）
 const DY4 = 'y_eirin'; // 永夜 4 人テスト用ダミー（即時 3 点）
 
-// 小悪魔の山札確認（peek）は山札の上 4 枚に依存するため、テストでは候補を無害なダミーで固定する
+// 小悪魔の山札確認（peek）は山札の上 3 枚に依存するため、テストでは候補を無害なダミーで固定する
 // （x_dummy は即時 0 点・多数決/収集に影響しないテスト専用カード）
 function fixPeek(state) {
   state.cardMap['x_dummy'] = { key: 'x_dummy', kind: 'instant', points: 0, name: 'テストダミー', icon: 'ダ', color: '#555555' };
@@ -341,7 +341,7 @@ test('紅霧: パチュリーは前ラウンドの継続カードを数えない
   assert.strictEqual(s.players[0].roundScores[0], 4);
 });
 
-test('紅霧: 小悪魔=山札 4 枚を見て 1 枚獲得・残りは山札の下へ', () => {
+test('紅霧: 小悪魔=山札 3 枚を見て 1 枚獲得・残りは山札の下へ', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
   fixPeek(s);
   // p1 は peek を発動しないカードにする（山札の増減を p0 の分だけで検証するため）
@@ -349,7 +349,7 @@ test('紅霧: 小悪魔=山札 4 枚を見て 1 枚獲得・残りは山札の�
   pickAll(s, [0, 0]); // 小悪魔取得 → 選択フェーズ（解決はしない）
   assert.strictEqual(s.phase, 'select');
   assert.ok(s.peekNeeded[0], '山札確認が必要');
-  assert.strictEqual(s.peekCards[0].length, 4, '山札の上 4 枚が候補');
+  assert.strictEqual(s.peekCards[0].length, 3, '山札の上 3 枚が候補');
   const deckBefore = s.deck.length; // 候補は既に山札から取り出されている
   const chosen = s.peekCards[0][0];
   const rest = s.peekCards[0].filter((_, i) => i !== 0).map((i) => i.key).sort();
@@ -357,23 +357,23 @@ test('紅霧: 小悪魔=山札 4 枚を見て 1 枚獲得・残りは山札の�
   assert.ok(res.ok, res.error);
   settleSelection(s); // p1 の選択も解決 → applySelections 発火
   assert.strictEqual(s.peekCards[0], null, '候補は消費される');
-  // 選んだカードは手元に獲得・残り 3 枚は山札の下へ
+  // 選んだカードは手元に獲得・残り 2 枚は山札の下へ
   assert.ok(s.players[0].taken.some((i) => i.key === chosen.key), '選んだカードを獲得');
-  assert.strictEqual(s.deck.length, deckBefore + 3, '残り 3 枚が山札に戻る');
-  const tail = s.deck.slice(-3).map((i) => i.key).sort();
+  assert.strictEqual(s.deck.length, deckBefore + 2, '残り 2 枚が山札に戻る');
+  const tail = s.deck.slice(-2).map((i) => i.key).sort();
   assert.deepStrictEqual(tail, rest, '残りは山札の下に積まれる');
 });
 
-test('紅霧: 小悪魔=山札確認をスキップしても候補 4 枚は失われない', () => {
+test('紅霧: 小悪魔=山札確認をスキップしても候補 3 枚は失われない', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'scarlet' });
   fixPeek(s);
   setHands(s, [['k_kozue', 'k_kozue'], ['k_remi', 'k_remi']]);
   pickAll(s, [0, 0]); // 小悪魔取得 → 選択フェーズ
   assert.strictEqual(s.phase, 'select');
-  const deckBefore = s.deck.length; // 候補 4 枚は山札から抜けている
+  const deckBefore = s.deck.length; // 候補 3 枚は山札から抜けている
   const res = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: {} }); // 効果を使わない
   assert.ok(res.ok, res.error);
-  assert.strictEqual(s.deck.length, deckBefore + 4, '候補 4 枚が山札へ戻る');
+  assert.strictEqual(s.deck.length, deckBefore + 3, '候補 3 枚が山札へ戻る');
   assert.strictEqual(s.players[0].taken.filter((i) => i.key !== 'k_kozue').length, 0, '何も獲得しない');
 });
 
@@ -424,7 +424,7 @@ test('紅霧: 小悪魔で小悪魔を引くと山札確認が連鎖する', () 
   let r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { pick: 0 } });
   assert.ok(r.ok, r.error);
   assert.strictEqual(s.phase, 'select', '2 枚目の小悪魔の山札確認が開く');
-  assert.strictEqual(s.peekCards[0].length, 4, '2 回目の候補が用意されている');
+  assert.strictEqual(s.peekCards[0].length, 3, '2 回目の候補が用意されている');
   r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { pick: 1 } });
   assert.ok(r.ok, r.error);
   assert.strictEqual(s.phase, 'pick', '連鎖が終われば通常の手番へ戻る');
@@ -1114,6 +1114,95 @@ test('永夜: ミスティア=取得時にカードを任意枚数裏返して2�
   assert.strictEqual(s.players[0].roundScores[0], 4);
 });
 
+test('永夜: ミスティア=ソース以外のミスティアは裏返せる（2点）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  // 1枚目は裏返せる対象が無いので選択は開かない（そのまま消費される）
+  setHands(s, [['y_mystia', DY], [DY, DY]]);
+  pickAll(s, [0, 0]);
+  assert.strictEqual(s.phase, 'pick');
+  assert.strictEqual(s.players[0].taken[0].selectionDone, true, '1枚目は効果が消費されている');
+
+  setHands(s, [['y_mystia', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // 2枚目のミスティア → 1枚目を裏返せる
+  assert.strictEqual(s.phase, 'select');
+  // taken: [ミスティア①(idx0), ミスティア②(idx1)] — 対象外は「その回に効果を使う②」だけ
+  let r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [1] } });
+  assert.ok(!r.ok, 'その回のソース自身は裏返せない');
+  r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [0] } });
+  assert.ok(r.ok, r.error);
+  settleSelection(s);
+  assert.strictEqual(s.players[0].taken[0].flipped, true, 'ソースでないミスティアが裏返っている');
+  assert.ok(!s.players[0].taken[1].flipped, 'ソース自身は裏返っていない');
+
+  cycle(s, [[DY], [DY]], [0, 0]); // ラウンド終了（鈴仙で +1 点）
+  // 裏返したミスティア 2点 + 鈴仙 1点（2枚目のミスティアは 0 点）
+  assert.strictEqual(s.players[0].roundScores[0], 3);
+});
+
+test('永夜: ミスティア=裏返し済みのカードは選び直せない', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  cycle(s, [['y_tewi', DY], [DY, DY]], [0, 0]); // てゐ1枚（idx0）
+  setHands(s, [['y_mystia', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // 1枚目のミスティア → てゐを裏返す
+  assert.strictEqual(s.phase, 'select');
+  let r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [0] } });
+  assert.ok(r.ok, r.error);
+  settleSelection(s);
+  assert.strictEqual(s.players[0].taken[0].flipped, true);
+
+  setHands(s, [['y_mystia', DY], [DY, DY]]);
+  pickAll(s, [0, 0]); // 2枚目のミスティア → もう一度てゐを裏返そうとする
+  assert.strictEqual(s.phase, 'select');
+  r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [0] } });
+  assert.ok(!r.ok, '裏返し済みは裏返せない');
+  assert.strictEqual(r.error, 'すでに裏返したカードは裏返せない');
+  // 空選択なら通る（詰まらない）
+  r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [] } });
+  assert.ok(r.ok, r.error);
+  settleSelection(s);
+});
+
+test('永夜: ミスティア=幻覚で伏せられたカードも裏返せる', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  // A がてゐを取った手番で B がうどんげを出す → A のてゐは伏せられる
+  setHands(s, [['y_tewi', DY], ['y_reisen', DY]]);
+  pickAll(s, [0, 0]);
+  assert.strictEqual(s.players[0].taken[0].hiddenTaken, true, 'てゐが幻覚で伏せられている');
+  // 次の手番で A がミスティアを取る → 伏せられたてゐを裏返せる
+  setHands(s, [['y_mystia', DY], [DY, DY]]);
+  pickAll(s, [0, 0]);
+  assert.strictEqual(s.phase, 'select');
+  const r = Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [0] } });
+  assert.ok(r.ok, r.error);
+  settleSelection(s);
+  assert.strictEqual(s.players[0].taken[0].flipped, true, '伏せ札でも裏返せる');
+});
+
+test('永夜: 取得カードは効果の選択が終わるまで未公開（unpublished）', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
+  fixPeek(s);
+  // 効果の選択が無い手番は、取得した瞬間に公開される
+  cycle(s, [['y_tewi', DY], [DY, DY]], [0, 0]);
+  assert.ok(s.players[0].taken.every((i) => !i.unpublished), '効果の選択が無ければ即公開');
+  // ミスティアは選択フェーズのあいだ未公開
+  setHands(s, [['y_mystia', DY], [DY, DY]]);
+  pickAll(s, [0, 0]);
+  assert.strictEqual(s.phase, 'select');
+  const mystia = s.players[0].taken.find((i) => i.key === 'y_mystia');
+  assert.strictEqual(mystia.unpublished, true, '選択中は未公開');
+  assert.ok(s.players[0].taken.filter((i) => i.key === 'y_tewi').every((i) => !i.unpublished), '前の手番のカードは公開済み');
+  // 選択を解決すると公開される
+  Engine.dispatch(s, { kind: 'choose', pi: 0, choice: { flip: [] } });
+  settleSelection(s);
+  assert.ok(s.players[0].taken.every((i) => !i.unpublished), '解決後は公開');
+  // 山札へ戻ったカードに未公開フラグが残らない（次ラウンドで漏れない）
+  cycle(s, [[DY], [DY]], [0, 0]);
+  assert.ok(s.deck.every((i) => !i.unpublished), '山札に戻ったカードは公開扱い');
+});
+
 test('永夜: 慧音=ラウンド中取得カードの効果をコピー（自身は対象外）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'eternal', intruder: 'y_reimu' });
   fixPeek(s);
@@ -1334,14 +1423,36 @@ test('風神録: 秋静葉=穣子とのペア1組につき3点', () => {
   assert.strictEqual(s.players[0].roundScores[0], 4);
 });
 
-test('風神録: 早苗=次に取った神奈子の点数が3倍', () => {
+test('風神録: 早苗=信仰アイコンがあれば次の神奈子が3倍', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
-  setHands(s, [['f_sanae', 'f_kanako'], [DM, DM]]);
-  pickAll(s, [0, 0]); // 早苗
-  setHands(s, [['f_kanako'], [DM]]);
-  pickAll(s, [0, 0]); // ラウンド終了
-  // 早苗1点 + 神奈子 3×3 = 9点
-  assert.strictEqual(s.players[0].roundScores[0], 10);
+  setHands(s, [[{ key: 'f_faith', icons: 3 }, 'x_dummy'], [DM, DM]]);
+  pickAll(s, [0, 0]); // 信仰 3 個（このラウンドの信仰）
+  setHands(s, [['f_sanae', 'x_dummy'], [DM, DM]]);
+  pickAll(s, [0, 0]); // 早苗 → 次の奇跡ぶんを溜める
+  assert.strictEqual(s.players[0].sanaePending, 1, '奇跡のチャージが溜まる');
+  setHands(s, [['f_kanako', 'x_dummy'], [DM, DM]]);
+  pickAll(s, [0, 0]); // 神奈子
+  const k = s.players[0].taken.find((i) => i.key === 'f_kanako');
+  assert.strictEqual(k.triple, 3, '信仰があるので3倍');
+  assert.strictEqual(s.players[0].sanaePending, 0, 'チャージは消費される');
+});
+
+test('風神録: 早苗=信仰が0だと不発になり、その早苗は消費されて再発動しない', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  setHands(s, [['f_sanae', 'x_dummy'], [DM, DM]]);
+  pickAll(s, [0, 0]); // 早苗（信仰 0）
+  setHands(s, [['f_kanako', 'x_dummy'], [DM, DM]]);
+  pickAll(s, [0, 0]); // 神奈子 → 信仰 0 なので不発
+  const k = s.players[0].taken.find((i) => i.key === 'f_kanako');
+  assert.strictEqual(k.triple, undefined, '信仰0では3倍にならない');
+  assert.strictEqual(s.players[0].sanaePending, 0, '不発でもチャージは消費される');
+  // 後から信仰を取っても、消費済みの早苗では再発動しない
+  setHands(s, [[{ key: 'f_faith', icons: 3 }, 'x_dummy'], [DM, DM]]);
+  pickAll(s, [0, 0]);
+  setHands(s, [['f_suwako', 'x_dummy'], [DM, DM]]);
+  pickAll(s, [0, 0]);
+  const suwako = s.players[0].taken.filter((i) => i.key === 'f_suwako').pop();
+  assert.strictEqual(suwako.triple, undefined, '消費済みの早苗は後から信仰を取っても働かない');
 });
 
 test('風神録: 信仰=10個到達で即時8点（カードは残る）', () => {
@@ -1399,31 +1510,34 @@ test('風神録: ラウンド結果の内訳合計がラウンド点と一致す
   assert.ok((r.extras || []).some((e) => e.key === 'f_faith'), '信仰の得点が内訳に出る');
 });
 
-test('風神録: 早苗=枚数ぶん奇跡が起きる（1枚ずつ消費）', () => {
+test('風神録: 早苗=信仰があれば枚数ぶん奇跡が起きる（1枚ずつ消費）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
   fixPeek(s);
-  cycle(s, [['f_sanae', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]);
-  cycle(s, [['f_sanae', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]);
-  cycle(s, [['f_kanako', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]);
-  cycle(s, [['f_kanako'], ['x_dummy']], [0, 0]);
-  cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]); // ラウンド終了
-  // 早苗2 + 神奈子9 + 神奈子9 = 20（3倍が重なって9倍にはならない）
-  assert.strictEqual(s.players[0].roundScores[0], 20);
+  cycle(s, [[{ key: 'f_faith', icons: 3 }, 'x_dummy'], [DM, DM]], [0, 0]); // 信仰
+  cycle(s, [['f_sanae', 'x_dummy'], [DM, DM]], [0, 0]);
+  cycle(s, [['f_sanae', 'x_dummy'], [DM, DM]], [0, 0]); // 早苗2枚ぶん溜まる
+  cycle(s, [['f_kanako', 'x_dummy'], [DM, DM]], [0, 0]);
+  cycle(s, [['f_kanako', 'x_dummy'], [DM, DM]], [0, 0]);
+  const tripled = s.players[0].taken.filter((i) => i.key === 'f_kanako' && i.triple === 3).length;
+  assert.strictEqual(tripled, 2, '神奈子2枚とも3倍（3倍が重なって9倍にはならない）');
+  assert.strictEqual(s.players[0].sanaePending, 0, 'チャージは2枚で使い切る');
 });
 
 test('風神録: 早苗→早苗→神奈子→諏訪子で 1枚目が神奈子・2枚目が諏訪子を3倍', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
   fixPeek(s);
-  cycle(s, [['f_sanae', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]);
-  cycle(s, [['f_sanae', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]);
-  cycle(s, [['f_kanako', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]);
-  cycle(s, [['f_suwako', 'x_dummy'], ['x_dummy', 'x_dummy']], [0, 0]);
-  cycle(s, [['x_dummy'], ['x_dummy']], [0, 0]);
-  // 早苗1+早苗1 + 神奈子9 + 諏訪子6 = 17
-  assert.strictEqual(s.players[0].roundScores[0], 17);
+  cycle(s, [[{ key: 'f_faith', icons: 3 }, 'x_dummy'], [DM, DM]], [0, 0]);
+  cycle(s, [['f_sanae', 'x_dummy'], [DM, DM]], [0, 0]);
+  cycle(s, [['f_sanae', 'x_dummy'], [DM, DM]], [0, 0]);
+  cycle(s, [['f_kanako', 'x_dummy'], [DM, DM]], [0, 0]);
+  cycle(s, [['f_suwako', 'x_dummy'], [DM, DM]], [0, 0]);
+  const k = s.players[0].taken.find((i) => i.key === 'f_kanako');
+  const w = s.players[0].taken.find((i) => i.key === 'f_suwako');
+  assert.strictEqual(k.triple, 3, '神奈子が3倍');
+  assert.strictEqual(w.triple, 3, '諏訪子も3倍');
 });
 
-test('風神録: 犬走椛=0枚−3点／奇数0点／偶数+5点', () => {
+test('風神録: 犬走椛=ゲーム末に枚数で得点（0枚-3／2枚4／3枚7／4枚13／5枚+16）', () => {
   const mk = (n) => {
     const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
     for (let i = 0; i < n; i++) s.players[0].desserts.push(inst('f_momiji'));
@@ -1437,8 +1551,11 @@ test('風神録: 犬走椛=0枚−3点／奇数0点／偶数+5点', () => {
   };
   assert.strictEqual(mk(0), -3);
   assert.strictEqual(mk(1), 0);
-  assert.strictEqual(mk(2), 5);
-  assert.strictEqual(mk(3), 0);
+  assert.strictEqual(mk(2), 4);
+  assert.strictEqual(mk(3), 7);
+  assert.strictEqual(mk(4), 13);
+  assert.strictEqual(mk(5), 16);
+  assert.strictEqual(mk(6), 16, '5枚以上は 16 点で頭打ち');
 });
 
 test('風神録: 射命丸文=自身を山札の下へ戻し、山札の上から2枚取得する', () => {
@@ -1594,25 +1711,36 @@ test('永夜: 裏返したカードをコピーすると 2 点だけのカード
   assert.strictEqual(s.players[0].roundScores[0], 4, '裏返しコピーは 2 点だけ（実カードの価値は乗らない）');
 });
 
-test('風神録: にとりが破棄されていたら名前指定は出ない', () => {
+test('風神録: にとり=それまでに集めた椛1枚につき1点（即時点）', () => {
   const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
   fixPeek(s);
-  setHands(s, [['f_nitori', 'x_dummy'], ['x_dummy', 'x_dummy']]);
+  // 前のラウンドまでに椛を 2 枚持っている
+  s.players[0].desserts.push(inst('f_momiji'), inst('f_momiji'));
+  setHands(s, [[inst('f_momiji'), 'x_dummy'], [DM, DM]]);
+  pickAll(s, [0, 0]); // このラウンドで椛 3 枚目
+  setHands(s, [['f_nitori', 'x_dummy'], [DM, DM]]);
+  pickAll(s, [0, 0]); // にとり → 手持ちの椛 3 枚ぶん
+  const ni = s.players[0].taken.find((i) => i.key === 'f_nitori');
+  assert.strictEqual(ni.countPts, 3, '置き場2枚＋今ラウンド1枚＝3点');
+  setHands(s, [['x_dummy'], [DM]]);
+  pickAll(s, [0, 0]); // ラウンド終了
+  assert.strictEqual(s.players[0].roundScores[0], 3, 'にとりの即時点のみ（椛はゲーム末判定）');
+});
+
+test('風神録: にとり=椛0枚なら0点・破棄/裏返しの椛は数えない', () => {
+  const s = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  s.players[0].desserts.push(inst('f_momiji'));
+  s.players[0].taken = [{ key: 'f_momiji', discarded: true }, { key: 'f_momiji', flipped: true }];
+  setHands(s, [['f_nitori', 'x_dummy'], [DM, DM]]);
   pickAll(s, [0, 0]);
   const ni = s.players[0].taken.find((i) => i.key === 'f_nitori');
-  assert.ok(ni, 'にとりを取得');
-  // 通常は次の取得後に名前指定が出る
-  s.players[0].nitoriReady = true;
-  assert.strictEqual(Engine.selectionNeeded(s, 0).swapNamed, true);
-  // 破棄されていたら出さない（フラン破棄との組み合わせは将来の異変追加で起こり得る）
-  ni.discarded = true;
-  s.players[0].nitoriReady = true;
-  assert.strictEqual(Engine.selectionNeeded(s, 0).swapNamed, false, '破棄済みのにとりでは発動しない');
-  // 問い合わせは状態を書き換えない（落とすのは選択フェーズの開始時）
-  assert.strictEqual(s.players[0].nitoriReady, true, 'selectionNeeded は取り置きを消さない');
-  setHands(s, [['x_dummy'], ['x_dummy']]);
-  pickAll(s, [0, 0]);
-  assert.strictEqual(s.players[0].nitoriReady, false, '選択フェーズの開始で使えない取り置きを落とす');
+  assert.strictEqual(ni.countPts, 1, '置き場の1枚だけ数える');
+
+  const s2 = Engine.newGame(2, ['A', 'B'], { incident: 'mountain' });
+  setHands(s2, [['f_nitori', 'x_dummy'], [DM, DM]]);
+  pickAll(s2, [0, 0]);
+  const ni2 = s2.players[0].taken.find((i) => i.key === 'f_nitori');
+  assert.strictEqual(ni2.countPts, 0, '椛0枚なら0点');
 });
 
 test('春: 慧音がコピーした春カードも表示用アイコンに載る（M5）', () => {
@@ -1633,7 +1761,7 @@ test('春: 慧音がコピーした春カードも表示用アイコンに載る
   assert.strictEqual(s.roundStats[0].springIcons, 4, '表示用アイコンも同じ数（M5）');
 });
 
-test('風神録で4人AI完走（にとりの名前指定＝Math.random を含む現役経路）', () => {
+test('風神録で4人AI完走', () => {
   fullRun('mountain', null);
 });
 
@@ -1713,3 +1841,6 @@ test('AI: 雪だるま型のセット札を「1 枚目が 0 点」で捨てな�
 
 console.log(`\
 ${passed} tests passed${process.exitCode ? ' (with failures)' : ''}`);
+
+
+

@@ -409,19 +409,28 @@ main {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
 }
 .card-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-/* アリスの人形名など、同じカード内の種類を補助表示する */
+/* アリスの人形名など、同じカード内の種類を補助表示する。
+   同じ絵・同じ名前（アリス）のカードが並ぶので、人形名を色帯にして一目で見分けられるようにする */
 .card-var {
-  font-size: 0.5rem;
-  font-weight: 600;
-  line-height: 1.1;
-  color: #f2e2b4;
-  opacity: 0.92;
+  display: block;
+  align-self: stretch;
+  margin-top: 1px;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--variant-accent, #8a7b52);
+  color: #fff;
+  font-size: 0.56rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
 }
-.card.mini .card-var { font-size: 0.4rem; }
+.card.mini .card-var { font-size: 0.42rem; line-height: 1.3; padding: 0 1px; }
 /* 数アイコン（春・玉兎）: カード右上に「何個ぶんか」を並べる */
 .card-count {
   position: absolute;

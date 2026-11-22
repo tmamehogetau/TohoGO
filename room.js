@@ -34,7 +34,13 @@ function viewFor(room, seat) {
   const order = Array.from({ length: n }, (_, i) => (seat + i) % n);
   // うどんげの幻覚中は、幻覚を出した本人以外には本物のカードを見せない
   const hideForViewer = !!state.hidden && seat !== state.hiddenOwner;
-  const maskInst = (inst) => {
+  // 取得したが、まだ全員に公開していないカード（取得時効果の選択が終わるまで unpublished が立つ）。
+  // 公開前は本人にだけ見せ、他の人には「まだ場に出ていない」扱いで渡さない
+  const isPending = (inst) => !!inst.unpublished;
+  const maskInst = (inst, owner) => {
+    // 未公開（取得時効果の解決中）は本人にだけ実カードを返す。
+    // 幻覚は「公開時」に反映するので、未公開のあいだは本人にも伏せない
+    if (isPending(inst)) return owner === seat ? inst : null;
     if (!inst.hiddenTaken) return inst;
     // 免疫は「その手番で鈴仙を出した本人」だけ。別の手番で出した人は後から影響を受ける
     if (seat === inst.hiddenBy) return inst;
@@ -45,8 +51,8 @@ function viewFor(room, seat) {
   const players = order.map((oi) => {
     const p = state.players[oi];
     const s = room.seats[oi];
-    // 自分に見えていない（＝他の手番で隠された）追加カードの通算は差し引く
-    const maskView = (i) => i.hiddenTaken && seat !== i.hiddenBy;
+    // 自分に見えていないカード（幻覚で隠された／まだ公開されていない他人の取得）は通算から差し引く
+    const maskView = (i) => (i.hiddenTaken && seat !== i.hiddenBy) || (isPending(i) && oi !== seat);
     const hiddenGE = {};
     for (const i of p.taken) {
       if (!maskView(i)) continue;
@@ -59,7 +65,7 @@ function viewFor(room, seat) {
       name: p.name,
       hand: oi === seat ? p.hand.slice() : [],
       handCount: p.hand.length,
-      taken: p.taken.map(maskInst),
+      taken: p.taken.map((inst) => maskInst(inst, oi)).filter(Boolean),
       desserts: p.desserts,
       gameEndCounts,
       chopsticks: p.chopsticks,
@@ -92,10 +98,17 @@ function viewFor(room, seat) {
     round: state.round,
     passDir: state.passDir,
     phase: state.phase,
-    lastPicks: state.lastPicks.map((lp) => ({
-      pi: rot(lp.pi),
-      keys: hideForViewer && lp.pi !== state.hiddenOwner ? lp.keys.map(() => 'y_reisen') : lp.keys,
-    })),
+    // 今ピックのカード名。未公開（取得時効果の解決中）の間は本人以外にキーを渡さない
+    lastPicks: state.lastPicks.map((lp) => {
+      const mine = lp.pi === seat;
+      const pending = state.players[lp.pi].taken.some((i) => isPending(i));
+      let keys = lp.keys;
+      if (!mine) {
+        if (pending) keys = [];
+        else if (hideForViewer && lp.pi !== state.hiddenOwner) keys = lp.keys.map(() => 'y_reisen');
+      }
+      return { pi: rot(lp.pi), keys };
+    }),
     pickSeq: state.pickSeq || 0,
     roundBanner: state.roundBanner
       ? {
@@ -112,7 +125,8 @@ function viewFor(room, seat) {
       let hiddenIcons = 0;
       let hiddenDessert = 0;
       for (const i of p.taken) {
-        if (!i.hiddenTaken || seat === i.hiddenBy) continue;
+        // 幻覚で隠された分と、まだ公開されていない他人の取得分を差し引く
+        if (!((i.hiddenTaken && seat !== i.hiddenBy) || (isPending(i) && oi !== seat))) continue;
         hiddenIcons += i.icons || 0;
         if (i.key === state.dessert.key) hiddenDessert += 1;
       }
@@ -128,6 +142,14 @@ function viewFor(room, seat) {
     selections: state.selections ? order.map((oi) => state.selections[oi] !== null) : null,
     selectNeeded: state.selectNeeded
       ? (state.selectNeeded.includes(seat) && state.selections && state.selections[seat] === null ? [0] : [])
+      : null,
+    // 自分に必要な取得時選択の種類（真偽値のみ）。公開タイミングの変更でクライアントは
+    // 選択フェーズ中に自分の取得カードを見られるようになったため現在は保険。
+    // それでも、カードが見えない状況になっても選択画面が詰まないようサーバーの判定を渡しておく
+    selectModes: state.phase === 'select'
+      && state.selectNeeded && state.selectNeeded.includes(seat)
+      && state.selections && state.selections[seat] === null
+      ? Engine.selectionNeeded(state, seat)
       : null,
     // 同じ手番で選択フェーズが開き直ることがある（小悪魔で小悪魔を引く等）ため、
     // 何回目の選択かを渡す。クライアントは「同じ手番の別の選択」を取りこぼさない

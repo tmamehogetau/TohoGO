@@ -215,7 +215,8 @@ const isState = (m) => m.type === 'state';
   const v0 = viewFor(fakeRoom, 0); // seat0 = 幻覚をかけられた側
   const v1 = viewFor(fakeRoom, 1); // seat1 = うどんげを出した本人
   assert(v0.players[0].taken[0].key === 'y_reisen', 'hidden card masked for non-owner');
-  assert(v0.lastPicks[0].keys[0] === 'y_reisen', 'lastPicks masked for non-owner');
+  // 自分の取得カードは自分に見える（中身を知っているので伏せる意味がない）
+  assert(v0.lastPicks[0].keys[0] === 's_spring', 'own lastPicks are visible to the owner');
   assert(v1.players[1].taken[0].key === 's_spring', 'hidden card visible to the player who played it');
   // うどんげの上にアイコン・点数が出ると中身がバレるので、マスク時は icons を持たせない
   assert(v0.players[0].taken[0].icons === undefined, 'masked card has no icon count');
@@ -228,6 +229,56 @@ const isState = (m) => m.type === 'state';
   fakeState.players[1].taken.push({ key: 'k_maid', hiddenTaken: true, hiddenBy: 0 });
   const v1b = viewFor(fakeRoom, 1);
   assert(v1b.players[0].taken[0].key === 'y_reisen', 'immune only for the hand it was played');
+
+  // 3人時: 幻覚中でも自分の取得は見え、他人の取得は伏せられる（lastPicks も同じ規則）
+  const fake3 = {
+    playerCount: 3, handSize: 10,
+    players: [mkPlayer('A', []), mkPlayer('B', []), mkPlayer('C', [])],
+    dessert: { key: 'k_cirno' }, incidentId: 'spring', incidentName: 'x', incidentSubtitle: 'x', incidentTheme: 'x',
+    cardMap: {}, initialCounts: {}, intruderKey: null, round: 0, passDir: 1, phase: 'pick',
+    lastPicks: [{ pi: 0, keys: ['k_remi'] }, { pi: 1, keys: ['k_maid'] }, { pi: 2, keys: ['k_sakuya'] }],
+    roundBanner: null, log: [], hidden: true, hiddenOwner: 0,
+    roundStats: [
+      { springIcons: 0, dessertTaken: 0 },
+      { springIcons: 0, dessertTaken: 0 },
+      { springIcons: 0, dessertTaken: 0 },
+    ],
+    picks: [null, null, null], choices: [null, null, null],
+    selections: null, selectNeeded: null, deck: [], dessertPool: [], peekNeeded: null, peekCards: null,
+  };
+  const room3 = { code: 'X', seats: [{ connected: true }, { connected: true }, { connected: true }], state: fake3 };
+  const v3 = viewFor(room3, 2); // 席2 の視点（view は席0に回転される）
+  // lastPicks は配列順ではなく pi（回転後）で引く
+  const lpOf = (v, pi) => v.lastPicks.find((x) => x.pi === pi) || { keys: [] };
+  assert(lpOf(v3, 0).keys[0] === 'k_sakuya', 'own lastPicks visible to the owner');
+  assert(lpOf(v3, 1).keys[0] === 'k_remi', 'illusion owner pick stays public');
+  assert(lpOf(v3, 2).keys[0] === 'y_reisen', 'other player pick masked');
+
+  // 取得時効果の解決中は「未公開」: 本人には見え、他の人には場に出ていない扱い
+  fake3.hidden = false;
+  fake3.hiddenOwner = null;
+  fake3.phase = 'select';
+  fake3.selectNeeded = [1];
+  fake3.selections = [null, null, null];
+  fake3.lastPicks = [{ pi: 0, keys: [] }, { pi: 1, keys: ['y_mystia'] }, { pi: 2, keys: [] }];
+  fake3.players[1].taken = [{ key: 'y_mystia', unpublished: true }];
+  const vUnpubOwner = viewFor(room3, 1); // 本人（席1 → 回転後 0）
+  const vUnpubOther = viewFor(room3, 2); // 他人（席1 のカードは players[2]）
+  assert(vUnpubOwner.players[0].taken[0].key === 'y_mystia', 'unpublished card is visible to its owner');
+  assert(vUnpubOther.players[2].taken.length === 0, 'unpublished card is not sent to other players');
+  assert(lpOf(vUnpubOther, 2).keys.length === 0, 'unpublished pick keys are not sent to other players');
+  // 幻覚と重なっても、未公開のあいだは本人には実カード（幻覚は公開時に反映される）
+  fake3.players[1].taken[0].hiddenTaken = true;
+  fake3.players[1].taken[0].hiddenBy = 0;
+  assert(viewFor(room3, 1).players[0].taken[0].key === 'y_mystia', 'owner still sees the unpublished card under illusion');
+  delete fake3.players[1].taken[0].hiddenTaken;
+  delete fake3.players[1].taken[0].hiddenBy;
+  // 効果の解決が終われば公開される
+  delete fake3.players[1].taken[0].unpublished;
+  fake3.phase = 'pick';
+  fake3.selectNeeded = null;
+  fake3.selections = null;
+  assert(viewFor(room3, 2).players[2].taken[0].key === 'y_mystia', 'card is published after the selection');
 
   // AI 席（人数調整）は continue を送らないので、人間だけで進行判定する
   const { Room } = require('../room.js');
@@ -245,6 +296,31 @@ const isState = (m) => m.type === 'state';
   const vSel = viewFor(fakeRoom, 0);
   assert(vSel.players[0].scoopPending === 2, 'scoopPending is sent to the client');
   assert(vSel.players[0].nitoriReady === true, 'nitoriReady is sent to the client');
+
+  // 幻覚中の取得時選択: 自分の取得カードが伏せられても「何を選ぶ必要があるか」はサーバーが返す。
+  // これが無いとクライアントはミスティアの裏返しを判定できず、選択画面が操作不能になる
+  fakeState.phase = 'select';
+  fakeState.selectNeeded = [0];
+  fakeState.selections = [null, null];
+  fakeState.cardMap = {
+    y_mystia: { key: 'y_mystia', kind: 'flip', flipPoints: 2, name: 'ミスティア', icon: '歌', color: '#a67c52' },
+    y_reisen: { key: 'y_reisen', kind: 'instant', points: 1, hidden: true, name: '鈴仙', icon: '幻', color: '#b85a7a' },
+  };
+  fakeState.players[0].taken = [
+    { key: 'y_mystia' },
+    { key: 'y_reisen', hiddenTaken: true, hiddenBy: 1 },
+  ];
+  const vModes = viewFor(fakeRoom, 0);
+  assert(vModes.selectModes && vModes.selectModes.flip === true, 'selectModes tells that flip is needed');
+  assert(vModes.players[0].taken[1].masked === true, 'the flip target itself stays masked');
+  // 選択が終わった席には selectModes を渡さない
+  fakeState.selections = [true, null];
+  assert(viewFor(fakeRoom, 0).selectModes === null, 'selectModes is null once the seat has chosen');
+  // 自分の選択が終わっていなければ null にはしない（フェーズが select のうちは返す）
+  fakeState.selections = [null, null];
+  assert(viewFor(fakeRoom, 0).selectModes.flip === true, 'selectModes comes back for the next selection');
+  fakeState.phase = 'pick';
+  assert(viewFor(fakeRoom, 0).selectModes === null, 'selectModes is null outside the select phase');
 
   // ラウンド結果の内訳（獲得カードと配点）が view に載り、席順に回転する
   fakeState.roundBanner = {

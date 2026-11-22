@@ -96,10 +96,13 @@
     switch (def.kind) {
       case 'instant': {
         let value = def.points;
-        // 早苗の奇跡が残っていれば、神奈子／諏訪子の価値は3倍
-        if (def.buffable && (p.sanaePending || 0) > 0) value *= 3;
-        // 早苗自身は「次の奇跡」ぶんの期待値を少し上乗せして見る
-        if (def.buffTargets) value += 1.6;
+        const faithNow = countKey(p, 'f_faith');
+        // 早苗の奇跡が残っていても、信仰が 0 なら不発（3 倍にならず消費されるだけ）
+        if (def.buffable && (p.sanaePending || 0) > 0 && faithNow > 0) value *= 3;
+        // 早苗自身は「次の奇跡」ぶんの期待値を少し上乗せして見る（信仰が無いと不発なので控えめ）
+        if (def.buffTargets) value += faithNow > 0 ? 1.6 : 0.4;
+        // にとり: 取得時点で集めている椛の枚数ぶんの点になる
+        if (def.perTakenOf) value += dessertCount(state, pi, def.perTakenOf) * (def.perTaken || 1);
         // 同じ手番の条件（永琳: 誰かが輝夜を出していれば加点）。確率は控えめに 0.5 で見積もる
         if (def.pointsIfPicked) {
           value += (def.pointsIfPicked.bonus || 1) * 0.5;
@@ -306,6 +309,14 @@
         return dessertCount(state, pi, key) === 0 ? Math.min(4.5, Math.abs(def.least) / 2) : 1.2;
       case 'dessertIce':
         return def.points / def.per;
+      case 'dessertCount': {
+        // 枚数表（椛）: 次の 1 枚で増える得点の見込みを評価する
+        const t = def.table || [];
+        const cnt = dessertCount(state, pi, key);
+        const cur = t[Math.min(cnt, t.length - 1)] || 0;
+        const next = t[Math.min(cnt + 1, t.length - 1)] || 0;
+        return 0.5 + Math.max(0, next - cur) * 0.6;
+      }
       case 'dessertMostLeast': {
         // ゲーム末に最多 +most / 最少 −least。序盤は様子見、終盤は最少脱出を優先
         const mine = dessertCount(state, pi, key);
@@ -467,12 +478,19 @@
     }
 
     if (need.flip) {
-      // 裏返すと 2 点になるので、2 点未満のカードだけ裏返す
+      // 裏返すと 2 点になるので、2 点未満のカードだけ裏返す。
+      // 対象外は「その回に効果を使うミスティア本体」だけで、他のミスティアは 0 点
+      // ＝裏返して 2 点にできる（engine の pendingFlipSources と同じ規則）
+      const sources = p.taken.filter((inst) => {
+        if (inst.selectionDone || inst.copied) return false;
+        const d = state.cardMap[inst.key];
+        return !!d && d.kind === 'flip';
+      });
       const targets = [];
       p.taken.forEach((inst, idx) => {
         const def = state.cardMap[inst.key];
-        if (!def || def.kind === 'flip' || inst.discarded || inst.flipped) return;
-        const value = ownValue(state, pi, inst);
+        if (!def || inst.discarded || inst.flipped || sources.includes(inst)) return;
+        const value = def.kind === 'flip' ? 0 : ownValue(state, pi, inst);
         if (value !== null && value < 2) targets.push(idx);
       });
       if (targets.length) choice.flip = targets;

@@ -283,6 +283,10 @@
       }
 
       p.taken.push(inst);
+      // 「取得したが、まだ全員には公開していない」印。
+      // 取得時効果の選択（ミスティア・フラン・慧音など）を解決し終えてから公開する。
+      // 公開は passHands（手番の終わり）で unpublished を落として行う
+      inst.unpublished = true;
 
       // 春アイコンの記録（幽々子・レティ・妖夢の判定に使用）
       if (inst.icons) stats.springIcons += inst.icons;
@@ -308,15 +312,30 @@
         addLog(state, `${p.name}: 妖夢の加護で春 ${icons} 個と +${icons} 点`);
       }
 
-      // 早苗の加護: 次に取る神奈子／諏訪子の点数を3倍にする（取り置きは先着順・重複は1回ずつ）
+      // 早苗の加護: 次に取る神奈子／諏訪子の点数を3倍にする（取り置きは先着順・重複は1回ずつ）。
+      // ただし信仰アイコンが 0 のときは奇跡が働かない（その早苗は不発のまま消費され、再発動しない）
       if (def.buffTargets) {
         // 早苗1枚につき「次の奇跡」1回ぶん（同じ手番に複数取ればそのぶん溜まる）
         p.sanaePending = (p.sanaePending || 0) + 1;
         addLog(state, `${p.name}: 早苗が次の奇跡に備えた`);
       } else if (def.buffable && (p.sanaePending || 0) > 0) {
         p.sanaePending -= 1;
-        inst.triple = 3;
-        addLog(state, `${p.name}: 早苗の奇跡で${def.name}の点数が 3 倍になった`);
+        if (faithIconTotal(state, pi) > 0) {
+          inst.triple = 3;
+          addLog(state, `${p.name}: 早苗の奇跡で${def.name}の点数が 3 倍になった`);
+        } else {
+          addLog(state, `${p.name}: 信仰が 0 のため早苗の奇跡は働かなかった（不発）`);
+        }
+      }
+
+      // 河城にとり: 取得した時点で「それまでに集めた犬走椛」1 枚につき 1 点（即時点）
+      // 前ラウンドまでの置き場ぶんと、このラウンドに取ったぶんを数える（破棄・裏返しは数えない）
+      if (def.perTakenOf) {
+        const target = def.perTakenOf;
+        const held = p.desserts.filter((i) => i.key === target).length
+          + p.taken.filter((i) => i.key === target && !i.discarded && !i.flipped).length;
+        inst.countPts = held * (def.perTaken || 1);
+        addLog(state, `${p.name}: にとりが集めた${cardName(state.cardMap[target]) || target} ${held} 枚ぶん +${inst.countPts} 点`);
       }
 
       // 射命丸文: 追加で手札から取る（選択フェーズで解決）
@@ -474,6 +493,7 @@
           }
           if (def.kind !== 'instant') continue;
           inst.roundPts = inst.absentBlocked ? 0 : def.points * (inst.triple || 1); // 咲夜の同席判定／早苗の3倍
+          inst.roundPts += inst.countPts || 0; // にとり: 取得時点で集めていた椛の枚数ぶん
           // 同じ手番の条件（永琳: 誰かが同じ手番に輝夜を取っていれば加点）
           inst.roundPts += inst.turnBonus || 0;
           inst.roundPts += inst.extraPts || 0; // 取得時に確定した追加点
@@ -495,13 +515,25 @@
     // ---------------- 取得時選択フェーズ ----------------
     // フラン（破棄オプション）・ミスティア（裏返し）・慧音（コピー）
 
+    // その回の裏返しを使うミスティア本体。裏返しの対象外はこの実体だけで、
+    // 他のミスティア（別の手番で取った 2 枚目など）は裏返せて 2 点になる
+    function pendingFlipSources(state, pi) {
+      const map = state.cardMap;
+      return state.players[pi].taken.filter(
+        (inst) => !inst.selectionDone && !inst.copied && (map[inst.key] || {}).kind === 'flip',
+      );
+    }
+
     function selectionNeeded(state, pi) {
       const p = state.players[pi];
       const need = { discard: false, flip: false, copy: false, peek: false, swap: false, scoop: false, swapNamed: false };
       // 対象が無い効果は選択を出さない（空の選択画面で詰まらないように）
       const map = state.cardMap;
+      // 裏返しの対象外は「その回に効果を使うミスティア本体」の実体だけ。
+      // 他のミスティア（以前の手番で取った 2 枚目など）は裏返せて 2 点になる
+      const flipSources = pendingFlipSources(state, pi);
       const hasDiscardTarget = p.taken.some((x) => !x.discarded && !((map[x.key] || {}).discardBonus));
-      const hasFlipTarget = p.taken.some((x) => !x.flipped && !x.discarded && (map[x.key] || {}).kind !== 'flip');
+      const hasFlipTarget = p.taken.some((x) => !x.flipped && !x.discarded && !flipSources.includes(x));
       const hasCopyTarget = p.taken.some((x) => {
         const d = map[x.key];
         return !!d && d.kind !== 'copy' && !x.discarded;
@@ -606,11 +638,14 @@
       if (need.flip && Array.isArray(c.flip)) {
         // 任意枚数・0 可（重複不可）
         if (new Set(c.flip).size !== c.flip.length) return err('裏返し対象が重複している');
+        const sources = pendingFlipSources(state, pi);
         for (const idx of c.flip) {
           if (!Number.isInteger(idx) || idx < 0 || idx >= p.taken.length) return err('無効な裏返し対象');
           if (p.taken[idx].discarded) return err('破棄されたカードは裏返せない');
-          // 効果カード自身は対象外（ミスティアを歌で裏返すのは変なので）
-          if (map[p.taken[idx].key] && map[p.taken[idx].key].kind === 'flip') return err('ミスティア自身は裏返せない');
+          if (p.taken[idx].flipped) return err('すでに裏返したカードは裏返せない');
+          // 効果カード自身は対象外（ミスティアを自分の歌で裏返すのは変なので）。
+          // 他のミスティアは裏返せる＝名前ではなく「その回のソースの実体」で判定する
+          if (sources.includes(p.taken[idx])) return err('ミスティア自身は裏返せない');
         }
       }
       if (need.copy && c.copy !== null && c.copy !== undefined) {
@@ -712,11 +747,13 @@
         if (need.flip && Array.isArray(c.flip) && c.flip.length) {
           const flipPoints = 2;
           let flippedN = 0;
+          const flipSources = pendingFlipSources(state, i);
           for (const idx of c.flip) {
             const inst = p.taken[idx];
-            const idef = map[inst.key];
+            const idef = inst && map[inst.key];
             if (!idef) continue;
-            if (idef.kind === 'flip') continue; // ミスティア自身は対象外
+            if (flipSources.includes(inst)) continue; // その回のミスティア本体は対象外
+            if (inst.flipped) continue; // すでに裏返し済み（UI 側でも選べないようにしている）
             inst.flipped = true;
             flippedN++;
           }
@@ -733,7 +770,7 @@
             // コピーも「その手番にプレイされた 1 枚」として同席・条件の判定に参加する
             // （本家スシゴーパーティーの特別注文と同じ。判定は applyTurnConditions でまとめて行う）
             // selectionDone を立てて、コピーが取得時効果を再発動しないようにする（DESIGN の方針）
-            const copy = { key: inst.key, icons: inst.icons, copied: true, playedTurn: state.pickSeq, selectionDone: true };
+            const copy = { key: inst.key, icons: inst.icons, copied: true, playedTurn: state.pickSeq, selectionDone: true, unpublished: true };
             // 幻覚で伏せられたカードをコピーしたら、コピーも伏せたままにする
             // （コピーだけ素の顔で出ると、うどんげの幻覚を貫通して中身がバレる）
             if (inst.hiddenTaken) {
@@ -759,7 +796,8 @@
         }
 
         // 小悪魔の山札確認: 選んだ 1 枚を獲得（applyTake を通して統計・コンボ判定を反映）し、
-        // 残りは山札の下へ戻す。選択待ちフラグは解除する
+        // 残りは山札の下へ戻す。選択待ちフラグは解除する。
+        // taken には小悪魔と獲得カードがそのまま並ぶ（UI は重ねずに 1 枚ずつ描く）
         if (need.peek && state.peekNeeded && state.peekNeeded[i]) {
           const candidates = state.peekCards[i] || [];
           const chosen = Number.isInteger(c.pick) ? candidates[c.pick] : null;
@@ -767,12 +805,6 @@
             applyTake(state, i, chosen);
             // 山札確認で選んだ 1 枚は「その手番にプレイした」扱い（本家のメニューと同じ）
             chosen.playedTurn = state.pickSeq;
-            // 小悪魔のタイルに「獲得したカード」を重ねて表示するための目印
-            chosen.peekedGain = true;
-            const peeker = [...p.taken]
-              .reverse()
-              .find((x) => x !== chosen && (map[x.key] || {}).kind === 'deckPeek' && !x.peekedBy);
-            if (peeker) peeker.peekedBy = { key: chosen.key, icons: chosen.icons || 1 };
           }
           // 選ばなかったカード（スキップ時は全部）は失われないよう山札の下へ戻す
           for (const inst of candidates) {
@@ -865,7 +897,16 @@
       passHands(state);
     }
 
+    // 手番の終わり＝取得カードの公開。取得時効果の選択がすべて済んだこの時点で
+    // unpublished を落とし、以降は全員のビューに載せる（幻覚はこの公開時に反映される）
+    function publishTaken(state) {
+      for (const p of state.players) {
+        for (const inst of p.taken) delete inst.unpublished;
+      }
+    }
+
     function passHands(state) {
+      publishTaken(state);
       const n = state.playerCount;
       const hands = state.players.map((p) => p.hand);
       for (let i = 0; i < n; i++) {
@@ -1041,6 +1082,7 @@
           delete inst.discarded;
           delete inst.hiddenTaken; // 幻覚はラウンド末判定で解除＝公開される
           delete inst.hiddenBy;
+          delete inst.unpublished; // 未公開のままラウンドが終わった分も公開扱いにする
           delete inst.absentChecked;
           delete inst.absentBlocked;
           delete inst.instantCombo;
@@ -1057,8 +1099,6 @@
           delete inst.diffPoints;
           delete inst.springGain;
           delete inst.youmuBoost;
-          delete inst.peekedGain;
-          delete inst.peekedBy;
           delete inst.roundPts;
         }
         state.deck.push(...recycled);
@@ -1356,11 +1396,12 @@
         if (cnt === max && def.most) out.push({ key: def.key, label: `${def.name}（最多${cnt}枚）`, pts: splitPts(def.most, mostN) });
         if (cnt === min && def.least) out.push({ key: def.key, label: `${def.name}（最少${cnt}枚）`, pts: splitPts(def.least, leastN) });
       }
-      // 継続カードの枚数パリティ（犬走椛）: 0枚 -3点 / 奇数 0点 / 偶数 +5点
+      // 継続カードの枚数表（犬走椛）: 0枚 -3 / 1枚 0 / 2枚 4 / 3枚 7 / 4枚 13 / 5枚以上 16
       for (const def of Object.values(state.cardMap)) {
-        if (def.kind !== 'dessertParity') continue;
+        if (def.kind !== 'dessertCount') continue;
         const cnt = p.desserts.filter((i) => i.key === def.key).length;
-        const pts = cnt === 0 ? (def.zero || 0) : cnt % 2 === 0 ? (def.even || 0) : 0;
+        const table = def.table || [0];
+        const pts = table[Math.min(cnt, table.length - 1)] || 0;
         if (pts) out.push({ key: def.key, label: `${def.name}（${cnt}枚）`, pts });
       }
       // ゲーム末判定（霊夢・魔理沙）
